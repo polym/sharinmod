@@ -3,6 +3,7 @@ User schemas for API request/response validation
 """
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
+from typing import Optional
 import re
 
 
@@ -47,6 +48,37 @@ class UserResponse(BaseModel):
     id: int
     email: str
     created_at: datetime
+    
+    model_config = {
+        "from_attributes": True
+    }
+
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile (partial updates allowed)"""
+    name: Optional[str] = Field(None, max_length=100)
+    avatar_url: Optional[str] = Field(None, max_length=500)
+    bio: Optional[str] = Field(None, max_length=500)
+    
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "张三",
+                "avatar_url": "https://example.com/avatar.jpg",
+                "bio": "全栈开发者，喜欢分享API额度"
+            }
+        }
+    }
+
+
+class UserProfileResponse(BaseModel):
+    """Complete user profile response"""
+    id: int
+    email: str
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
     
     model_config = {
         "from_attributes": True

@@ -44,8 +44,8 @@ development_status:
   1-1-xiang-mu-chu-shi-hua: done
   1-2-yong-hu-zhu-ce-api: review
   1-3-yong-hu-deng-lu-api: review
-  1-4-yong-hu-zi-liao-guan-li-api: backlog
-  1-5-yong-hu-token-shi-yong-li-shi-api: backlog
+  1-4-yong-hu-zi-liao-guan-li-api: review
+  1-5-yong-hu-token-shi-yong-li-shi-api: ready-for-dev
   epic-1-retrospective: optional
   epic-2: backlog
   2-1-token-fen-xiang-api: backlog

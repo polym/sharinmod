@@ -16,6 +16,9 @@ class User(SQLModel, table=True):
         hashed_password: Bcrypt hashed password (never store plain text)
         created_at: Timestamp when user was created
         updated_at: Timestamp when user was last updated
+        name: User's display name (optional)
+        avatar_url: URL to user's avatar image (optional)
+        bio: User's biography/description (optional)
     """
     __tablename__ = "users"
     
@@ -24,3 +27,8 @@ class User(SQLModel, table=True):
     hashed_password: str = Field(max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Profile fields
+    name: Optional[str] = Field(default=None, max_length=100)
+    avatar_url: Optional[str] = Field(default=None, max_length=500)
+    bio: Optional[str] = Field(default=None, max_length=500)
