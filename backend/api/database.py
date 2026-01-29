@@ -4,6 +4,8 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.ext.asyncio import session
 
 from api.config import settings
+# Import models so SQLModel knows about them
+from api.models.user import User  # noqa: F401
 
 # connect_args = {"check_same_thread": False}
 
