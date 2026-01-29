@@ -12,6 +12,7 @@ from api.routers.user import router as user_router
 from api.routers.auth import router as auth_router
 from api.routers.token_usage import router as token_usage_router
 from api.routers.shared_token import router as shared_token_router
+from api.routers.unified_token import router as unified_token_router
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
 import redis.asyncio as redis
@@ -65,6 +66,7 @@ def create_app(settings: Settings):
     app.include_router(auth_router)
     app.include_router(token_usage_router)
     app.include_router(shared_token_router)
+    app.include_router(unified_token_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app
