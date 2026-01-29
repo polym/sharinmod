@@ -56,8 +56,8 @@ development_status:
   epic-3: backlog
   3-1-tong-yi-token-sheng-cheng-api: ready-for-dev
   epic-3-retrospective: optional
-  epic-4: backlog
-  4-1-token-fa-xian-api: ready-for-dev
+  epic-4: in-progress
+  4-1-token-fa-xian-api: review
   epic-4-retrospective: optional
   epic-5: backlog
   5-1-token-xiao-fei-api: ready-for-dev

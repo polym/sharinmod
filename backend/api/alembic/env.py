@@ -4,8 +4,11 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-from api.public.people.models import Person
-from api.public.towns.models import Town
+# Import all models for Alembic autogenerate
+from api.models.user import User
+from api.models.token_usage import TokenUsageHistory
+from api.models.shared_token import SharedToken
+from api.models.unified_token import UnifiedToken
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
