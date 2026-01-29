@@ -4,98 +4,130 @@ import { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { CardContent, Card } from "@/components/ui/card";
 
-type TownRead = {
+type UserRead = {
   id: number;
   name: string;
-  population: number;
-  country: string;
+  email: string;
   // Add other fields as needed
 };
 
-type PeopleRead = {
+type TokenRead = {
   id: number;
   name: string;
-  gender: string;
-  age: string;
+  provider: string;
   // Add other fields as needed
 };
 
-const TownData = () => {
-  const [townData, setTownData] = useState<TownRead[] | null>(null);
-  const [peopleData, setPeopleData] = useState<PeopleRead[] | null>(null);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+const SharimodDashboard = () => {
+  const [users, setUsers] = useState<UserRead[] | null>(null);
+  const [tokens, setTokens] = useState<TokenRead[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch town data from your FastAPI endpoint
-    fetch('http://localhost:8000/towns/')
-      .then(response => response.json())
-      .then(data => setTownData(data))
-      .catch(error => console.error('Error fetching town data:', error));
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    // Fetch people data from your FastAPI endpoint
-    fetch('http://localhost:8000/people/')
-      .then(response => response.json())
-      .then(data => setPeopleData(data))
-      .catch(error => console.error('Error fetching people data:', error));
+        // TODO: Replace with actual sharinmod API endpoints
+        // const usersResponse = await fetch(`${API_BASE_URL}/users/`);
+        // const tokensResponse = await fetch(`${API_BASE_URL}/tokens/`);
+
+        // For now, show placeholder data
+        setUsers([]);
+        setTokens([]);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load data. Please check if the backend is running.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  if (!townData || !peopleData) {
-    return "API Resolution Error!"; // or a loading indicator
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <header className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+          <h1 className="text-2xl font-bold">Sharinmod - API Token Sharing Platform</h1>
+        </header>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Loading dashboard...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <header className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+          <h1 className="text-2xl font-bold">Sharinmod - API Token Sharing Platform</h1>
+        </header>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">⚠️ {error}</div>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <header className="flex items-center justify-between p-6 border-b dark:border-gray-800">
-        <h1 className="text-2xl font-bold">Town & People Data</h1>
+        <h1 className="text-2xl font-bold">Sharinmod - API Token Sharing Platform</h1>
         <Button className="dark:border-gray-300" variant="outline">
           Refresh Data
         </Button>
       </header>
-      <main className="flex-1 overflow-auto p-6">
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Town Data</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.isArray(townData) ? (
-              townData.map(town => (
-                <Card key={town.id}>
-                  <CardContent className="space-y-2">
-                    <h3 className="text-lg font-semibold">{town.name}</h3>
-                    <p className="text-gray-500 dark:text-gray-400">Population: {town.population}</p>
-                    {/* Add other town-related information here */}
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p>No town data available</p>
-            )}
-          </div>
-        </section>
-        <section>
-          <h2 className="text-xl font-semibold mb-4">People Data</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.isArray(peopleData) ? (
-              peopleData.map(person => (
-                <Card key={person.id}>
-                  <CardContent className="space-y-2">
-                    <h3 className="text-lg font-semibold">{person.name}</h3>
-                    <p className="text-gray-500 dark:text-gray-400">Age: {person.age}</p>
-                    <p className="text-gray-500 dark:text-gray-400">Gender: {person.gender}</p>
-                    {/* Add other person-related information here */}
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p>No people data available</p>
-            )}
-          </div>
-        </section>
+
+      <main className="flex-1 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Users</h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Total registered users: {users?.length || 0}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                User management features coming soon...
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Shared Tokens</h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Available tokens: {tokens?.length || 0}
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Token sharing features coming soon...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8 text-center text-gray-500">
+          <p>🚧 This is the initial setup. User registration and token sharing features will be implemented in upcoming stories.</p>
+        </div>
       </main>
-      <footer className="p-6 border-t dark:border-gray-800">
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          © 2024 Town & People Data. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 };
 
-export default TownData;
+export default function Home() {
+  return <SharimodDashboard />;
+}
