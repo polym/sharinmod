@@ -7,6 +7,7 @@ from api.config import settings
 # Import models so SQLModel knows about them
 from api.models.user import User  # noqa: F401
 from api.models.token_usage import TokenUsageHistory  # noqa: F401
+from api.models.shared_token import SharedToken  # noqa: F401
 
 # connect_args = {"check_same_thread": False}
 

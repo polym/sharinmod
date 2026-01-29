@@ -48,16 +48,16 @@ development_status:
   1-5-yong-hu-token-shi-yong-li-shi-api: review
   epic-1-retrospective: optional
   epic-2: backlog
-  2-1-token-fen-xiang-api: backlog
+  2-1-token-fen-xiang-api: ready-for-dev
   epic-2-retrospective: optional
   epic-3: backlog
-  3-1-tong-yi-token-sheng-cheng-api: backlog
+  3-1-tong-yi-token-sheng-cheng-api: ready-for-dev
   epic-3-retrospective: optional
   epic-4: backlog
-  4-1-token-fa-xian-api: backlog
+  4-1-token-fa-xian-api: ready-for-dev
   epic-4-retrospective: optional
   epic-5: backlog
-  5-1-token-xiao-fei-api: backlog
+  5-1-token-xiao-fei-api: ready-for-dev
   epic-5-retrospective: optional
   epic-6: backlog
   epic-6-retrospective: optional
