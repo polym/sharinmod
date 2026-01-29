@@ -43,7 +43,7 @@ development_status:
   epic-1: in-progress
   1-1-xiang-mu-chu-shi-hua: done
   1-2-yong-hu-zhu-ce-api: review
-  1-3-yong-hu-deng-lu-api: backlog
+  1-3-yong-hu-deng-lu-api: review
   1-4-yong-hu-zi-liao-guan-li-api: backlog
   1-5-yong-hu-token-shi-yong-li-shi-api: backlog
   epic-1-retrospective: optional
