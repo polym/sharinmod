@@ -11,7 +11,7 @@ export function Header() {
         <div className="flex items-center gap-6">
           <Grid className="w-5 h-5 text-gray-400" />
           <nav className="flex items-center gap-6 text-sm">
-            <Link href="/" className="flex items-center gap-2 text-purple-600 font-medium">
+            <Link href="/marketplace" className="flex items-center gap-2 text-purple-600 font-medium">
               <Grid className="w-4 h-4" />
               Dashboard
             </Link>
@@ -23,7 +23,7 @@ export function Header() {
               <Store className="w-4 h-4" />
               Resources
             </Link>
-            <Link href="#" className="flex items-center gap-2 text-gray-600 hover:text-purple-600">
+            <Link href="/settings" className="flex items-center gap-2 text-gray-600 hover:text-purple-600">
               <User className="w-4 h-4" />
               Account
             </Link>

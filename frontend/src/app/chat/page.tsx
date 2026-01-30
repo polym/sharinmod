@@ -117,98 +117,85 @@ function ChatPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">AI 聊天</h1>
-            <Button variant="outline" onClick={() => router.push('/dashboard')}>
-              返回仪表板
-            </Button>
+    <div className="max-w-4xl mx-auto p-8">
+      <Card className="h-[calc(100vh-12rem)] min-h-[500px] max-h-[800px] flex flex-col">
+        <CardHeader>
+          <CardTitle>与AI对话</CardTitle>
+          <CardDescription>
+            选择一个统一 API Key 开始聊天
+          </CardDescription>
+          <div className="flex gap-4">
+            <Select value={selectedAPIKeyId} onValueChange={setSelectedAPIKeyId}>
+              <SelectTrigger className="w-[300px]">
+                <SelectValue placeholder="选择统一API Key" />
+              </SelectTrigger>
+              <SelectContent>
+                {unifiedAPIKeys.map((apiKey) => (
+                  <SelectItem key={apiKey.id} value={apiKey.id.toString()}>
+                    {apiKey.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      </header>
+        </CardHeader>
 
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <Card className="h-[600px] flex flex-col">
-          <CardHeader>
-            <CardTitle>与AI对话</CardTitle>
-            <CardDescription>
-              使用您的统一API Key与AI模型进行对话
-            </CardDescription>
-            <div className="flex gap-4">
-              <Select value={selectedAPIKeyId} onValueChange={setSelectedAPIKeyId}>
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="选择统一API Key" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unifiedAPIKeys.map((apiKey) => (
-                    <SelectItem key={apiKey.id} value={apiKey.id.toString()}>
-                      {apiKey.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-
-          <CardContent className="flex-1 flex flex-col">
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-4">
-                {messages.map((message, index) => (
+        <CardContent className="flex-1 flex flex-col">
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${
+                    message.role === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
                   <div
-                    key={index}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                      message.role === 'user'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-100 text-gray-900'
                     }`}
                   >
-                    <div
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        message.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-900'
-                      }`}
-                    >
-                      {message.content}
-                    </div>
+                    {message.content}
                   </div>
-                ))}
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-200 text-gray-900 rounded-lg px-4 py-2">
-                      AI正在思考...
-                    </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
+                    AI正在思考...
                   </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            <div className="flex gap-2 mt-4">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="输入您的消息..."
-                disabled={loading || !selectedAPIKeyId}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={loading || !input.trim() || !selectedAPIKeyId}
-              >
-                {loading ? '发送中...' : '发送'}
-              </Button>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </main>
+          </ScrollArea>
+
+          <div className="flex gap-2 mt-4">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="输入您的消息..."
+              disabled={loading || !selectedAPIKeyId}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={loading || !input.trim() || !selectedAPIKeyId}
+            >
+              {loading ? '发送中...' : '发送'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">加载中...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="text-gray-500">加载中...</div></div>}>
       <ChatPageContent />
     </Suspense>
   );

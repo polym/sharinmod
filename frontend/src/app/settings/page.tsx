@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { UnifiedAPIKeys } from '@/components/unified-tokens';
+import { ProfileSettings } from '@/components/profile-settings';
 
-export default function ApiKeysPage() {
+export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -33,7 +33,7 @@ export default function ApiKeysPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <UnifiedAPIKeys />
+      <ProfileSettings />
     </div>
   );
 }

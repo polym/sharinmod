@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { UnifiedAPIKeys } from '@/components/unified-tokens';
+import { MarketplacePage } from '@/components/MarketplacePage';
 
-export default function ApiKeysPage() {
+export default function MarketplaceRoute() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -31,9 +31,5 @@ export default function ApiKeysPage() {
     );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto p-8">
-      <UnifiedAPIKeys />
-    </div>
-  );
+  return <MarketplacePage />;
 }

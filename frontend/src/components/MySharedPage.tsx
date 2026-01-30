@@ -61,12 +61,7 @@ export function MySharedPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">我的共享</h1>
-        <p className="text-gray-500 mt-1">管理您分享的 API Keys</p>
-      </div>
-
+    <div className="max-w-7xl mx-auto p-8">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">

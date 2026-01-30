@@ -14,7 +14,8 @@ import {
   Radio, 
   User, 
   Menu, 
-  X 
+  X,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,10 +49,11 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const mainNavItems = [
-    { icon: <Store className="w-4 h-4" />, label: "广场", href: "/" },
+    { icon: <Store className="w-4 h-4" />, label: "广场", href: "/marketplace" },
     { icon: <Users className="w-4 h-4" />, label: "我的共享", href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: "API Keys", href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: "使用情况", href: "/usage" },
+    { icon: <Settings className="w-4 h-4" />, label: "设置", href: "/settings" },
   ];
 
   const bottomNavItems = [
@@ -84,7 +86,7 @@ export function Sidebar() {
       </div>
 
       {/* Launch Button */}
-      <Button className="w-full mb-4">
+      <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
         <Sparkles className="w-4 h-4 mr-2" />
         Launch an App
       </Button>
