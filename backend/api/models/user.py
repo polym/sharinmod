@@ -32,3 +32,6 @@ class User(SQLModel, table=True):
     name: Optional[str] = Field(default=None, max_length=100)
     avatar_url: Optional[str] = Field(default=None, max_length=500)
     bio: Optional[str] = Field(default=None, max_length=500)
+    
+    # LiteLLM integration
+    litellm_user_id: Optional[str] = Field(default=None, max_length=255)

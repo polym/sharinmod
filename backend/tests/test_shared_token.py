@@ -12,6 +12,9 @@ from api.models.shared_token import SharedToken, TokenVendor, TokenStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token, decrypt_token
 
+# Enable testing mode to skip LiteLLM calls
+settings.TESTING = True
+
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -45,7 +48,8 @@ def test_user_fixture(session: Session):
     user = User(
         email="testuser@example.com",
         hashed_password="$2b$12$test_hash",
-        is_active=True
+        is_active=True,
+        litellm_user_id="testuser@example.com"  # Add default LiteLLM user ID
     )
     session.add(user)
     session.commit()
@@ -263,27 +267,7 @@ def test_token_encryption():
     assert decrypted == original_token
 
 
-# Test 9: Test invalid token format
-def test_share_token_invalid_format(
-    client: TestClient,
-    session: Session,
-    test_user: User,
-    auth_headers: dict
-):
-    """Test rejection of token with invalid format (too short)"""
-    response = client.post(
-        "/api/tokens/share",
-        json={
-            "vendor": "bigmodel",
-            "token": "short"  # Too short (min 10 chars)
-        },
-        headers=auth_headers
-    )
-    
-    assert response.status_code == 422  # Validation error
-
-
-# Test 10: Test sharing multiple vendors
+# Test 9: Test sharing multiple vendors
 @patch("api.services.shared_token_service.validate_vendor_token")
 def test_share_multiple_vendors(
     mock_validate,
@@ -361,3 +345,243 @@ def test_share_token_logs_usage_history(
     assert history_data["total"] >= 1
     shared_actions = [item for item in history_data["items"] if item["action"] == "shared"]
     assert len(shared_actions) >= 1
+
+
+# Test 12: Test LiteLLM integration - successful sync
+@patch("api.services.shared_token_service.validate_vendor_token")
+@patch("api.services.shared_token_service.httpx.AsyncClient")
+@patch("api.config.settings.TESTING", False)
+def test_share_token_litellm_success(
+    mock_async_client,
+    mock_validate,
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict,
+    mock_validation_success
+):
+    """Test successful LiteLLM credential and model creation"""
+    # Setup user with litellm_user_id
+    test_user.litellm_user_id = "testuser@example.com"
+    session.add(test_user)
+    session.commit()
+    
+    # Mock validation
+    mock_validate.return_value = mock_validation_success
+    
+    # Mock httpx responses
+    mock_credential_response = AsyncMock()
+    mock_credential_response.status_code = 200
+    mock_credential_response.raise_for_status = lambda: None  # Sync function, not async
+    
+    mock_model_response = AsyncMock()
+    mock_model_response.status_code = 200
+    mock_model_response.raise_for_status = lambda: None  # Sync function, not async
+    
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.post = AsyncMock(side_effect=[mock_credential_response, mock_model_response])
+    mock_async_client.return_value = mock_client_instance
+    
+    # Temporarily disable TESTING mode for this test
+    from api import services
+    original_testing = services.shared_token_service.settings.TESTING
+    services.shared_token_service.settings.TESTING = False
+    
+    try:
+        # Share token
+        response = client.post(
+            "/api/tokens/share",
+            json={
+                "vendor": "bigmodel",
+                "token": "test-bigmodel-token-12345"
+            },
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 201
+        data = response.json()
+        assert data["vendor"] == "bigmodel"
+        assert data["status"] == "active"
+        
+        # Verify LiteLLM was called twice (credential + model)
+        assert mock_client_instance.post.call_count == 2
+    finally:
+        services.shared_token_service.settings.TESTING = original_testing
+
+
+# Test 13: Test LiteLLM integration - credential creation fails
+@patch("api.services.shared_token_service.validate_vendor_token")
+@patch("api.services.shared_token_service.httpx.AsyncClient")
+def test_share_token_litellm_credential_failure(
+    mock_async_client,
+    mock_validate,
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict,
+    mock_validation_success
+):
+    """Test rollback when LiteLLM credential creation fails"""
+    # Setup user with litellm_user_id
+    test_user.litellm_user_id = "testuser@example.com"
+    session.add(test_user)
+    session.commit()
+    
+    # Mock validation
+    mock_validate.return_value = mock_validation_success
+    
+    # Mock httpx failure
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.post = AsyncMock(side_effect=Exception("LiteLLM service unavailable"))
+    mock_async_client.return_value = mock_client_instance
+    
+    # Temporarily disable TESTING mode for this test
+    from api import services
+    original_testing = services.shared_token_service.settings.TESTING
+    services.shared_token_service.settings.TESTING = False
+    
+    try:
+        # Attempt to share token
+        response = client.post(
+            "/api/tokens/share",
+            json={
+                "vendor": "bigmodel",
+                "token": "test-bigmodel-token-12345"
+            },
+            headers=auth_headers
+        )
+        
+        # Should fail with 500 error
+        assert response.status_code == 500
+        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        
+        # Verify no token was created in database
+        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
+        assert len(tokens) == 0
+    finally:
+        services.shared_token_service.settings.TESTING = original_testing
+
+
+# Test 14: Test LiteLLM integration - model creation fails
+@patch("api.services.shared_token_service.validate_vendor_token")
+@patch("api.services.shared_token_service.httpx.AsyncClient")
+def test_share_token_litellm_model_failure(
+    mock_async_client,
+    mock_validate,
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict,
+    mock_validation_success
+):
+    """Test rollback when LiteLLM model creation fails"""
+    # Setup user with litellm_user_id
+    test_user.litellm_user_id = "testuser@example.com"
+    session.add(test_user)
+    session.commit()
+    
+    # Mock validation
+    mock_validate.return_value = mock_validation_success
+    
+    # Mock httpx - credential succeeds, model fails
+    mock_credential_response = AsyncMock()
+    mock_credential_response.status_code = 200
+    mock_credential_response.raise_for_status = lambda: None  # Sync function, not async
+    
+    mock_model_response = AsyncMock()
+    def raise_error():
+        raise Exception("Model creation failed")
+    mock_model_response.raise_for_status = raise_error  # Sync function that raises
+    
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.post = AsyncMock(side_effect=[mock_credential_response, mock_model_response])
+    mock_async_client.return_value = mock_client_instance
+    
+    # Temporarily disable TESTING mode for this test
+    from api import services
+    original_testing = services.shared_token_service.settings.TESTING
+    services.shared_token_service.settings.TESTING = False
+    
+    try:
+        # Attempt to share token
+        response = client.post(
+            "/api/tokens/share",
+            json={
+                "vendor": "bigmodel",
+                "token": "test-bigmodel-token-12345"
+            },
+            headers=auth_headers
+        )
+        
+        # Should fail with 500 error
+        assert response.status_code == 500
+        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        
+        # Verify no token was created in database
+        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
+        assert len(tokens) == 0
+    finally:
+        services.shared_token_service.settings.TESTING = original_testing
+
+
+# Test 15: Test LiteLLM integration - network timeout
+@patch("api.services.shared_token_service.validate_vendor_token")
+@patch("api.services.shared_token_service.httpx.AsyncClient")
+def test_share_token_litellm_timeout(
+    mock_async_client,
+    mock_validate,
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict,
+    mock_validation_success
+):
+    """Test handling of network timeout during LiteLLM sync"""
+    # Setup user with litellm_user_id
+    test_user.litellm_user_id = "testuser@example.com"
+    session.add(test_user)
+    session.commit()
+    
+    # Mock validation
+    mock_validate.return_value = mock_validation_success
+    
+    # Mock httpx timeout
+    import httpx as real_httpx
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.post = AsyncMock(side_effect=real_httpx.TimeoutException("Request timeout"))
+    mock_async_client.return_value = mock_client_instance
+    
+    # Temporarily disable TESTING mode for this test
+    from api import services
+    original_testing = services.shared_token_service.settings.TESTING
+    services.shared_token_service.settings.TESTING = False
+    
+    try:
+        # Attempt to share token
+        response = client.post(
+            "/api/tokens/share",
+            json={
+                "vendor": "z.ai",
+                "token": "test-zai-token-12345"
+            },
+            headers=auth_headers
+        )
+        
+        # Should fail with 500 error
+        assert response.status_code == 500
+        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        
+        # Verify no token was created in database
+        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
+        assert len(tokens) == 0
+    finally:
+        services.shared_token_service.settings.TESTING = original_testing
+

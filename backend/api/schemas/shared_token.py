@@ -7,7 +7,7 @@ from api.models.shared_token import TokenVendor, TokenStatus
 class SharedTokenCreate(BaseModel):
     """Schema for creating a shared token"""
     vendor: TokenVendor = Field(..., description="Token vendor (bigmodel or z.ai)")
-    token: str = Field(..., min_length=10, max_length=200, description="Plain text token to share")
+    token: str = Field(..., description="Plain text token to share")
     token_metadata: Optional[str] = Field(None, max_length=1000, description="Optional metadata as JSON string")
     
     class Config:

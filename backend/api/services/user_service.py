@@ -4,14 +4,16 @@ User service layer for business logic
 from sqlmodel import Session, select
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+import httpx
 from api.models.user import User
 from api.schemas.user import UserCreate, UserProfileUpdate
 from api.utils.security import hash_password
+from api.config import settings
 
 
-def create_user(db: Session, user_data: UserCreate) -> User:
+async def create_user(db: Session, user_data: UserCreate) -> User:
     """
-    Create a new user with hashed password
+    Create a new user with hashed password and LiteLLM integration
     
     Args:
         db: Database session
@@ -21,7 +23,7 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         Created user object
         
     Raises:
-        ValueError: If email is already registered
+        ValueError: If email is already registered or LiteLLM creation fails
     """
     # Hash the password before storing
     hashed_password = hash_password(user_data.password)
@@ -31,6 +33,23 @@ def create_user(db: Session, user_data: UserCreate) -> User:
         email=user_data.email,
         hashed_password=hashed_password
     )
+    
+    # First, create user in LiteLLM
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{settings.LITELLM_BASE_URL}/user/new",
+                json={"user_id": user_data.email},
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            response.raise_for_status()
+            litellm_data = response.json()
+            litellm_user_id = litellm_data.get("user_id", user_data.email)
+    except Exception as e:
+        raise ValueError(f"Failed to create user in LiteLLM: {str(e)}")
+    
+    # Set the LiteLLM user ID
+    db_user.litellm_user_id = litellm_user_id
     
     # Add to database
     db.add(db_user)

@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SharinMod Frontend
+
+A Next.js frontend application for the SharinMod platform - a token sharing system for AI models.
+
+## Features
+
+- **User Authentication**: Register and login with email/password
+- **Token Sharing**: Share your bigmodel and z.ai API tokens with the community
+- **Token Discovery**: Browse and discover tokens shared by other users
+- **Unified Tokens**: Create unified tokens by combining multiple shared tokens
+- **Token Consumption**: Use unified tokens to make API calls to AI models through a chat interface
+- **Profile Management**: Update your user profile and bio
+- **Usage History**: View your token usage history and statistics
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI primitives with custom components
+- **State Management**: Zustand with persistence
+- **API Client**: Axios with interceptors
+- **Forms**: React Hook Form (planned for complex forms)
+
+## Supported Vendors
+
+- **bigmodel**: https://open.bigmodel.cn/v1 (model: glm-4.7)
+- **z.ai**: https://z.ai/v1 (model: glm-4.7)
 
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Set up environment variables**:
+   Create a `.env.local` file in the root directory:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   ```
+
+3. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser** and navigate to [http://localhost:3000](http://localhost:3000)
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js app router pages
+│   ├── dashboard/         # Main dashboard with token management
+│   ├── login/            # Login page
+│   ├── register/         # Registration page
+│   └── chat/             # Chat interface for token consumption
+├── components/           # Reusable UI components
+│   ├── ui/              # Base UI components (buttons, inputs, etc.)
+│   └── ...              # Feature-specific components
+├── lib/                 # Utility libraries
+│   ├── api.ts          # Axios client configuration
+│   ├── services.ts     # API service functions
+│   └── store.ts        # Zustand state management
+└── types/              # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Available Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run start` - Start the production server
+- `npm run lint` - Run ESLint for code linting
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## API Integration
 
-## Learn More
+The frontend integrates with the SharinMod backend API. Make sure the backend is running and accessible at the URL specified in `NEXT_PUBLIC_API_URL`.
 
-To learn more about Next.js, take a look at the following resources:
+## Authentication
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The app uses JWT tokens for authentication, stored securely in localStorage with automatic API header injection. Invalid tokens trigger automatic logout and redirect to login.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Security Features
 
-## Deploy on Vercel
+- Token encryption for secure storage
+- Privacy protection in token discovery (anonymized usernames)
+- JWT-based authentication with automatic logout on 401 responses
+- Input validation and error handling
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. Follow the existing code style and patterns
+2. Add proper TypeScript types
+3. Include error handling for API calls
+4. Test components and functionality
+5. Update documentation as needed

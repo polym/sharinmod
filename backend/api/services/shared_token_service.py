@@ -5,9 +5,11 @@ from api.utils.encryption import encrypt_token, decrypt_token
 from api.services.token_validation_service import validate_vendor_token
 from api.services.token_usage_service import log_token_usage
 from api.models.token_usage import TokenAction
+from api.config import settings
 from typing import List, Optional, Dict
 from datetime import datetime
 from fastapi import HTTPException
+import httpx
 
 
 def check_vendor_token_exists(session: Session, user_id: int, vendor: TokenVendor) -> bool:
@@ -28,6 +30,73 @@ def check_vendor_token_exists(session: Session, user_id: int, vendor: TokenVendo
     )
     result = session.exec(statement).first()
     return result is not None
+
+
+async def _sync_to_litellm(user: User, vendor: TokenVendor, token: str) -> None:
+    """
+    Sync shared token to LiteLLM by creating credential and model
+    
+    Args:
+        user: User object with litellm_user_id
+        vendor: Token vendor
+        token: Plain text token
+        
+    Raises:
+        Exception: If LiteLLM API calls fail
+    """
+    # Prepare credential and model data
+    credential_name = f"{vendor.value}/{user.email}"
+    api_base = settings.VENDOR_BASE_URLS.get(vendor.value)
+    
+    if not api_base:
+        raise ValueError(f"No API base URL configured for vendor: {vendor.value}")
+    
+    # Verify user has LiteLLM user ID
+    if not user.litellm_user_id:
+        raise ValueError(f"User {user.email} does not have a LiteLLM user ID")
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # Step 1: Create credential in LiteLLM
+        credential_payload = {
+            "credential_name": credential_name,
+            "credential_values": {
+                "api_key": token,
+                "api_base": api_base
+            },
+            "credential_info": {
+                "vendor": vendor.value,
+                "user_email": user.email
+            }
+        }
+        
+        credential_response = await client.post(
+            f"{settings.LITELLM_BASE_URL}/credential",
+            json=credential_payload,
+            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+        )
+        credential_response.raise_for_status()
+        
+        # Step 2: Create model in LiteLLM
+        model_payload = {
+            "model_name": "glm-4.7",
+            "litellm_params": {
+                "model": "glm-4.7",
+                "api_key": f"credential:{credential_name}",
+                "api_base": api_base
+            },
+            "model_info": {
+                "id": user.litellm_user_id,
+                "user_email": user.email,
+                "vendor": vendor.value
+            }
+        }
+        
+        model_response = await client.post(
+            f"{settings.LITELLM_BASE_URL}/model/new",
+            json=model_payload,
+            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+        )
+        model_response.raise_for_status()
 
 
 async def create_shared_token(
@@ -84,6 +153,19 @@ async def create_shared_token(
     session.add(shared_token)
     session.commit()
     session.refresh(shared_token)
+    
+    # Sync with LiteLLM (create credential and model) - skip in testing
+    if not settings.TESTING:
+        try:
+            await _sync_to_litellm(user, vendor, token)
+        except Exception as e:
+            # Rollback local token creation if LiteLLM sync fails
+            session.delete(shared_token)
+            session.commit()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to sync token with LiteLLM: {str(e)}"
+            )
     
     # Log sharing action in usage history
     log_token_usage(

@@ -11,6 +11,9 @@ services:
       - backend
     networks:
       - my-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
   backend:
     build:
@@ -28,6 +31,8 @@ services:
     environment:
       - DATABASE_URI=postgresql://postgres:postgres@db:5432/sharinmod
       - REDIS_DATABASE=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
 
   db:
     image: postgres:15-alpine
