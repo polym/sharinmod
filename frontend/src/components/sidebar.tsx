@@ -9,10 +9,7 @@ import {
   Users, 
   Key, 
   BarChart3, 
-  Grid, 
   Sparkles, 
-  Radio, 
-  User, 
   Menu, 
   X,
   Settings
@@ -48,17 +45,13 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Main navigation items - core business features only, per simplification requirements
   const mainNavItems = [
     { icon: <Store className="w-4 h-4" />, label: "广场", href: "/marketplace" },
     { icon: <Users className="w-4 h-4" />, label: "我的共享", href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: "API Keys", href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: "使用情况", href: "/usage" },
     { icon: <Settings className="w-4 h-4" />, label: "设置", href: "/settings" },
-  ];
-
-  const bottomNavItems = [
-    { icon: <Grid className="w-4 h-4" />, label: "Activity", href: "/activity" },
-    { icon: <Radio className="w-4 h-4" />, label: "Grafana", href: "/grafana" },
   ];
 
   const SidebarContent = () => (
@@ -69,20 +62,6 @@ export function Sidebar() {
           SM
         </div>
         <span className="font-semibold text-gray-900">SharinMod</span>
-      </div>
-
-      {/* Organization Selector */}
-      <div className="mb-4">
-        <div className="text-xs text-gray-500 mb-2 px-2">Organization</div>
-        <button className="w-full px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg text-left text-sm flex items-center justify-between transition-colors">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-purple-600" />
-            <span>Personal</span>
-          </div>
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
       </div>
 
       {/* Launch Button */}
@@ -102,18 +81,6 @@ export function Sidebar() {
             active={pathname === item.href}
           />
         ))}
-        
-        <div className="pt-4 mt-4 border-t border-gray-200">
-          {bottomNavItems.map((item) => (
-            <NavItem
-              key={item.href}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
-              active={pathname === item.href}
-            />
-          ))}
-        </div>
       </nav>
     </>
   );
