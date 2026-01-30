@@ -1,5 +1,5 @@
 """
-Service layer for unified token management
+Service layer for unified API key management
 """
 from sqlmodel import Session, select
 from typing import List, Dict, Optional
@@ -7,29 +7,29 @@ from datetime import datetime
 from fastapi import HTTPException
 import httpx
 
-from api.models.unified_token import UnifiedToken, UnifiedTokenStatus
+from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.models.user import User
-from api.models.token_usage import TokenAction
+from api.models.api_key_usage import APIKeyAction
 from api.utils.token_generator import generate_unified_token, is_token_unique
-from api.services.token_usage_service import log_token_usage
+from api.services.api_key_usage_service import log_api_key_usage
 from api.config import settings
 
 
-MAX_TOKENS_PER_USER = 5
+MAX_API_KEYS_PER_USER = 5
 
 
 async def generate_litellm_key(
     user: User,
-    token_name: Optional[str] = None,
-    token_ids: Optional[List[int]] = None
+    api_key_name: Optional[str] = None,
+    api_key_ids: Optional[List[int]] = None
 ) -> str:
     """
-    Generate a new LiteLLM API key for unified token
+    Generate a new LiteLLM API key for unified API key
     
     Args:
         user: User object with litellm_user_id
-        token_name: Optional name for the key
-        token_ids: Optional list of shared token IDs to associate
+        api_key_name: Optional name for the key
+        api_key_ids: Optional list of shared API key IDs to associate
         
     Returns:
         Generated LiteLLM API key
@@ -46,10 +46,10 @@ async def generate_litellm_key(
     async with httpx.AsyncClient(timeout=10.0) as client:
         payload = {
             "user_id": user.litellm_user_id,
-            "key_alias": token_name or f"unified_token_{datetime.utcnow().isoformat()}",
+            "key_alias": api_key_name or f"unified_api_key_{datetime.utcnow().isoformat()}",
         }
         
-        # Add models if token_ids provided (would need to map token_ids to model names)
+        # Add models if api_key_ids provided (would need to map api_key_ids to model names)
         # For now, we'll allow access to all models the user has access to
         
         try:
@@ -127,7 +127,7 @@ async def delete_litellm_key(key: str) -> None:
 async def regenerate_litellm_key(
     user: User,
     old_key: str,
-    token_name: Optional[str] = None
+    api_key_name: Optional[str] = None
 ) -> str:
     """
     Regenerate a LiteLLM API key (delete old, create new)
@@ -135,7 +135,7 @@ async def regenerate_litellm_key(
     Args:
         user: User object with litellm_user_id
         old_key: Old LiteLLM API key to delete
-        token_name: Optional name for the new key
+        api_key_name: Optional name for the new key
         
     Returns:
         New generated LiteLLM API key
@@ -147,360 +147,360 @@ async def regenerate_litellm_key(
     await delete_litellm_key(old_key)
     
     # Generate new key
-    new_key = await generate_litellm_key(user, token_name)
+    new_key = await generate_litellm_key(user, api_key_name)
     
     return new_key
 
 
-def count_active_user_tokens(session: Session, user_id: int) -> int:
+def count_active_user_api_keys(session: Session, user_id: int) -> int:
     """
-    Count active unified tokens for a user
+    Count active unified API keys for a user
     
     Args:
         session: Database session
         user_id: User ID
         
     Returns:
-        Count of ACTIVE tokens
+        Count of ACTIVE API keys
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.user_id == user_id,
-        UnifiedToken.status == UnifiedTokenStatus.ACTIVE
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.user_id == user_id,
+        UnifiedAPIKey.status == UnifiedAPIKeyStatus.ACTIVE
     )
-    tokens = session.exec(statement).all()
-    return len(tokens)
+    api_keys = session.exec(statement).all()
+    return len(api_keys)
 
 
-async def create_unified_token_async(
+async def create_unified_api_key_async(
     session: Session,
     user: User,
-    token_name: Optional[str] = None
-) -> UnifiedToken:
+    api_key_name: Optional[str] = None
+) -> UnifiedAPIKey:
     """
-    Generate a new unified token for user with LiteLLM integration
+    Generate a new unified API key for user with LiteLLM integration
     
     Args:
         session: Database session
         user: Current authenticated user
-        token_name: Optional user-friendly name
+        api_key_name: Optional user-friendly name
         
     Returns:
-        Created UnifiedToken object with litellm_key
+        Created UnifiedAPIKey object with litellm_key
         
     Raises:
-        HTTPException: If user has reached 5-token limit, token generation fails, or LiteLLM sync fails
+        HTTPException: If user has reached 5-key limit, key generation fails, or LiteLLM sync fails
     """
-    # Check 5-token limit
-    active_count = count_active_user_tokens(session, user.id)
-    if active_count >= MAX_TOKENS_PER_USER:
+    # Check 5-key limit
+    active_count = count_active_user_api_keys(session, user.id)
+    if active_count >= MAX_API_KEYS_PER_USER:
         raise HTTPException(
             status_code=400,
-            detail=f"Maximum {MAX_TOKENS_PER_USER} tokens per user. Please revoke an existing token first."
+            detail=f"Maximum {MAX_API_KEYS_PER_USER} API keys per user. Please revoke an existing API key first."
         )
     
-    # Generate unique token (try up to 10 times)
+    # Generate unique API key (try up to 10 times)
     max_attempts = 10
-    token = None
+    api_key = None
     for _ in range(max_attempts):
         candidate = generate_unified_token()
         if is_token_unique(session, candidate):
-            token = candidate
+            api_key = candidate
             break
     
-    if token is None:
+    if api_key is None:
         raise HTTPException(
             status_code=500,
-            detail="Failed to generate unique token. Please try again."
+            detail="Failed to generate unique API key. Please try again."
         )
     
     # Generate LiteLLM key
     try:
-        litellm_key = await generate_litellm_key(user, token_name)
+        litellm_key = await generate_litellm_key(user, api_key_name)
     except HTTPException as e:
-        # LiteLLM key generation failed, abort token creation
+        # LiteLLM key generation failed, abort API key creation
         raise e
     
-    # Create unified token record with LiteLLM key
-    unified_token = UnifiedToken(
+    # Create unified API key record with LiteLLM key
+    unified_api_key = UnifiedAPIKey(
         user_id=user.id,
-        token=token,
-        status=UnifiedTokenStatus.ACTIVE,
-        token_name=token_name,
+        api_key=api_key,
+        status=UnifiedAPIKeyStatus.ACTIVE,
+        api_key_name=api_key_name,
         litellm_key=litellm_key
     )
     
-    session.add(unified_token)
+    session.add(unified_api_key)
     session.commit()
-    session.refresh(unified_token)
+    session.refresh(unified_api_key)
     
     # Log generation action
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(unified_token.id),
-        action=TokenAction.GENERATED,
-        details=f"Generated unified token: {token_name or 'Unnamed'}"
+        api_key_id=str(unified_api_key.id),
+        action=APIKeyAction.GENERATED,
+        details=f"Generated unified API key: {api_key_name or 'Unnamed'}"
     )
     
-    return unified_token
+    return unified_api_key
 
 
-def get_user_unified_tokens(session: Session, user_id: int) -> List[Dict]:
+def get_user_unified_api_keys(session: Session, user_id: int) -> List[Dict]:
     """
-    Get all unified tokens for a user
+    Get all unified API keys for a user
     
     Args:
         session: Database session
         user_id: User ID
         
     Returns:
-        List of dicts compatible with UnifiedTokenResponse
+        List of dicts compatible with UnifiedAPIKeyResponse
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.user_id == user_id
-    ).order_by(UnifiedToken.created_at.desc())
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.user_id == user_id
+    ).order_by(UnifiedAPIKey.created_at.desc())
     
     results = session.exec(statement).all()
-    return [token.model_dump() for token in results]
+    return [api_key.model_dump() for api_key in results]
 
 
-def revoke_unified_token(
+def revoke_unified_api_key(
     session: Session,
     user: User,
-    token_id: int
+    api_key_id: int
 ) -> None:
     """
-    Revoke a unified token
+    Revoke a unified API key
     
     Args:
         session: Database session
         user: Current authenticated user
-        token_id: Token ID to revoke
+        api_key_id: API key ID to revoke
         
     Raises:
-        HTTPException: If token not found, not owned by user, or already revoked
+        HTTPException: If API key not found, not owned by user, or already revoked
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.id == token_id,
-        UnifiedToken.user_id == user.id
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
     )
     
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or not owned by you"
+            detail="API key not found or not owned by you"
         )
     
-    if token.status == UnifiedTokenStatus.REVOKED:
+    if api_key.status == UnifiedAPIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
-            detail="Token already revoked"
+            detail="API key already revoked"
         )
     
-    # Revoke token
-    token.status = UnifiedTokenStatus.REVOKED
-    token.revoked_at = datetime.utcnow()
+    # Revoke API key
+    api_key.status = UnifiedAPIKeyStatus.REVOKED
+    api_key.revoked_at = datetime.utcnow()
     
-    session.add(token)
+    session.add(api_key)
     session.commit()
     
     # Log revocation action
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(token_id),
-        action=TokenAction.REVOKED,
-        details=f"Revoked unified token: {token.token_name or 'Unnamed'}"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.REVOKED,
+        details=f"Revoked unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
 
 
-async def block_unified_token_async(
+async def block_unified_api_key_async(
     session: Session,
     user: User,
-    token_id: int
+    api_key_id: int
 ) -> None:
     """
-    Block a unified token and its LiteLLM key
+    Block a unified API key and its LiteLLM key
     
     Args:
         session: Database session
         user: Current authenticated user
-        token_id: Token ID to block
+        api_key_id: API key ID to block
         
     Raises:
-        HTTPException: If token not found, not owned by user, already revoked, or LiteLLM block fails
+        HTTPException: If API key not found, not owned by user, already revoked, or LiteLLM block fails
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.id == token_id,
-        UnifiedToken.user_id == user.id
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
     )
     
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or not owned by you"
+            detail="API key not found or not owned by you"
         )
     
-    if token.status == UnifiedTokenStatus.REVOKED:
+    if api_key.status == UnifiedAPIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
-            detail="Token already revoked"
+            detail="API key already revoked"
         )
     
     # Block LiteLLM key if exists
-    if token.litellm_key:
+    if api_key.litellm_key:
         try:
-            await block_litellm_key(token.litellm_key)
+            await block_litellm_key(api_key.litellm_key)
         except HTTPException as e:
             # Log but don't fail if LiteLLM block fails
             import logging
             logging.warning(f"Failed to block LiteLLM key: {e.detail}")
     
-    # Revoke token
-    token.status = UnifiedTokenStatus.REVOKED
-    token.revoked_at = datetime.utcnow()
+    # Revoke API key
+    api_key.status = UnifiedAPIKeyStatus.REVOKED
+    api_key.revoked_at = datetime.utcnow()
     
-    session.add(token)
+    session.add(api_key)
     session.commit()
     
     # Log revocation action
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(token_id),
-        action=TokenAction.REVOKED,
-        details=f"Blocked unified token: {token.token_name or 'Unnamed'}"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.REVOKED,
+        details=f"Blocked unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
 
 
-async def delete_unified_token_async(
+async def delete_unified_api_key_async(
     session: Session,
     user: User,
-    token_id: int
+    api_key_id: int
 ) -> None:
     """
-    Delete a unified token and its LiteLLM key (must be revoked first)
+    Delete a unified API key and its LiteLLM key (must be revoked first)
     
     Args:
         session: Database session
         user: Current authenticated user
-        token_id: Token ID to delete
+        api_key_id: API key ID to delete
         
     Raises:
-        HTTPException: If token not found, not owned by user, not revoked, or LiteLLM delete fails
+        HTTPException: If API key not found, not owned by user, not revoked, or LiteLLM delete fails
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.id == token_id,
-        UnifiedToken.user_id == user.id
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
     )
     
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or not owned by you"
+            detail="API key not found or not owned by you"
         )
     
-    if token.status != UnifiedTokenStatus.REVOKED:
+    if api_key.status != UnifiedAPIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
-            detail="Token must be revoked before deletion. Use block endpoint first."
+            detail="API key must be revoked before deletion. Use block endpoint first."
         )
     
     # Delete LiteLLM key if exists
-    if token.litellm_key:
+    if api_key.litellm_key:
         try:
-            await delete_litellm_key(token.litellm_key)
+            await delete_litellm_key(api_key.litellm_key)
         except HTTPException as e:
             # Log but don't fail if LiteLLM delete fails
             import logging
             logging.warning(f"Failed to delete LiteLLM key: {e.detail}")
     
-    # Delete token
-    session.delete(token)
+    # Delete API key
+    session.delete(api_key)
     session.commit()
     
     # Log deletion action
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(token_id),
-        action=TokenAction.REVOKED,  # Reusing REVOKED as closest action
-        details=f"Deleted unified token: {token.token_name or 'Unnamed'}"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.REVOKED,  # Reusing REVOKED as closest action
+        details=f"Deleted unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
 
 
-async def regenerate_unified_token_async(
+async def regenerate_unified_api_key_async(
     session: Session,
     user: User,
-    token_id: int
-) -> UnifiedToken:
+    api_key_id: int
+) -> UnifiedAPIKey:
     """
-    Regenerate a unified token's LiteLLM key
+    Regenerate a unified API key's LiteLLM key
     
     Args:
         session: Database session
         user: Current authenticated user
-        token_id: Token ID to regenerate
+        api_key_id: API key ID to regenerate
         
     Returns:
-        Updated UnifiedToken with new litellm_key
+        Updated UnifiedAPIKey with new litellm_key
         
     Raises:
-        HTTPException: If token not found, not owned by user, revoked, or LiteLLM regenerate fails
+        HTTPException: If API key not found, not owned by user, revoked, or LiteLLM regenerate fails
     """
-    statement = select(UnifiedToken).where(
-        UnifiedToken.id == token_id,
-        UnifiedToken.user_id == user.id
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
     )
     
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or not owned by you"
+            detail="API key not found or not owned by you"
         )
     
-    if token.status == UnifiedTokenStatus.REVOKED:
+    if api_key.status == UnifiedAPIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
-            detail="Cannot regenerate revoked token"
+            detail="Cannot regenerate revoked API key"
         )
     
     # Regenerate LiteLLM key
-    old_key = token.litellm_key
+    old_key = api_key.litellm_key
     if old_key:
         try:
-            new_key = await regenerate_litellm_key(user, old_key, token.token_name)
+            new_key = await regenerate_litellm_key(user, old_key, api_key.api_key_name)
         except HTTPException as e:
             raise e
     else:
         # If no existing key, generate new one
         try:
-            new_key = await generate_litellm_key(user, token.token_name)
+            new_key = await generate_litellm_key(user, api_key.api_key_name)
         except HTTPException as e:
             raise e
     
-    # Update token with new key
-    token.litellm_key = new_key
+    # Update API key with new key
+    api_key.litellm_key = new_key
     
-    session.add(token)
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
+    session.refresh(api_key)
     
     # Log regeneration action
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(token_id),
-        action=TokenAction.GENERATED,  # Reusing GENERATED as closest action
-        details=f"Regenerated LiteLLM key for unified token: {token.token_name or 'Unnamed'}"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.GENERATED,  # Reusing GENERATED as closest action
+        details=f"Regenerated LiteLLM key for unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
     
-    return token
+    return api_key

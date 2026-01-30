@@ -1,14 +1,14 @@
 """
-Comprehensive tests for Story 3.1: Unified Token Generation API
+Comprehensive tests for Story 3.1: Unified API Key Generation API
 
 Test Coverage:
-- AC#1: Successful token generation with limit check and logging
-- AC#2: 5-token limit enforcement
-- AC#3: Token listing with status and info
-- AC#4: Token revocation with status change and logging
+- AC#1: Successful API key generation with limit check and logging
+- AC#2: 5-API key limit enforcement
+- AC#3: API key listing with status and info
+- AC#4: API key revocation with status change and logging
 - LiteLLM Integration: Key generation, blocking, deletion, regeneration
 - Security: Authentication requirements
-- Edge cases: Token uniqueness, ownership, already-revoked
+- Edge cases: API key uniqueness, ownership, already-revoked
 """
 import pytest
 from fastapi.testclient import TestClient
@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock, patch
 from api.app import create_app
 from api.config import Settings
 from api.models.user import User
-from api.models.unified_token import UnifiedToken, UnifiedTokenStatus
-from api.models.token_usage import TokenUsageHistory
+from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
+from api.models.api_key_usage import APIKeyUsageHistory
 from api.services.auth_service import create_access_token
 from api.database import get_db
 
@@ -71,18 +71,18 @@ def auth_headers_fixture(test_user: User):
     return {"Authorization": f"Bearer {access_token}"}
 
 
-# ==================== AC#1: Successful Token Generation ====================
+# ==================== AC#1: Successful API Key Generation ====================
 
-def test_generate_token_success(
+def test_generate_api_key_success(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test successfully generating a unified token"""
+    """Test successfully generating a unified API key"""
     response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "My First Token"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "My First API Key"},
         headers=auth_headers
     )
     
@@ -91,47 +91,47 @@ def test_generate_token_success(
     
     assert data["user_id"] == test_user.id
     assert data["status"] == "active"
-    assert data["token_name"] == "My First Token"
-    assert "token" in data
-    assert len(data["token"]) > 40  # Base64-encoded 32 bytes is ~44 chars
+    assert data["api_key_name"] == "My First API Key"
+    assert "api_key" in data
+    assert len(data["api_key"]) > 40  # Base64-encoded 32 bytes is ~44 chars
     assert "created_at" in data
     assert data["revoked_at"] is None
 
 
-def test_generate_token_without_name(
+def test_generate_api_key_without_name(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test generating token without optional name"""
+    """Test generating API key without optional name"""
     response = client.post(
-        "/api/tokens/generate",
+        "/api/api-keys/generate",
         json={},
         headers=auth_headers
     )
     
     assert response.status_code == 201
     data = response.json()
-    assert data["token_name"] is None
+    assert data["api_key_name"] is None
 
 
-def test_generate_token_logs_usage_history(
+def test_generate_api_key_logs_usage_history(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that token generation is logged in usage history"""
+    """Test that API key generation is logged in usage history"""
     response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Test Token"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "Test API Key"},
         headers=auth_headers
     )
     assert response.status_code == 201
     
     # Check usage history
-    history_response = client.get("/api/users/me/token-usage", headers=auth_headers)
+    history_response = client.get("/api/users/me/api-key-usage", headers=auth_headers)
     assert history_response.status_code == 200
     history_data = history_response.json()
     
@@ -141,79 +141,79 @@ def test_generate_token_logs_usage_history(
     assert len(generated_actions) >= 1
 
 
-# ==================== AC#2: 5-Token Limit Enforcement ====================
+# ==================== AC#2: 5-API Key Limit Enforcement ====================
 
-def test_generate_token_with_limit(
+def test_generate_api_key_with_limit(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that 6th token generation is rejected"""
-    # Create 5 tokens first
+    """Test that 6th API key generation is rejected"""
+    # Create 5 API keys first
     for i in range(5):
         response = client.post(
-            "/api/tokens/generate",
-            json={"token_name": f"Token {i+1}"},
+            "/api/api-keys/generate",
+            json={"api_key_name": f"API Key {i+1}"},
             headers=auth_headers
         )
         assert response.status_code == 201
     
-    # Try to create 6th token
+    # Try to create 6th API key
     response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Token 6"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "API Key 6"},
         headers=auth_headers
     )
     
     assert response.status_code == 400
-    assert "Maximum 5 tokens" in response.json()["detail"]
+    assert "Maximum 5 API keys" in response.json()["detail"]
 
 
-def test_generate_token_after_revocation(
+def test_generate_api_key_after_revocation(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that revoking a token frees up a slot"""
-    # Create 5 tokens
-    token_ids = []
+    """Test that revoking an API key frees up a slot"""
+    # Create 5 API keys
+    api_key_ids = []
     for i in range(5):
         response = client.post(
-            "/api/tokens/generate",
-            json={"token_name": f"Token {i+1}"},
+            "/api/api-keys/generate",
+            json={"api_key_name": f"API Key {i+1}"},
             headers=auth_headers
         )
         assert response.status_code == 201
-        token_ids.append(response.json()["id"])
+        api_key_ids.append(response.json()["id"])
     
-    # Revoke one token
+    # Revoke one API key
     response = client.delete(
-        f"/api/tokens/generated/{token_ids[0]}",
+        f"/api/api-keys/generated/{api_key_ids[0]}",
         headers=auth_headers
     )
     assert response.status_code == 204
     
-    # Now can create a new token
+    # Now can create a new API key
     response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Token 6"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "API Key 6"},
         headers=auth_headers
     )
     assert response.status_code == 201
 
 
-# ==================== AC#3: Token Listing ====================
+# ==================== AC#3: API Key Listing ====================
 
-def test_get_my_generated_tokens_empty(
+def test_get_my_generated_api_keys_empty(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test listing tokens when user has none"""
-    response = client.get("/api/tokens/my-generated", headers=auth_headers)
+    """Test listing API keys when user has none"""
+    response = client.get("/api/api-keys/my-generated", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -221,80 +221,80 @@ def test_get_my_generated_tokens_empty(
     assert data["items"] == []
 
 
-def test_get_my_generated_tokens_with_data(
+def test_get_my_generated_api_keys_with_data(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test listing tokens with existing data"""
-    # Create 2 tokens
+    """Test listing API keys with existing data"""
+    # Create 2 API keys
     client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Token 1"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "API Key 1"},
         headers=auth_headers
     )
     client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Token 2"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "API Key 2"},
         headers=auth_headers
     )
     
     # Get list
-    response = client.get("/api/tokens/my-generated", headers=auth_headers)
+    response = client.get("/api/api-keys/my-generated", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 2
     assert len(data["items"]) == 2
     # Should be ordered by creation date (newest first)
-    assert data["items"][0]["token_name"] == "Token 2"
-    assert data["items"][1]["token_name"] == "Token 1"
+    assert data["items"][0]["api_key_name"] == "API Key 2"
+    assert data["items"][1]["api_key_name"] == "API Key 1"
 
 
-# ==================== AC#4: Token Revocation ====================
+# ==================== AC#4: API Key Revocation ====================
 
-def test_revoke_token_success(
+def test_revoke_api_key_success(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test successfully revoking a token"""
-    # Create a token
+    """Test successfully revoking an API key"""
+    # Create an API key
     create_response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "To Be Revoked"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "To Be Revoked"},
         headers=auth_headers
     )
     assert create_response.status_code == 201
-    token_id = create_response.json()["id"]
+    api_key_id = create_response.json()["id"]
     
     # Revoke it
     response = client.delete(
-        f"/api/tokens/generated/{token_id}",
+        f"/api/api-keys/generated/{api_key_id}",
         headers=auth_headers
     )
     
     assert response.status_code == 204
     
     # Verify status changed
-    list_response = client.get("/api/tokens/my-generated", headers=auth_headers)
-    tokens = list_response.json()["items"]
-    revoked_token = next(t for t in tokens if t["id"] == token_id)
-    assert revoked_token["status"] == "revoked"
-    assert revoked_token["revoked_at"] is not None
+    list_response = client.get("/api/api-keys/my-generated", headers=auth_headers)
+    api_keys = list_response.json()["items"]
+    revoked_api_key = next(t for t in api_keys if t["id"] == api_key_id)
+    assert revoked_api_key["status"] == "revoked"
+    assert revoked_api_key["revoked_at"] is not None
 
 
-def test_revoke_token_not_found(
+def test_revoke_api_key_not_found(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test revoking non-existent token"""
+    """Test revoking non-existent API key"""
     response = client.delete(
-        "/api/tokens/generated/99999",
+        "/api/api-keys/generated/99999",
         headers=auth_headers
     )
     
@@ -302,26 +302,26 @@ def test_revoke_token_not_found(
     assert "not found" in response.json()["detail"].lower()
 
 
-def test_revoke_token_already_revoked(
+def test_revoke_api_key_already_revoked(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test revoking an already-revoked token"""
-    # Create and revoke a token
+    """Test revoking an already-revoked API key"""
+    # Create and revoke an API key
     create_response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "To Revoke Twice"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "To Revoke Twice"},
         headers=auth_headers
     )
-    token_id = create_response.json()["id"]
+    api_key_id = create_response.json()["id"]
     
-    client.delete(f"/api/tokens/generated/{token_id}", headers=auth_headers)
+    client.delete(f"/api/api-keys/generated/{api_key_id}", headers=auth_headers)
     
     # Try to revoke again
     response = client.delete(
-        f"/api/tokens/generated/{token_id}",
+        f"/api/api-keys/generated/{api_key_id}",
         headers=auth_headers
     )
     
@@ -329,29 +329,29 @@ def test_revoke_token_already_revoked(
     assert "already revoked" in response.json()["detail"].lower()
 
 
-def test_revoke_token_logs_usage_history(
+def test_revoke_api_key_logs_usage_history(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that token revocation is logged"""
-    # Create and revoke a token
+    """Test that API key revocation is logged"""
+    # Create and revoke an API key
     create_response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "To Revoke"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "To Revoke"},
         headers=auth_headers
     )
-    token_id = create_response.json()["id"]
+    api_key_id = create_response.json()["id"]
     
     response = client.delete(
-        f"/api/tokens/generated/{token_id}",
+        f"/api/api-keys/generated/{api_key_id}",
         headers=auth_headers
     )
     assert response.status_code == 204
     
     # Check usage history
-    history_response = client.get("/api/users/me/token-usage", headers=auth_headers)
+    history_response = client.get("/api/users/me/api-key-usage", headers=auth_headers)
     history_data = history_response.json()
     
     # Should have REVOKED action (enum value is lowercase "revoked")
@@ -361,61 +361,61 @@ def test_revoke_token_logs_usage_history(
 
 # ==================== Security: Authentication Requirements ====================
 
-def test_generate_token_without_auth(client: TestClient, session: Session):
-    """Test that token generation requires authentication"""
+def test_generate_api_key_without_auth(client: TestClient, session: Session):
+    """Test that API key generation requires authentication"""
     response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Unauthorized"}
+        "/api/api-keys/generate",
+        json={"api_key_name": "Unauthorized"}
     )
     
     assert response.status_code in [401, 403]  # Either is valid for auth failure
 
 
-def test_get_my_generated_tokens_without_auth(client: TestClient, session: Session):
-    """Test that token listing requires authentication"""
-    response = client.get("/api/tokens/my-generated")
+def test_get_my_generated_api_keys_without_auth(client: TestClient, session: Session):
+    """Test that API key listing requires authentication"""
+    response = client.get("/api/api-keys/my-generated")
     
     assert response.status_code in [401, 403]  # Either is valid for auth failure
 
 
-def test_revoke_token_without_auth(client: TestClient, session: Session):
-    """Test that token revocation requires authentication"""
-    response = client.delete("/api/tokens/generated/1")
+def test_revoke_api_key_without_auth(client: TestClient, session: Session):
+    """Test that API key revocation requires authentication"""
+    response = client.delete("/api/api-keys/generated/1")
     
     assert response.status_code in [401, 403]  # Either is valid for auth failure
 
 
 # ==================== Edge Cases ====================
 
-def test_token_uniqueness(
+def test_api_key_uniqueness(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that generated tokens are unique"""
-    # Generate multiple tokens and verify uniqueness
-    tokens = []
+    """Test that generated API keys are unique"""
+    # Generate multiple API keys and verify uniqueness
+    api_keys = []
     for i in range(3):
         response = client.post(
-            "/api/tokens/generate",
-            json={"token_name": f"Token {i}"},
+            "/api/api-keys/generate",
+            json={"api_key_name": f"API Key {i}"},
             headers=auth_headers
         )
         assert response.status_code == 201
-        tokens.append(response.json()["token"])
+        api_keys.append(response.json()["api_key"])
     
-    # All tokens should be unique
-    assert len(tokens) == len(set(tokens))
+    # All API keys should be unique
+    assert len(api_keys) == len(set(api_keys))
 
 
-def test_revoke_token_not_owned(
+def test_revoke_api_key_not_owned(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test that user cannot revoke another user's token"""
+    """Test that user cannot revoke another user's API key"""
     # Create second user
     other_user = User(
         email="other@example.com",
@@ -425,20 +425,20 @@ def test_revoke_token_not_owned(
     session.commit()
     session.refresh(other_user)
     
-    other_token = create_access_token(data={"sub": other_user.email})
-    other_headers = {"Authorization": f"Bearer {other_token}"}
+    other_access_token = create_access_token(data={"sub": other_user.email})
+    other_headers = {"Authorization": f"Bearer {other_access_token}"}
     
-    # Other user creates a token
+    # Other user creates an API key
     create_response = client.post(
-        "/api/tokens/generate",
-        json={"token_name": "Other's Token"},
+        "/api/api-keys/generate",
+        json={"api_key_name": "Other's API Key"},
         headers=other_headers
     )
-    other_token_id = create_response.json()["id"]
+    other_api_key_id = create_response.json()["id"]
     
     # Test user tries to revoke it
     response = client.delete(
-        f"/api/tokens/generated/{other_token_id}",
+        f"/api/api-keys/generated/{other_api_key_id}",
         headers=auth_headers
     )
     

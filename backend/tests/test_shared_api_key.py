@@ -8,7 +8,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_token import SharedToken, TokenVendor, TokenStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token, decrypt_token
 
@@ -66,27 +66,27 @@ def auth_headers_fixture(test_user: User):
 
 @pytest.fixture(name="mock_validation_success")
 def mock_validation_success_fixture():
-    """Mock successful token validation"""
+    """Mock successful API key validation"""
     return {
         "valid": True,
-        "message": "Token validation successful",
-        "vendor_info": {"vendor": "bigmodel", "status_code": 200}
+        "message": "API key validation successful",
+        "provider_info": {"provider": "bigmodel", "status_code": 200}
     }
 
 
 @pytest.fixture(name="mock_validation_failure")
 def mock_validation_failure_fixture():
-    """Mock failed token validation"""
+    """Mock failed API key validation"""
     return {
         "valid": False,
-        "message": "Token authentication failed - invalid credentials",
-        "vendor_info": None
+        "message": "API key authentication failed - invalid credentials",
+        "provider_info": None
     }
 
 
-# Test 1: Successfully share a token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_share_token_success(
+# Test 1: Successfully share an API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_share_api_key_success(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -94,31 +94,31 @@ def test_share_token_success(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test successfully sharing a token"""
+    """Test successfully sharing an API key"""
     # Mock returns the success dict directly (not a coroutine)
     mock_validate.return_value = mock_validation_success
     
     response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-bigmodel-token-12345",
-            "token_metadata": '{"name": "My BigModel Token"}'
+            "provider": "bigmodel",
+            "api_key": "test-bigmodel-api-key-12345",
+            "api_key_metadata": '{"name": "My BigModel API Key"}'
         },
         headers=auth_headers
     )
     
     assert response.status_code == 201
     data = response.json()
-    assert data["vendor"] == "bigmodel"
+    assert data["provider"] == "bigmodel"
     assert data["status"] == "active"
     assert data["total_uses"] == 0
-    assert "encrypted_token" not in data  # Should never expose encrypted token
+    assert "encrypted_api_key" not in data  # Should never expose encrypted API key
 
 
-# Test 2: Reject duplicate vendor token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_share_token_duplicate_vendor(
+# Test 2: Reject duplicate provider API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_share_api_key_duplicate_provider(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -126,37 +126,37 @@ def test_share_token_duplicate_vendor(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test rejection of duplicate vendor token"""
+    """Test rejection of duplicate provider API key"""
     mock_validate.return_value = mock_validation_success
     
-    # Share first token
+    # Share first API key
     client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-bigmodel-token-12345"
+            "provider": "bigmodel",
+            "api_key": "test-bigmodel-api-key-12345"
         },
         headers=auth_headers
     )
     
-    # Try to share second token for same vendor
+    # Try to share second API key for same provider
     response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "another-bigmodel-token"
+            "provider": "bigmodel",
+            "api_key": "another-bigmodel-api-key"
         },
         headers=auth_headers
     )
     
     assert response.status_code == 400
-    assert "already have a token" in response.json()["detail"].lower()
+    assert "already have an api key" in response.json()["detail"].lower()
     assert "bigmodel" in response.json()["detail"]
 
 
-# Test 3: Reject invalid token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_share_token_invalid(
+# Test 3: Reject invalid API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_share_api_key_invalid(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -164,14 +164,14 @@ def test_share_token_invalid(
     auth_headers: dict,
     mock_validation_failure
 ):
-    """Test rejection of invalid token"""
+    """Test rejection of invalid API key"""
     mock_validate.return_value = mock_validation_failure
     
     response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "invalid-token-12345"
+            "provider": "bigmodel",
+            "api_key": "invalid-api-key-12345"
         },
         headers=auth_headers
     )
@@ -181,28 +181,28 @@ def test_share_token_invalid(
 
 
 # Test 4: Require authentication for sharing
-def test_share_token_without_auth(client: TestClient):
+def test_share_api_key_without_auth(client: TestClient):
     """Test that sharing requires authentication"""
     response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         }
     )
     
     assert response.status_code in [401, 403]  # Either is acceptable for unauthenticated
 
 
-# Test 5: Get my shared tokens (empty)
-def test_get_my_shared_tokens_empty(
+# Test 5: Get my shared API keys (empty)
+def test_get_my_shared_api_keys_empty(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test getting shared tokens when none exist"""
-    response = client.get("/api/tokens/my-shared", headers=auth_headers)
+    """Test getting shared API keys when none exist"""
+    response = client.get("/api/api-keys/my-shared", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -210,9 +210,9 @@ def test_get_my_shared_tokens_empty(
     assert data["items"] == []
 
 
-# Test 6: Get my shared tokens (with data)
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_get_my_shared_tokens_with_data(
+# Test 6: Get my shared API keys (with data)
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_get_my_shared_api_keys_with_data(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -220,56 +220,56 @@ def test_get_my_shared_tokens_with_data(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test getting shared tokens with existing data"""
+    """Test getting shared API keys with existing data"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token
+    # Share an API key
     client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
     
-    # Get shared tokens
-    response = client.get("/api/tokens/my-shared", headers=auth_headers)
+    # Get shared API keys
+    response = client.get("/api/api-keys/my-shared", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
     assert len(data["items"]) == 1
-    assert data["items"][0]["vendor"] == "bigmodel"
+    assert data["items"][0]["provider"] == "bigmodel"
     assert data["items"][0]["status"] == "active"
 
 
-# Test 7: Require authentication for getting shared tokens
-def test_get_my_shared_tokens_without_auth(client: TestClient):
-    """Test that getting shared tokens requires authentication"""
-    response = client.get("/api/tokens/my-shared")
+# Test 7: Require authentication for getting shared API keys
+def test_get_my_shared_api_keys_without_auth(client: TestClient):
+    """Test that getting shared API keys requires authentication"""
+    response = client.get("/api/api-keys/my-shared")
     
     assert response.status_code in [401, 403]  # Either is acceptable for unauthenticated
 
 
-# Test 8: Test token encryption/decryption
-def test_token_encryption():
-    """Test that token encryption and decryption work correctly"""
-    original_token = "test-secret-token-12345"
+# Test 8: Test API key encryption/decryption
+def test_api_key_encryption():
+    """Test that API key encryption and decryption work correctly"""
+    original_api_key = "test-secret-api-key-12345"
     
     # Encrypt
-    encrypted = encrypt_token(original_token)
-    assert encrypted != original_token
-    assert len(encrypted) > len(original_token)
+    encrypted = encrypt_token(original_api_key)
+    assert encrypted != original_api_key
+    assert len(encrypted) > len(original_api_key)
     
     # Decrypt
     decrypted = decrypt_token(encrypted)
-    assert decrypted == original_token
+    assert decrypted == original_api_key
 
 
-# Test 9: Test sharing multiple vendors
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_share_multiple_vendors(
+# Test 9: Test sharing multiple providers
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_share_multiple_providers(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -277,44 +277,44 @@ def test_share_multiple_vendors(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that user can share tokens from different vendors"""
+    """Test that user can share API keys from different providers"""
     mock_validate.return_value = mock_validation_success
     
-    # Share bigmodel token
+    # Share bigmodel API key
     response1 = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-bigmodel-token"
+            "provider": "bigmodel",
+            "api_key": "test-bigmodel-api-key"
         },
         headers=auth_headers
     )
     assert response1.status_code == 201
     
-    # Share z.ai token
+    # Share z.ai API key
     response2 = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "z.ai",
-            "token": "test-zai-token"
+            "provider": "z.ai",
+            "api_key": "test-zai-api-key"
         },
         headers=auth_headers
     )
     assert response2.status_code == 201
     
     # Check we have both
-    response3 = client.get("/api/tokens/my-shared", headers=auth_headers)
+    response3 = client.get("/api/api-keys/my-shared", headers=auth_headers)
     assert response3.status_code == 200
     data = response3.json()
     assert data["total"] == 2
-    vendors = [item["vendor"] for item in data["items"]]
-    assert "bigmodel" in vendors
-    assert "z.ai" in vendors
+    providers = [item["provider"] for item in data["items"]]
+    assert "bigmodel" in providers
+    assert "z.ai" in providers
 
 
-# Test 11: Test token sharing logs usage history
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_share_token_logs_usage_history(
+# Test 11: Test API key sharing logs usage history
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_share_api_key_logs_usage_history(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -322,22 +322,22 @@ def test_share_token_logs_usage_history(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that token sharing is logged in usage history"""
+    """Test that API key sharing is logged in usage history"""
     mock_validate.return_value = mock_validation_success
     
-    # Share token
+    # Share API key
     response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
     assert response.status_code == 201
     
     # Check usage history
-    history_response = client.get("/api/users/me/token-usage", headers=auth_headers)
+    history_response = client.get("/api/users/me/api-key-usage", headers=auth_headers)
     assert history_response.status_code == 200
     history_data = history_response.json()
     
@@ -348,10 +348,10 @@ def test_share_token_logs_usage_history(
 
 
 # Test 12: Test LiteLLM integration - successful sync
-@patch("api.services.shared_token_service.validate_vendor_token")
-@patch("api.services.shared_token_service.httpx.AsyncClient")
+@patch("api.services.shared_api_key_service.validate_api_key")
+@patch("api.services.shared_api_key_service.httpx.AsyncClient")
 @patch("api.config.settings.TESTING", False)
-def test_share_token_litellm_success(
+def test_share_api_key_litellm_success(
     mock_async_client,
     mock_validate,
     client: TestClient,
@@ -386,35 +386,35 @@ def test_share_token_litellm_success(
     
     # Temporarily disable TESTING mode for this test
     from api import services
-    original_testing = services.shared_token_service.settings.TESTING
-    services.shared_token_service.settings.TESTING = False
+    original_testing = services.shared_api_key_service.settings.TESTING
+    services.shared_api_key_service.settings.TESTING = False
     
     try:
-        # Share token
+        # Share API key
         response = client.post(
-            "/api/tokens/share",
+            "/api/api-keys/share",
             json={
-                "vendor": "bigmodel",
-                "token": "test-bigmodel-token-12345"
+                "provider": "bigmodel",
+                "api_key": "test-bigmodel-api-key-12345"
             },
             headers=auth_headers
         )
         
         assert response.status_code == 201
         data = response.json()
-        assert data["vendor"] == "bigmodel"
+        assert data["provider"] == "bigmodel"
         assert data["status"] == "active"
         
         # Verify LiteLLM was called twice (credential + model)
         assert mock_client_instance.post.call_count == 2
     finally:
-        services.shared_token_service.settings.TESTING = original_testing
+        services.shared_api_key_service.settings.TESTING = original_testing
 
 
 # Test 13: Test LiteLLM integration - credential creation fails
-@patch("api.services.shared_token_service.validate_vendor_token")
-@patch("api.services.shared_token_service.httpx.AsyncClient")
-def test_share_token_litellm_credential_failure(
+@patch("api.services.shared_api_key_service.validate_api_key")
+@patch("api.services.shared_api_key_service.httpx.AsyncClient")
+def test_share_api_key_litellm_credential_failure(
     mock_async_client,
     mock_validate,
     client: TestClient,
@@ -441,35 +441,35 @@ def test_share_token_litellm_credential_failure(
     
     # Temporarily disable TESTING mode for this test
     from api import services
-    original_testing = services.shared_token_service.settings.TESTING
-    services.shared_token_service.settings.TESTING = False
+    original_testing = services.shared_api_key_service.settings.TESTING
+    services.shared_api_key_service.settings.TESTING = False
     
     try:
-        # Attempt to share token
+        # Attempt to share API key
         response = client.post(
-            "/api/tokens/share",
+            "/api/api-keys/share",
             json={
-                "vendor": "bigmodel",
-                "token": "test-bigmodel-token-12345"
+                "provider": "bigmodel",
+                "api_key": "test-bigmodel-api-key-12345"
             },
             headers=auth_headers
         )
         
         # Should fail with 500 error
         assert response.status_code == 500
-        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        assert "Failed to sync API key with LiteLLM" in response.json()["detail"]
         
-        # Verify no token was created in database
-        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
-        assert len(tokens) == 0
+        # Verify no API key was created in database
+        api_keys = session.query(SharedAPIKey).filter_by(user_id=test_user.id).all()
+        assert len(api_keys) == 0
     finally:
-        services.shared_token_service.settings.TESTING = original_testing
+        services.shared_api_key_service.settings.TESTING = original_testing
 
 
 # Test 14: Test LiteLLM integration - model creation fails
-@patch("api.services.shared_token_service.validate_vendor_token")
-@patch("api.services.shared_token_service.httpx.AsyncClient")
-def test_share_token_litellm_model_failure(
+@patch("api.services.shared_api_key_service.validate_api_key")
+@patch("api.services.shared_api_key_service.httpx.AsyncClient")
+def test_share_api_key_litellm_model_failure(
     mock_async_client,
     mock_validate,
     client: TestClient,
@@ -505,35 +505,35 @@ def test_share_token_litellm_model_failure(
     
     # Temporarily disable TESTING mode for this test
     from api import services
-    original_testing = services.shared_token_service.settings.TESTING
-    services.shared_token_service.settings.TESTING = False
+    original_testing = services.shared_api_key_service.settings.TESTING
+    services.shared_api_key_service.settings.TESTING = False
     
     try:
-        # Attempt to share token
+        # Attempt to share API key
         response = client.post(
-            "/api/tokens/share",
+            "/api/api-keys/share",
             json={
-                "vendor": "bigmodel",
-                "token": "test-bigmodel-token-12345"
+                "provider": "bigmodel",
+                "api_key": "test-bigmodel-api-key-12345"
             },
             headers=auth_headers
         )
         
         # Should fail with 500 error
         assert response.status_code == 500
-        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        assert "Failed to sync API key with LiteLLM" in response.json()["detail"]
         
-        # Verify no token was created in database
-        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
-        assert len(tokens) == 0
+        # Verify no API key was created in database
+        api_keys = session.query(SharedAPIKey).filter_by(user_id=test_user.id).all()
+        assert len(api_keys) == 0
     finally:
-        services.shared_token_service.settings.TESTING = original_testing
+        services.shared_api_key_service.settings.TESTING = original_testing
 
 
 # Test 15: Test LiteLLM integration - network timeout
-@patch("api.services.shared_token_service.validate_vendor_token")
-@patch("api.services.shared_token_service.httpx.AsyncClient")
-def test_share_token_litellm_timeout(
+@patch("api.services.shared_api_key_service.validate_api_key")
+@patch("api.services.shared_api_key_service.httpx.AsyncClient")
+def test_share_api_key_litellm_timeout(
     mock_async_client,
     mock_validate,
     client: TestClient,
@@ -561,27 +561,26 @@ def test_share_token_litellm_timeout(
     
     # Temporarily disable TESTING mode for this test
     from api import services
-    original_testing = services.shared_token_service.settings.TESTING
-    services.shared_token_service.settings.TESTING = False
+    original_testing = services.shared_api_key_service.settings.TESTING
+    services.shared_api_key_service.settings.TESTING = False
     
     try:
-        # Attempt to share token
+        # Attempt to share API key
         response = client.post(
-            "/api/tokens/share",
+            "/api/api-keys/share",
             json={
-                "vendor": "z.ai",
-                "token": "test-zai-token-12345"
+                "provider": "z.ai",
+                "api_key": "test-zai-api-key-12345"
             },
             headers=auth_headers
         )
         
         # Should fail with 500 error
         assert response.status_code == 500
-        assert "Failed to sync token with LiteLLM" in response.json()["detail"]
+        assert "Failed to sync API key with LiteLLM" in response.json()["detail"]
         
-        # Verify no token was created in database
-        tokens = session.query(SharedToken).filter_by(user_id=test_user.id).all()
-        assert len(tokens) == 0
+        # Verify no API key was created in database
+        api_keys = session.query(SharedAPIKey).filter_by(user_id=test_user.id).all()
+        assert len(api_keys) == 0
     finally:
-        services.shared_token_service.settings.TESTING = original_testing
-
+        services.shared_api_key_service.settings.TESTING = original_testing

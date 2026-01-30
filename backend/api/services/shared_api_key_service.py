@@ -1,10 +1,10 @@
 from sqlmodel import Session, select
-from api.models.shared_token import SharedToken, TokenVendor, TokenStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.models.user import User
 from api.utils.encryption import encrypt_token, decrypt_token
-from api.services.token_validation_service import validate_vendor_token
-from api.services.token_usage_service import log_token_usage
-from api.models.token_usage import TokenAction
+from api.services.api_key_validation_service import validate_api_key
+from api.services.api_key_usage_service import log_api_key_usage
+from api.models.api_key_usage import APIKeyAction
 from api.config import settings
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -13,44 +13,44 @@ import httpx
 import json
 
 
-def check_vendor_token_exists(session: Session, user_id: int, vendor: TokenVendor) -> bool:
+def check_provider_api_key_exists(session: Session, user_id: int, provider: APIKeyProvider) -> bool:
     """
-    Check if user already has a token for this vendor
+    Check if user already has an API key for this provider
     
     Args:
         session: Database session
         user_id: User ID
-        vendor: Token vendor
+        provider: API key provider
         
     Returns:
-        True if token exists for this vendor, False otherwise
+        True if API key exists for this provider, False otherwise
     """
-    statement = select(SharedToken).where(
-        SharedToken.user_id == user_id,
-        SharedToken.vendor == vendor
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.user_id == user_id,
+        SharedAPIKey.provider == provider
     )
     result = session.exec(statement).first()
     return result is not None
 
 
-async def _sync_to_litellm(user: User, vendor: TokenVendor, token: str) -> None:
+async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -> None:
     """
-    Sync shared token to LiteLLM by creating credential and model
+    Sync shared API key to LiteLLM by creating credential and model
     
     Args:
         user: User object with litellm_user_id
-        vendor: Token vendor
-        token: Plain text token
+        provider: API key provider
+        api_key: Plain text API key
         
     Raises:
         Exception: If LiteLLM API calls fail
     """
     # Prepare credential and model data
-    credential_name = f"{vendor.value}/{user.email}"
-    api_base = settings.VENDOR_BASE_URLS.get(vendor.value)
+    credential_name = f"{provider.value}/{user.email}"
+    api_base = settings.VENDOR_BASE_URLS.get(provider.value)
     
     if not api_base:
-        raise ValueError(f"No API base URL configured for vendor: {vendor.value}")
+        raise ValueError(f"No API base URL configured for provider: {provider.value}")
     
     # Verify user has LiteLLM user ID
     if not user.litellm_user_id:
@@ -60,7 +60,7 @@ async def _sync_to_litellm(user: User, vendor: TokenVendor, token: str) -> None:
         # Step 1: Check if credential exists, update if exists, create if not
         credential_payload = {
             "credential_values": {
-                "api_key": token,
+                "api_key": api_key,
                 "api_base": api_base
             },
             "credential_info": {
@@ -131,142 +131,142 @@ async def _sync_to_litellm(user: User, vendor: TokenVendor, token: str) -> None:
         return model_response.json()["model_id"]
 
 
-async def create_shared_token(
+async def create_shared_api_key(
     session: Session,
     user: User,
-    vendor: TokenVendor,
-    token: str,
-    token_metadata: Optional[str] = None
+    provider: APIKeyProvider,
+    api_key: str,
+    api_key_metadata: Optional[str] = None
 ) -> Dict[str, any]:
     """
-    Create a new shared token with validation
+    Create a new shared API key with validation
     
     Args:
         session: Database session
         user: Current authenticated user
-        vendor: Token vendor
-        token: Plain text token to share
-        token_metadata: Optional metadata JSON string
+        provider: API key provider
+        api_key: Plain text API key to share
+        api_key_metadata: Optional metadata JSON string
         
     Returns:
-        Dict with created token info and validation result
+        Dict with created API key info and validation result
         
     Raises:
-        HTTPException: If duplicate vendor or validation fails
+        HTTPException: If duplicate provider or validation fails
     """
-    # Check if user already has a token for this vendor
-    if check_vendor_token_exists(session, user.id, vendor):
+    # Check if user already has an API key for this provider
+    if check_provider_api_key_exists(session, user.id, provider):
         raise HTTPException(
             status_code=400,
-            detail=f"You already have a token for {vendor.value}. Each account can only add one token per vendor."
+            detail=f"You already have an API key for {provider.value}. Each account can only add one API key per provider."
         )
     
-    # Validate token with vendor API
-    validation_result = await validate_vendor_token(vendor, token)
+    # Validate API key with provider API
+    validation_result = await validate_api_key(provider, api_key)
     
     if not validation_result["valid"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Token validation failed: {validation_result['message']}"
+            detail=f"API key validation failed: {validation_result['message']}"
         )
     
-    # Encrypt token before storage
-    encrypted = encrypt_token(token)
+    # Encrypt API key before storage
+    encrypted = encrypt_token(api_key)
     
-    # Create shared token record
-    shared_token = SharedToken(
+    # Create shared API key record
+    shared_api_key = SharedAPIKey(
         user_id=user.id,
-        vendor=vendor,
-        encrypted_token=encrypted,
-        status=TokenStatus.ACTIVE,
-        token_metadata=token_metadata
+        provider=provider,
+        encrypted_api_key=encrypted,
+        status=APIKeyStatus.ACTIVE,
+        api_key_metadata=api_key_metadata
     )
     
-    session.add(shared_token)
+    session.add(shared_api_key)
     session.commit()
-    session.refresh(shared_token)
+    session.refresh(shared_api_key)
     
     # Sync with LiteLLM (create credential and model) - skip in testing
     if not settings.TESTING:
         try:
-            model_id = await _sync_to_litellm(user, vendor, token)
-            shared_token.litellm_model_id = model_id
+            model_id = await _sync_to_litellm(user, provider, api_key)
+            shared_api_key.litellm_model_id = model_id
         except Exception as e:
-            # Rollback local token creation if LiteLLM sync fails
-            session.delete(shared_token)
+            # Rollback local API key creation if LiteLLM sync fails
+            session.delete(shared_api_key)
             session.commit()
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to sync token with LiteLLM: {str(e)}"
+                detail=f"Failed to sync API key with LiteLLM: {str(e)}"
             )
     
     # Log sharing action in usage history
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user.id,
-        token_id=str(shared_token.id),
-        action=TokenAction.SHARED,
-        details=f"Shared {vendor.value} token"
+        api_key_id=str(shared_api_key.id),
+        action=APIKeyAction.SHARED,
+        details=f"Shared {provider.value} API key"
     )
     
     return {
-        "token": shared_token,
+        "api_key": shared_api_key,
         "validation": validation_result
     }
 
 
-def get_user_shared_tokens(session: Session, user_id: int) -> List[Dict]:
+def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     """
-    Get all shared tokens for a user
+    Get all shared API keys for a user
     
     Args:
         session: Database session
         user_id: User ID
         
     Returns:
-        List of dicts compatible with SharedTokenResponse
+        List of dicts compatible with SharedAPIKeyResponse
     """
-    statement = select(SharedToken).where(
-        SharedToken.user_id == user_id
-    ).order_by(SharedToken.created_at.desc())
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.user_id == user_id
+    ).order_by(SharedAPIKey.created_at.desc())
     
     results = session.exec(statement).all()
     
-    # Convert to dicts (Pydantic will handle SharedTokenResponse validation)
-    return [token.model_dump() for token in results]
+    # Convert to dicts (Pydantic will handle SharedAPIKeyResponse validation)
+    return [api_key.model_dump() for api_key in results]
 
 
-async def disable_shared_token(session: Session, token_id: int, user_id: int) -> SharedToken:
+async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int) -> SharedAPIKey:
     """
-    Disable a shared token and remove it from LiteLLM
+    Disable a shared API key and remove it from LiteLLM
     
     Args:
         session: Database session
-        token_id: Token ID to disable
+        api_key_id: API key ID to disable
         user_id: User ID (for authorization check)
         
     Returns:
-        Updated SharedToken
+        Updated SharedAPIKey
         
     Raises:
-        HTTPException: If token not found, not owned by user, or LiteLLM sync fails
+        HTTPException: If API key not found, not owned by user, or LiteLLM sync fails
     """
-    # Get token and verify ownership
-    statement = select(SharedToken).where(
-        SharedToken.id == token_id,
-        SharedToken.user_id == user_id
+    # Get API key and verify ownership
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.id == api_key_id,
+        SharedAPIKey.user_id == user_id
     )
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or you don't have permission to modify it"
+            detail="API key not found or you don't have permission to modify it"
         )
     
     # Check if already inactive
-    if token.status == TokenStatus.INACTIVE:
-        return token
+    if api_key.status == APIKeyStatus.INACTIVE:
+        return api_key
     
     # Get user info for LiteLLM sync
     user_statement = select(User).where(User.id == user_id)
@@ -276,26 +276,26 @@ async def disable_shared_token(session: Session, token_id: int, user_id: int) ->
         raise HTTPException(status_code=404, detail="User not found")
     
     # Store original status for rollback
-    original_status = token.status
+    original_status = api_key.status
     
     # Update status to INACTIVE
-    token.status = TokenStatus.INACTIVE
-    token.updated_at = datetime.utcnow()
-    session.add(token)
+    api_key.status = APIKeyStatus.INACTIVE
+    api_key.updated_at = datetime.utcnow()
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
+    session.refresh(api_key)
     
     # Sync with LiteLLM - delete the model and credential (skip in testing)
     if not settings.TESTING:
         try:
-            credential_name = f"{token.vendor.value}/{user.email}"
+            credential_name = f"{api_key.provider.value}/{user.email}"
             
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Delete model from LiteLLM if model_id exists
-                if token.litellm_model_id:
+                if api_key.litellm_model_id:
                     # Check if model exists before deleting
                     model_check_response = await client.get(
-                        f"{settings.LITELLM_BASE_URL}/models/{token.litellm_model_id}",
+                        f"{settings.LITELLM_BASE_URL}/models/{api_key.litellm_model_id}",
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
                     if model_check_response.status_code == 500:
@@ -304,7 +304,7 @@ async def disable_shared_token(session: Session, token_id: int, user_id: int) ->
                     if model_check_response.status_code == 200:
                         delete_response = await client.post(
                             f"{settings.LITELLM_BASE_URL}/model/delete",
-                            json={"id": token.litellm_model_id},
+                            json={"id": api_key.litellm_model_id},
                             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                         )
                         if delete_response.status_code == 500:
@@ -337,67 +337,65 @@ async def disable_shared_token(session: Session, token_id: int, user_id: int) ->
                 
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
-            token.status = original_status
-            token.updated_at = datetime.utcnow()
-            session.add(token)
+            api_key.status = original_status
+            api_key.updated_at = datetime.utcnow()
+            session.add(api_key)
             session.commit()
-            session.refresh(token)
+            session.refresh(api_key)
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to sync disable with LiteLLM: {str(e)}"
             )
     
     # Log the disable action
-    # Note: Using SHARED action as TokenAction enum doesn't have DISABLED
-    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user_id,
-        token_id=str(token_id),
-        action=TokenAction.SHARED,
-        details=f"Disabled {token.vendor.value} token"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.SHARED,
+        details=f"Disabled {api_key.provider.value} API key"
     )
     
-    return token
+    return api_key
 
 
-async def enable_shared_token(session: Session, token_id: int, user_id: int) -> SharedToken:
+async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int) -> SharedAPIKey:
     """
-    Enable a shared token and add it back to LiteLLM
+    Enable a shared API key and add it back to LiteLLM
     
     Args:
         session: Database session
-        token_id: Token ID to enable
+        api_key_id: API key ID to enable
         user_id: User ID (for authorization check)
         
     Returns:
-        Updated SharedToken
+        Updated SharedAPIKey
         
     Raises:
-        HTTPException: If token not found, not owned by user, or LiteLLM sync fails
+        HTTPException: If API key not found, not owned by user, or LiteLLM sync fails
     """
-    # Get token and verify ownership
-    statement = select(SharedToken).where(
-        SharedToken.id == token_id,
-        SharedToken.user_id == user_id
+    # Get API key and verify ownership
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.id == api_key_id,
+        SharedAPIKey.user_id == user_id
     )
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
-    if not token:
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or you don't have permission to modify it"
+            detail="API key not found or you don't have permission to modify it"
         )
     
     # Check if already active
-    if token.status == TokenStatus.ACTIVE:
-        return token
+    if api_key.status == APIKeyStatus.ACTIVE:
+        return api_key
     
-    # Cannot enable revoked tokens
-    if token.status == TokenStatus.REVOKED:
+    # Cannot enable revoked API keys
+    if api_key.status == APIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
-            detail="Cannot enable a revoked token"
+            detail="Cannot enable a revoked API key"
         )
     
     # Get user info for LiteLLM sync
@@ -408,81 +406,79 @@ async def enable_shared_token(session: Session, token_id: int, user_id: int) -> 
         raise HTTPException(status_code=404, detail="User not found")
     
     # Store original status for rollback
-    original_status = token.status
+    original_status = api_key.status
     
     # Update status to ACTIVE
-    token.status = TokenStatus.ACTIVE
-    token.updated_at = datetime.utcnow()
-    session.add(token)
+    api_key.status = APIKeyStatus.ACTIVE
+    api_key.updated_at = datetime.utcnow()
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
+    session.refresh(api_key)
     
     # Sync with LiteLLM - recreate the model (skip in testing)
     if not settings.TESTING:
         try:
-            # Decrypt token to get plain text for LiteLLM
-            plain_token = decrypt_token(token.encrypted_token)
-            model_id = await _sync_to_litellm(user, token.vendor, plain_token)
-            token.litellm_model_id = model_id
-            session.add(token)
+            # Decrypt API key to get plain text for LiteLLM
+            plain_api_key = decrypt_token(api_key.encrypted_api_key)
+            model_id = await _sync_to_litellm(user, api_key.provider, plain_api_key)
+            api_key.litellm_model_id = model_id
+            session.add(api_key)
             session.commit()
-            session.refresh(token)
+            session.refresh(api_key)
             
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
-            token.status = original_status
-            token.updated_at = datetime.utcnow()
-            session.add(token)
+            api_key.status = original_status
+            api_key.updated_at = datetime.utcnow()
+            session.add(api_key)
             session.commit()
-            session.refresh(token)
+            session.refresh(api_key)
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to sync enable with LiteLLM: {str(e)}"
             )
     
     # Log the enable action
-    # Note: Using SHARED action as TokenAction enum doesn't have ENABLED
-    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user_id,
-        token_id=str(token_id),
-        action=TokenAction.SHARED,
-        details=f"Enabled {token.vendor.value} token"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.SHARED,
+        details=f"Enabled {api_key.provider.value} API key"
     )
     
-    return token
+    return api_key
 
 
-async def delete_shared_token(session: Session, token_id: int, user_id: int) -> None:
+async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int) -> None:
     """
-    Delete a shared token and remove it from LiteLLM
+    Delete a shared API key and remove it from LiteLLM
     
-    This operation is idempotent for repeated deletion of the same token,
-    but will return 404 if trying to delete a token that doesn't exist
+    This operation is idempotent for repeated deletion of the same API key,
+    but will return 404 if trying to delete an API key that doesn't exist
     or belongs to another user (for security).
     
     Args:
         session: Database session
-        token_id: Token ID to delete
+        api_key_id: API key ID to delete
         user_id: User ID (for authorization check)
         
     Raises:
-        HTTPException: If token not found/not owned by user, or LiteLLM sync fails
+        HTTPException: If API key not found/not owned by user, or LiteLLM sync fails
     """
-    # Get token and verify ownership
-    statement = select(SharedToken).where(
-        SharedToken.id == token_id,
-        SharedToken.user_id == user_id
+    # Get API key and verify ownership
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.id == api_key_id,
+        SharedAPIKey.user_id == user_id
     )
-    token = session.exec(statement).first()
+    api_key = session.exec(statement).first()
     
     # Return 404 for non-existent or unauthorized access
-    # This is important for security - don't reveal if a token_id exists
-    if not token:
+    # This is important for security - don't reveal if an api_key_id exists
+    if not api_key:
         raise HTTPException(
             status_code=404,
-            detail="Token not found or you don't have permission to delete it"
+            detail="API key not found or you don't have permission to delete it"
         )
     
     # Get user info for LiteLLM sync
@@ -495,13 +491,13 @@ async def delete_shared_token(session: Session, token_id: int, user_id: int) -> 
     # Sync with LiteLLM - delete model and credential (skip in testing)
     if not settings.TESTING:
         try:
-            credential_name = f"{token.vendor.value}/{user.email}"
+            credential_name = f"{api_key.provider.value}/{user.email}"
             
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Check if model exists before deleting
-                if token.litellm_model_id:
+                if api_key.litellm_model_id:
                     model_check_response = await client.get(
-                        f"{settings.LITELLM_BASE_URL}/models/{token.litellm_model_id}",
+                        f"{settings.LITELLM_BASE_URL}/models/{api_key.litellm_model_id}",
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
                     if model_check_response.status_code == 500:
@@ -511,7 +507,7 @@ async def delete_shared_token(session: Session, token_id: int, user_id: int) -> 
                         # Delete model from LiteLLM
                         delete_model_response = await client.post(
                             f"{settings.LITELLM_BASE_URL}/model/delete",
-                            json={"id": token.litellm_model_id},
+                            json={"id": api_key.litellm_model_id},
                             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                         )
                         if delete_model_response.status_code == 500:
@@ -553,16 +549,14 @@ async def delete_shared_token(session: Session, token_id: int, user_id: int) -> 
             )
     
     # Log the delete action before deletion
-    # Note: Using SHARED action as TokenAction enum doesn't have DELETED
-    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
-    log_token_usage(
+    log_api_key_usage(
         db=session,
         user_id=user_id,
-        token_id=str(token_id),
-        action=TokenAction.SHARED,
-        details=f"Deleted {token.vendor.value} token"
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.SHARED,
+        details=f"Deleted {api_key.provider.value} API key"
     )
     
     # Delete from database
-    session.delete(token)
+    session.delete(api_key)
     session.commit()

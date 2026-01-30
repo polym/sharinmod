@@ -10,10 +10,10 @@ from api.database import create_db_and_tables, initialize_sharinmod_data, get_db
 from api.public.routes import public_router
 from api.routers.user import router as user_router
 from api.routers.auth import router as auth_router
-from api.routers.token_usage import router as token_usage_router
-from api.routers.shared_token import router as shared_token_router
-from api.routers.unified_token import router as unified_token_router
-from api.routers.token_discovery import router as token_discovery_router
+from api.routers.api_key_usage import router as api_key_usage_router
+from api.routers.shared_api_key import router as shared_api_key_router
+from api.routers.unified_api_key import router as unified_api_key_router
+from api.routers.api_key_discovery import router as api_key_discovery_router
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
 import redis.asyncio as redis
@@ -65,10 +65,10 @@ def create_app(settings: Settings):
     app.include_router(public_router)
     app.include_router(user_router)
     app.include_router(auth_router)
-    app.include_router(token_usage_router)
-    app.include_router(shared_token_router)
-    app.include_router(unified_token_router)
-    app.include_router(token_discovery_router)
+    app.include_router(api_key_usage_router)
+    app.include_router(shared_api_key_router)
+    app.include_router(unified_api_key_router)
+    app.include_router(api_key_discovery_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app

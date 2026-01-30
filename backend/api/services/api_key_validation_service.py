@@ -1,17 +1,17 @@
 import httpx
-from api.models.shared_token import TokenVendor
+from api.models.shared_api_key import APIKeyProvider
 from typing import Dict, Optional
 
 
-# Vendor API configurations
-VENDOR_CONFIGS = {
-    TokenVendor.BIGMODEL: {
+# Provider API configurations
+PROVIDER_CONFIGS = {
+    APIKeyProvider.BIGMODEL: {
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "test_endpoint": "/models",
         "header_name": "Authorization",
         "test_model": "glm-4"
     },
-    TokenVendor.ZAI: {
+    APIKeyProvider.ZAI: {
         "base_url": "https://api.z.ai/v1",
         "test_endpoint": "/models",
         "header_name": "Authorization",
@@ -20,35 +20,35 @@ VENDOR_CONFIGS = {
 }
 
 
-async def validate_vendor_token(vendor: TokenVendor, token: str) -> Dict[str, any]:
+async def validate_api_key(provider: APIKeyProvider, api_key: str) -> Dict[str, any]:
     """
-    Validate token by making a test API call to vendor
+    Validate API key by making a test API call to provider
     
     Args:
-        vendor: Token vendor (bigmodel or z.ai)
-        token: Plain text token to validate
+        provider: API key provider (bigmodel or z.ai)
+        api_key: Plain text API key to validate
         
     Returns:
         Dict with validation result:
         {
             "valid": bool,
             "message": str,
-            "vendor_info": Optional[Dict]
+            "provider_info": Optional[Dict]
         }
         
     Raises:
-        ValueError: If vendor is not supported
+        ValueError: If provider is not supported
     """
-    if vendor not in VENDOR_CONFIGS:
-        raise ValueError(f"Unsupported vendor: {vendor}")
+    if provider not in PROVIDER_CONFIGS:
+        raise ValueError(f"Unsupported provider: {provider}")
     
-    config = VENDOR_CONFIGS[vendor]
+    config = PROVIDER_CONFIGS[provider]
     url = f"{config['base_url']}{config['test_endpoint']}"
     
     # Prepare authorization header
-    # For most OpenAI-compatible APIs, format is "Bearer <token>"
+    # For most OpenAI-compatible APIs, format is "Bearer <api_key>"
     headers = {
-        config["header_name"]: f"Bearer {token}"
+        config["header_name"]: f"Bearer {api_key}"
     }
     
     try:
@@ -59,36 +59,36 @@ async def validate_vendor_token(vendor: TokenVendor, token: str) -> Dict[str, an
             if 200 <= response.status_code < 300:
                 return {
                     "valid": True,
-                    "message": "Token validation successful",
-                    "vendor_info": {
-                        "vendor": vendor,
+                    "message": "API key validation successful",
+                    "provider_info": {
+                        "provider": provider,
                         "status_code": response.status_code
                     }
                 }
-            # 401/403 means invalid token
+            # 401/403 means invalid API key
             elif response.status_code in [401, 403]:
                 return {
                     "valid": False,
-                    "message": "Token authentication failed - invalid credentials",
-                    "vendor_info": None
+                    "message": "API key authentication failed - invalid credentials",
+                    "provider_info": None
                 }
             # Other errors
             else:
                 return {
                     "valid": False,
-                    "message": f"Token validation failed - vendor returned {response.status_code}",
-                    "vendor_info": None
+                    "message": f"API key validation failed - provider returned {response.status_code}",
+                    "provider_info": None
                 }
                 
     except httpx.TimeoutException:
         return {
             "valid": False,
-            "message": "Token validation timeout - vendor API unreachable",
-            "vendor_info": None
+            "message": "API key validation timeout - provider API unreachable",
+            "provider_info": None
         }
     except Exception as e:
         return {
             "valid": False,
-            "message": f"Token validation error: {str(e)}",
-            "vendor_info": None
+            "message": f"API key validation error: {str(e)}",
+            "provider_info": None
         }

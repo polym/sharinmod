@@ -1,55 +1,55 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
-from api.models.shared_token import TokenVendor, TokenStatus
+from api.models.shared_api_key import APIKeyProvider, APIKeyStatus
 
 
-class SharedTokenCreate(BaseModel):
-    """Schema for creating a shared token"""
-    vendor: TokenVendor = Field(..., description="Token vendor (bigmodel or z.ai)")
-    token: str = Field(..., description="Plain text token to share")
-    token_metadata: Optional[str] = Field(None, max_length=1000, description="Optional metadata as JSON string")
+class SharedAPIKeyCreate(BaseModel):
+    """Schema for creating a shared API key"""
+    provider: APIKeyProvider = Field(..., description="API key provider (bigmodel or z.ai)")
+    api_key: str = Field(..., description="Plain text API key to share")
+    api_key_metadata: Optional[str] = Field(None, max_length=1000, description="Optional metadata as JSON string")
     
     class Config:
         schema_extra = {
             "example": {
-                "vendor": "bigmodel",
-                "token": "your-api-token-here",
-                "token_metadata": '{"name": "My BigModel Token", "purpose": "Sharing"}'
+                "provider": "bigmodel",
+                "api_key": "your-api-key-here",
+                "api_key_metadata": '{"name": "My BigModel API Key", "purpose": "Sharing"}'
             }
         }
 
 
-class SharedTokenResponse(BaseModel):
-    """Shared token response (never includes decrypted token)"""
+class SharedAPIKeyResponse(BaseModel):
+    """Shared API key response (never includes decrypted API key)"""
     id: int
-    vendor: TokenVendor
-    status: TokenStatus
+    provider: APIKeyProvider
+    status: APIKeyStatus
     created_at: datetime
     updated_at: datetime
     last_used_at: Optional[datetime]
     total_uses: int
-    token_metadata: Optional[str]
+    api_key_metadata: Optional[str]
     
     class Config:
         schema_extra = {
             "example": {
                 "id": 1,
-                "vendor": "bigmodel",
+                "provider": "bigmodel",
                 "status": "active",
                 "created_at": "2026-01-29T10:00:00Z",
                 "updated_at": "2026-01-29T10:00:00Z",
                 "last_used_at": None,
                 "total_uses": 0,
-                "token_metadata": '{"name": "My BigModel Token"}'
+                "api_key_metadata": '{"name": "My BigModel API Key"}'
             }
         }
 
 
-class SharedTokenList(BaseModel):
-    """List of shared tokens"""
+class SharedAPIKeyList(BaseModel):
+    """List of shared API keys"""
     total: int
-    items: List[SharedTokenResponse]
+    items: List[SharedAPIKeyResponse]
     
     class Config:
         schema_extra = {
@@ -58,13 +58,13 @@ class SharedTokenList(BaseModel):
                 "items": [
                     {
                         "id": 1,
-                        "vendor": "bigmodel",
+                        "provider": "bigmodel",
                         "status": "active",
                         "created_at": "2026-01-29T10:00:00Z",
                         "updated_at": "2026-01-29T10:00:00Z",
                         "last_used_at": None,
                         "total_uses": 0,
-                        "token_metadata": None
+                        "api_key_metadata": None
                     }
                 ]
             }

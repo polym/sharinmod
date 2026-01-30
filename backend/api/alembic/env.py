@@ -7,9 +7,9 @@ import os
 
 # Import all models for Alembic autogenerate
 from api.models.user import User
-from api.models.token_usage import TokenUsageHistory
-from api.models.shared_token import SharedToken
-from api.models.unified_token import UnifiedToken
+from api.models.api_key_usage import APIKeyUsageHistory
+from api.models.shared_api_key import SharedAPIKey
+from api.models.unified_api_key import UnifiedAPIKey
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

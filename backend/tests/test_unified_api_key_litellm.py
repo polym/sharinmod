@@ -1,10 +1,10 @@
 """
-Tests for LiteLLM integration in unified tokens
+Tests for LiteLLM integration in unified API keys
 
 Test Coverage:
-- LiteLLM key generation on token creation
-- LiteLLM key blocking on token block
-- LiteLLM key deletion on token deletion  
+- LiteLLM key generation on API key creation
+- LiteLLM key blocking on API key block
+- LiteLLM key deletion on API key deletion  
 - LiteLLM key regeneration
 - Error handling for missing litellm_user_id
 """
@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, patch
 from api.app import create_app
 from api.config import Settings
 from api.models.user import User
-from api.models.unified_token import UnifiedToken, UnifiedTokenStatus
+from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.services.auth_service import create_access_token
 from api.database import get_db
 
@@ -70,16 +70,16 @@ def auth_headers_fixture(test_user: User):
 
 # ==================== LiteLLM Integration Tests ====================
 
-@patch('api.services.unified_token_service.httpx.AsyncClient')
+@patch('api.services.unified_api_key_service.httpx.AsyncClient')
 @pytest.mark.asyncio
-async def test_create_unified_token_with_litellm_key(
+async def test_create_unified_api_key_with_litellm_key(
     mock_client,
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test creating unified token generates LiteLLM key"""
+    """Test creating unified API key generates LiteLLM key"""
     # Mock LiteLLM API response
     mock_response = AsyncMock()
     mock_response.status_code = 200
@@ -90,10 +90,10 @@ async def test_create_unified_token_with_litellm_key(
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     
-    # Create unified token
+    # Create unified API key
     response = client.post(
-        "/api/tokens/unified",
-        json={"token_name": "Test Token"},
+        "/api/api-keys/unified",
+        json={"api_key_name": "Test API Key"},
         headers=auth_headers
     )
     
@@ -103,27 +103,27 @@ async def test_create_unified_token_with_litellm_key(
     assert data["litellm_key"] == "sk-litellm-test-key-12345"
 
 
-@patch('api.services.unified_token_service.httpx.AsyncClient')
+@patch('api.services.unified_api_key_service.httpx.AsyncClient')
 @pytest.mark.asyncio
-async def test_block_unified_token(
+async def test_block_unified_api_key(
     mock_client,
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test blocking a unified token blocks LiteLLM key"""
-    # First create a token
-    token = UnifiedToken(
+    """Test blocking a unified API key blocks LiteLLM key"""
+    # First create an API key
+    api_key = UnifiedAPIKey(
         user_id=test_user.id,
-        token="test_token_123",
-        status=UnifiedTokenStatus.ACTIVE,
-        token_name="Test Token",
+        api_key="test_api_key_123",
+        status=UnifiedAPIKeyStatus.ACTIVE,
+        api_key_name="Test API Key",
         litellm_key="sk-litellm-test-key-12345"
     )
-    session.add(token)
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
+    session.refresh(api_key)
     
     # Mock LiteLLM API response
     mock_response = AsyncMock()
@@ -134,43 +134,43 @@ async def test_block_unified_token(
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     
-    # Block the token
+    # Block the API key
     response = client.put(
-        f"/api/tokens/unified/{token.id}/block",
+        f"/api/api-keys/unified/{api_key.id}/block",
         headers=auth_headers
     )
     
     assert response.status_code == 204
     
-    # Verify token is revoked in database
-    session.refresh(token)
-    assert token.status == UnifiedTokenStatus.REVOKED
-    assert token.revoked_at is not None
+    # Verify API key is revoked in database
+    session.refresh(api_key)
+    assert api_key.status == UnifiedAPIKeyStatus.REVOKED
+    assert api_key.revoked_at is not None
 
 
-@patch('api.services.unified_token_service.httpx.AsyncClient')
+@patch('api.services.unified_api_key_service.httpx.AsyncClient')
 @pytest.mark.asyncio
-async def test_delete_unified_token(
+async def test_delete_unified_api_key(
     mock_client,
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test deleting a revoked unified token deletes LiteLLM key"""
-    # Create a revoked token
-    token = UnifiedToken(
+    """Test deleting a revoked unified API key deletes LiteLLM key"""
+    # Create a revoked API key
+    api_key = UnifiedAPIKey(
         user_id=test_user.id,
-        token="test_token_456",
-        status=UnifiedTokenStatus.REVOKED,
-        token_name="Test Token",
+        api_key="test_api_key_456",
+        status=UnifiedAPIKeyStatus.REVOKED,
+        api_key_name="Test API Key",
         litellm_key="sk-litellm-test-key-67890",
         revoked_at=datetime.utcnow()
     )
-    session.add(token)
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
-    token_id = token.id
+    session.refresh(api_key)
+    api_key_id = api_key.id
     
     # Mock LiteLLM API response
     mock_response = AsyncMock()
@@ -181,41 +181,41 @@ async def test_delete_unified_token(
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
     
-    # Delete the token
+    # Delete the API key
     response = client.delete(
-        f"/api/tokens/unified/{token_id}",
+        f"/api/api-keys/unified/{api_key_id}",
         headers=auth_headers
     )
     
     assert response.status_code == 204
     
-    # Verify token is deleted from database
-    statement = select(UnifiedToken).where(UnifiedToken.id == token_id)
+    # Verify API key is deleted from database
+    statement = select(UnifiedAPIKey).where(UnifiedAPIKey.id == api_key_id)
     result = session.exec(statement).first()
     assert result is None
 
 
-@patch('api.services.unified_token_service.httpx.AsyncClient')
+@patch('api.services.unified_api_key_service.httpx.AsyncClient')
 @pytest.mark.asyncio
-async def test_regenerate_unified_token(
+async def test_regenerate_unified_api_key(
     mock_client,
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
-    """Test regenerating LiteLLM key for a unified token"""
-    # Create a token
-    token = UnifiedToken(
+    """Test regenerating LiteLLM key for a unified API key"""
+    # Create an API key
+    api_key = UnifiedAPIKey(
         user_id=test_user.id,
-        token="test_token_789",
-        status=UnifiedTokenStatus.ACTIVE,
-        token_name="Test Token",
+        api_key="test_api_key_789",
+        status=UnifiedAPIKeyStatus.ACTIVE,
+        api_key_name="Test API Key",
         litellm_key="sk-litellm-old-key-11111"
     )
-    session.add(token)
+    session.add(api_key)
     session.commit()
-    session.refresh(token)
+    session.refresh(api_key)
     
     # Mock LiteLLM API responses (delete old + generate new)
     mock_delete_response = AsyncMock()
@@ -233,7 +233,7 @@ async def test_regenerate_unified_token(
     
     # Regenerate the key
     response = client.post(
-        f"/api/tokens/unified/{token.id}/regenerate",
+        f"/api/api-keys/unified/{api_key.id}/regenerate",
         headers=auth_headers
     )
     
@@ -243,11 +243,11 @@ async def test_regenerate_unified_token(
     assert data["litellm_key"] != "sk-litellm-old-key-11111"
 
 
-def test_create_token_without_litellm_user_id(
+def test_create_api_key_without_litellm_user_id(
     client: TestClient,
     session: Session
 ):
-    """Test that token creation fails if user has no litellm_user_id"""
+    """Test that API key creation fails if user has no litellm_user_id"""
     # Create user without litellm_user_id
     user = User(
         email="nolitellm@example.com",
@@ -260,10 +260,10 @@ def test_create_token_without_litellm_user_id(
     access_token = create_access_token(data={"sub": user.email})
     headers = {"Authorization": f"Bearer {access_token}"}
     
-    # Try to create unified token
+    # Try to create unified API key
     response = client.post(
-        "/api/tokens/unified",
-        json={"token_name": "Test Token"},
+        "/api/api-keys/unified",
+        json={"api_key_name": "Test API Key"},
         headers=headers
     )
     

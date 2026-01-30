@@ -9,7 +9,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_token import SharedToken, TokenVendor, TokenStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token
 
@@ -65,35 +65,35 @@ def users_fixture(session: Session):
     return {"user_a": user_a, "user_b": user_b, "user_c": user_c}
 
 
-@pytest.fixture(name="shared_tokens")
-def shared_tokens_fixture(session: Session, users):
-    """Create shared tokens from User B and User C"""
-    # User B shares a bigmodel token
-    token_b = SharedToken(
+@pytest.fixture(name="shared_api_keys")
+def shared_api_keys_fixture(session: Session, users):
+    """Create shared API keys from User B and User C"""
+    # User B shares a bigmodel API key
+    api_key_b = SharedAPIKey(
         user_id=users["user_b"].id,
-        vendor=TokenVendor.BIGMODEL,
-        encrypted_token=encrypt_token("userb-bigmodel-token"),
-        status=TokenStatus.ACTIVE,
+        provider=APIKeyProvider.BIGMODEL,
+        encrypted_api_key=encrypt_token("userb-bigmodel-api-key"),
+        status=APIKeyStatus.ACTIVE,
         total_uses=5,
         created_at=datetime.utcnow()
     )
     
-    # User C shares a z.ai token
-    token_c = SharedToken(
+    # User C shares a z.ai API key
+    api_key_c = SharedAPIKey(
         user_id=users["user_c"].id,
-        vendor=TokenVendor.ZAI,
-        encrypted_token=encrypt_token("userc-zai-token"),
-        status=TokenStatus.ACTIVE,
+        provider=APIKeyProvider.ZAI,
+        encrypted_api_key=encrypt_token("userc-zai-api-key"),
+        status=APIKeyStatus.ACTIVE,
         total_uses=10,
         created_at=datetime.utcnow()
     )
     
-    session.add(token_b)
-    session.add(token_c)
+    session.add(api_key_b)
+    session.add(api_key_c)
     session.commit()
-    session.refresh(token_b)
-    session.refresh(token_c)
-    return {"token_b": token_b, "token_c": token_c}
+    session.refresh(api_key_b)
+    session.refresh(api_key_c)
+    return {"api_key_b": api_key_b, "api_key_c": api_key_c}
 
 
 @pytest.fixture(name="auth_headers")
@@ -106,10 +106,10 @@ def auth_headers_fixture(users):
     }
 
 
-def test_discover_tokens_success(client, users, shared_tokens, auth_headers):
-    """Test successful token discovery"""
+def test_discover_api_keys_success(client, users, shared_api_keys, auth_headers):
+    """Test successful API key discovery"""
     response = client.get(
-        "/api/tokens/discover",
+        "/api/api-keys/discover",
         headers=auth_headers["user_a"]
     )
     
@@ -122,44 +122,44 @@ def test_discover_tokens_success(client, users, shared_tokens, auth_headers):
     assert "total" in data
     assert "items" in data
     
-    # Should have 2 tokens (from User B and C)
+    # Should have 2 API keys (from User B and C)
     assert data["total"] == 2
     assert len(data["items"]) == 2
     
     # Check structure of items
     for item in data["items"]:
         assert "id" in item
-        assert "vendor" in item
+        assert "provider" in item
         assert "provider_username" in item
         assert "shared_duration_days" in item
         assert "total_uses" in item
         assert "created_at" in item
         
-        # Should NOT contain token value
-        assert "token" not in item
-        assert "encrypted_token" not in item
+        # Should NOT contain API key value
+        assert "api_key" not in item
+        assert "encrypted_api_key" not in item
 
 
-def test_discover_excludes_own_tokens(client, users, shared_tokens, auth_headers):
-    """Test that user's own tokens are excluded"""
-    # User B should not see their own bigmodel token
+def test_discover_excludes_own_api_keys(client, users, shared_api_keys, auth_headers):
+    """Test that user's own API keys are excluded"""
+    # User B should not see their own bigmodel API key
     response = client.get(
-        "/api/tokens/discover",
+        "/api/api-keys/discover",
         headers=auth_headers["user_b"]
     )
     
     assert response.status_code == 200
     data = response.json()
     
-    # Should only see User C's token (1 token)
+    # Should only see User C's API key (1 API key)
     assert data["total"] == 1
     assert data["items"][0]["provider_username"] == "userc"
 
 
-def test_discover_provider_username_anonymized(client, users, shared_tokens, auth_headers):
+def test_discover_provider_username_anonymized(client, users, shared_api_keys, auth_headers):
     """Test that provider username is anonymized (email prefix only)"""
     response = client.get(
-        "/api/tokens/discover",
+        "/api/api-keys/discover",
         headers=auth_headers["user_a"]
     )
     
@@ -176,11 +176,11 @@ def test_discover_provider_username_anonymized(client, users, shared_tokens, aut
         assert "@" not in item["provider_username"]
 
 
-def test_discover_pagination(client, users, shared_tokens, auth_headers):
-    """Test pagination of token discovery"""
+def test_discover_pagination(client, users, shared_api_keys, auth_headers):
+    """Test pagination of API key discovery"""
     # Request page 1 with page_size=1
     response = client.get(
-        "/api/tokens/discover?page=1&page_size=1",
+        "/api/api-keys/discover?page=1&page_size=1",
         headers=auth_headers["user_a"]
     )
     
@@ -194,7 +194,7 @@ def test_discover_pagination(client, users, shared_tokens, auth_headers):
     
     # Request page 2
     response = client.get(
-        "/api/tokens/discover?page=2&page_size=1",
+        "/api/api-keys/discover?page=2&page_size=1",
         headers=auth_headers["user_a"]
     )
     
@@ -207,14 +207,14 @@ def test_discover_pagination(client, users, shared_tokens, auth_headers):
 
 def test_discover_without_auth(client):
     """Test discovery without authentication"""
-    response = client.get("/api/tokens/discover")
+    response = client.get("/api/api-keys/discover")
     assert response.status_code == 403
 
 
-def test_discover_statistics_fields(client, users, shared_tokens, auth_headers):
+def test_discover_statistics_fields(client, users, shared_api_keys, auth_headers):
     """Test that statistics fields are present and valid"""
     response = client.get(
-        "/api/tokens/discover",
+        "/api/api-keys/discover",
         headers=auth_headers["user_a"]
     )
     

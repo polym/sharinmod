@@ -4,50 +4,51 @@ from typing import Optional
 from enum import Enum
 
 
-class TokenVendor(str, Enum):
-    """Supported token vendors"""
+class APIKeyProvider(str, Enum):
+    """Supported API key providers"""
     BIGMODEL = "bigmodel"      # 智谱AI - https://open.bigmodel.cn
     ZAI = "z.ai"               # Z.AI - https://z.ai
 
 
-class TokenStatus(str, Enum):
-    """Token sharing status"""
+class APIKeyStatus(str, Enum):
+    """API key sharing status"""
     ACTIVE = "active"           # Available for sharing
     INACTIVE = "inactive"       # Temporarily unavailable
     REVOKED = "revoked"         # Permanently revoked
 
 
-class SharedToken(SQLModel, table=True):
+class SharedAPIKey(SQLModel, table=True):
     """
-    Shared tokens stored securely with encryption
+    Shared API keys stored securely with encryption
     
     Attributes:
         id: Primary key
-        user_id: Foreign key to users table (token owner)
-        vendor: Token vendor (bigmodel or z.ai)
-        encrypted_token: AES-256 encrypted token value
+        user_id: Foreign key to users table (API key owner)
+        provider: API key provider (bigmodel or z.ai)
+        encrypted_api_key: AES-256 encrypted API key value
         status: Current status (active, inactive, revoked)
-        created_at: When token was shared
+        created_at: When API key was shared
         updated_at: Last status update
-        last_used_at: Last time token was used
+        last_used_at: Last time API key was used
         total_uses: Total number of times consumed
-        token_metadata: JSON string with additional info (e.g., token name)
+        api_key_metadata: JSON string with additional info (e.g., API key name)
+        litellm_model_id: Model ID from LiteLLM
     """
-    __tablename__ = "shared_tokens"
+    __tablename__ = "shared_api_keys"
     
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
-    vendor: TokenVendor = Field(index=True)
-    encrypted_token: str = Field(max_length=500)  # Encrypted value
-    status: TokenStatus = Field(default=TokenStatus.ACTIVE, index=True)
+    provider: APIKeyProvider = Field(index=True)
+    encrypted_api_key: str = Field(max_length=500)  # Encrypted value
+    status: APIKeyStatus = Field(default=APIKeyStatus.ACTIVE, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_used_at: Optional[datetime] = Field(default=None)
     total_uses: int = Field(default=0)
-    token_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
+    api_key_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
     litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM
     
-    # Unique constraint: one token per vendor per user
+    # Unique constraint: one API key per provider per user
     __table_args__ = (
-        Index("idx_user_vendor_unique", "user_id", "vendor", unique=True),
+        Index("idx_user_provider_unique", "user_id", "provider", unique=True),
     )

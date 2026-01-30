@@ -8,7 +8,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_token import SharedToken, TokenVendor, TokenStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token
 
@@ -66,17 +66,17 @@ def auth_headers_fixture(test_user: User):
 
 @pytest.fixture(name="mock_validation_success")
 def mock_validation_success_fixture():
-    """Mock successful token validation"""
+    """Mock successful API key validation"""
     return {
         "valid": True,
-        "message": "Token validation successful",
-        "vendor_info": {"vendor": "bigmodel", "status_code": 200}
+        "message": "API key validation successful",
+        "provider_info": {"provider": "bigmodel", "status_code": 200}
     }
 
 
-# Test 1: Test disable shared token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_disable_shared_token(
+# Test 1: Test disable shared API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_disable_shared_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -84,35 +84,35 @@ def test_disable_shared_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test disabling a shared token"""
+    """Test disabling a shared API key"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token first
+    # Share an API key first
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
     assert share_response.status_code == 201
-    token_id = share_response.json()["id"]
+    api_key_id = share_response.json()["id"]
     
-    # Disable the token
+    # Disable the API key
     disable_response = client.put(
-        f"/api/tokens/disable/{token_id}",
+        f"/api/api-keys/disable/{api_key_id}",
         headers=auth_headers
     )
     assert disable_response.status_code == 200
     data = disable_response.json()
-    assert data["id"] == token_id
+    assert data["id"] == api_key_id
     assert data["status"] == "inactive"
 
 
-# Test 2: Test disable already inactive token (idempotent)
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_disable_already_inactive_token(
+# Test 2: Test disable already inactive API key (idempotent)
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_disable_already_inactive_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -120,35 +120,35 @@ def test_disable_already_inactive_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test disabling an already inactive token is idempotent"""
+    """Test disabling an already inactive API key is idempotent"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token
+    # Share an API key
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
-    token_id = share_response.json()["id"]
+    api_key_id = share_response.json()["id"]
     
     # Disable once
-    client.put(f"/api/tokens/disable/{token_id}", headers=auth_headers)
+    client.put(f"/api/api-keys/disable/{api_key_id}", headers=auth_headers)
     
     # Disable again
     disable_response = client.put(
-        f"/api/tokens/disable/{token_id}",
+        f"/api/api-keys/disable/{api_key_id}",
         headers=auth_headers
     )
     assert disable_response.status_code == 200
     assert disable_response.json()["status"] == "inactive"
 
 
-# Test 3: Test enable shared token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_enable_shared_token(
+# Test 3: Test enable shared API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_enable_shared_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -156,35 +156,35 @@ def test_enable_shared_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test enabling a disabled token"""
+    """Test enabling a disabled API key"""
     mock_validate.return_value = mock_validation_success
     
-    # Share and disable a token
+    # Share and disable an API key
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
-    token_id = share_response.json()["id"]
-    client.put(f"/api/tokens/disable/{token_id}", headers=auth_headers)
+    api_key_id = share_response.json()["id"]
+    client.put(f"/api/api-keys/disable/{api_key_id}", headers=auth_headers)
     
-    # Enable the token
+    # Enable the API key
     enable_response = client.put(
-        f"/api/tokens/enable/{token_id}",
+        f"/api/api-keys/enable/{api_key_id}",
         headers=auth_headers
     )
     assert enable_response.status_code == 200
     data = enable_response.json()
-    assert data["id"] == token_id
+    assert data["id"] == api_key_id
     assert data["status"] == "active"
 
 
-# Test 4: Test enable already active token (idempotent)
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_enable_already_active_token(
+# Test 4: Test enable already active API key (idempotent)
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_enable_already_active_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -192,32 +192,32 @@ def test_enable_already_active_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test enabling an already active token is idempotent"""
+    """Test enabling an already active API key is idempotent"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token (active by default)
+    # Share an API key (active by default)
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
-    token_id = share_response.json()["id"]
+    api_key_id = share_response.json()["id"]
     
     # Enable (should be no-op)
     enable_response = client.put(
-        f"/api/tokens/enable/{token_id}",
+        f"/api/api-keys/enable/{api_key_id}",
         headers=auth_headers
     )
     assert enable_response.status_code == 200
     assert enable_response.json()["status"] == "active"
 
 
-# Test 5: Test cannot enable revoked token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_cannot_enable_revoked_token(
+# Test 5: Test cannot enable revoked API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_cannot_enable_revoked_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -225,38 +225,38 @@ def test_cannot_enable_revoked_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that revoked tokens cannot be enabled"""
+    """Test that revoked API keys cannot be enabled"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token
+    # Share an API key
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
-    token_id = share_response.json()["id"]
+    api_key_id = share_response.json()["id"]
     
     # Manually set status to REVOKED
-    token = session.get(SharedToken, token_id)
-    token.status = TokenStatus.REVOKED
-    session.add(token)
+    api_key = session.get(SharedAPIKey, api_key_id)
+    api_key.status = APIKeyStatus.REVOKED
+    session.add(api_key)
     session.commit()
     
     # Try to enable
     enable_response = client.put(
-        f"/api/tokens/enable/{token_id}",
+        f"/api/api-keys/enable/{api_key_id}",
         headers=auth_headers
     )
     assert enable_response.status_code == 400
     assert "revoked" in enable_response.json()["detail"].lower()
 
 
-# Test 6: Test delete shared token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_delete_shared_token(
+# Test 6: Test delete shared API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_delete_shared_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -264,35 +264,35 @@ def test_delete_shared_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test deleting a shared token"""
+    """Test deleting a shared API key"""
     mock_validate.return_value = mock_validation_success
     
-    # Share a token
+    # Share an API key
     share_response = client.post(
-        "/api/tokens/share",
+        "/api/api-keys/share",
         json={
-            "vendor": "bigmodel",
-            "token": "test-token"
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
         },
         headers=auth_headers
     )
-    token_id = share_response.json()["id"]
+    api_key_id = share_response.json()["id"]
     
-    # Delete the token
+    # Delete the API key
     delete_response = client.delete(
-        f"/api/tokens/{token_id}",
+        f"/api/api-keys/{api_key_id}",
         headers=auth_headers
     )
     assert delete_response.status_code == 204
     
-    # Verify token is deleted
-    get_response = client.get("/api/tokens/my-shared", headers=auth_headers)
+    # Verify API key is deleted
+    get_response = client.get("/api/api-keys/my-shared", headers=auth_headers)
     assert get_response.json()["total"] == 0
 
 
-# Test 7: Test cannot disable other user's token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_cannot_disable_other_user_token(
+# Test 7: Test cannot disable other user's API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_cannot_disable_other_user_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -300,7 +300,7 @@ def test_cannot_disable_other_user_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that users cannot disable tokens they don't own"""
+    """Test that users cannot disable API keys they don't own"""
     mock_validate.return_value = mock_validation_success
     
     # Create another user
@@ -314,29 +314,29 @@ def test_cannot_disable_other_user_token(
     session.commit()
     session.refresh(other_user)
     
-    # Create token for other user
-    encrypted_token = encrypt_token("other-user-token")
-    other_token = SharedToken(
+    # Create API key for other user
+    encrypted_api_key = encrypt_token("other-user-api-key")
+    other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        vendor=TokenVendor.BIGMODEL,
-        encrypted_token=encrypted_token,
-        status=TokenStatus.ACTIVE
+        provider=APIKeyProvider.BIGMODEL,
+        encrypted_api_key=encrypted_api_key,
+        status=APIKeyStatus.ACTIVE
     )
-    session.add(other_token)
+    session.add(other_api_key)
     session.commit()
-    session.refresh(other_token)
+    session.refresh(other_api_key)
     
-    # Try to disable other user's token
+    # Try to disable other user's API key
     disable_response = client.put(
-        f"/api/tokens/disable/{other_token.id}",
+        f"/api/api-keys/disable/{other_api_key.id}",
         headers=auth_headers
     )
     assert disable_response.status_code == 404
 
 
-# Test 8: Test cannot enable other user's token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_cannot_enable_other_user_token(
+# Test 8: Test cannot enable other user's API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_cannot_enable_other_user_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -344,10 +344,10 @@ def test_cannot_enable_other_user_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that users cannot enable tokens they don't own"""
+    """Test that users cannot enable API keys they don't own"""
     mock_validate.return_value = mock_validation_success
     
-    # Create another user with token
+    # Create another user with API key
     other_user = User(
         email="otheruser@example.com",
         hashed_password="$2b$12$test_hash",
@@ -358,28 +358,28 @@ def test_cannot_enable_other_user_token(
     session.commit()
     session.refresh(other_user)
     
-    encrypted_token = encrypt_token("other-user-token")
-    other_token = SharedToken(
+    encrypted_api_key = encrypt_token("other-user-api-key")
+    other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        vendor=TokenVendor.BIGMODEL,
-        encrypted_token=encrypted_token,
-        status=TokenStatus.INACTIVE
+        provider=APIKeyProvider.BIGMODEL,
+        encrypted_api_key=encrypted_api_key,
+        status=APIKeyStatus.INACTIVE
     )
-    session.add(other_token)
+    session.add(other_api_key)
     session.commit()
-    session.refresh(other_token)
+    session.refresh(other_api_key)
     
-    # Try to enable other user's token
+    # Try to enable other user's API key
     enable_response = client.put(
-        f"/api/tokens/enable/{other_token.id}",
+        f"/api/api-keys/enable/{other_api_key.id}",
         headers=auth_headers
     )
     assert enable_response.status_code == 404
 
 
-# Test 9: Test cannot delete other user's token
-@patch("api.services.shared_token_service.validate_vendor_token")
-def test_cannot_delete_other_user_token(
+# Test 9: Test cannot delete other user's API key
+@patch("api.services.shared_api_key_service.validate_api_key")
+def test_cannot_delete_other_user_api_key(
     mock_validate,
     client: TestClient,
     session: Session,
@@ -387,10 +387,10 @@ def test_cannot_delete_other_user_token(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test that users cannot delete tokens they don't own"""
+    """Test that users cannot delete API keys they don't own"""
     mock_validate.return_value = mock_validation_success
     
-    # Create another user with token
+    # Create another user with API key
     other_user = User(
         email="otheruser@example.com",
         hashed_password="$2b$12$test_hash",
@@ -401,24 +401,24 @@ def test_cannot_delete_other_user_token(
     session.commit()
     session.refresh(other_user)
     
-    encrypted_token = encrypt_token("other-user-token")
-    other_token = SharedToken(
+    encrypted_api_key = encrypt_token("other-user-api-key")
+    other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        vendor=TokenVendor.BIGMODEL,
-        encrypted_token=encrypted_token,
-        status=TokenStatus.ACTIVE
+        provider=APIKeyProvider.BIGMODEL,
+        encrypted_api_key=encrypted_api_key,
+        status=APIKeyStatus.ACTIVE
     )
-    session.add(other_token)
+    session.add(other_api_key)
     session.commit()
-    session.refresh(other_token)
+    session.refresh(other_api_key)
     
-    # Try to delete other user's token
+    # Try to delete other user's API key
     delete_response = client.delete(
-        f"/api/tokens/{other_token.id}",
+        f"/api/api-keys/{other_api_key.id}",
         headers=auth_headers
     )
     assert delete_response.status_code == 404
     
-    # Verify token still exists
-    token_check = session.get(SharedToken, other_token.id)
-    assert token_check is not None
+    # Verify API key still exists
+    api_key_check = session.get(SharedAPIKey, other_api_key.id)
+    assert api_key_check is not None
