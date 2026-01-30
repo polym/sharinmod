@@ -71,7 +71,6 @@ export function MySharedPage() {
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
               <Button className="bg-brand-500 hover:bg-brand-600">
-                <Plus className="w-4 h-4 mr-2" />
                 分享新 API Key
               </Button>
             </ShareAPIKeyDialog>
@@ -87,7 +86,6 @@ export function MySharedPage() {
               <div className="text-gray-500 mb-4">暂无共享的 API Key</div>
               <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
                 <Button variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
                   分享您的第一个 API Key
                 </Button>
               </ShareAPIKeyDialog>

@@ -20,6 +20,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Gradient background matching the main app background for visual cohesion
+const SIDEBAR_GRADIENT_BG = "bg-gradient-to-br from-purple-50 via-white to-purple-50";
+
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
@@ -60,7 +63,7 @@ export function Sidebar() {
     <>
       {/* Launch Button */}
       <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
-        <Sparkles className="w-4 h-4 mr-2" />
+        <Sparkles className="w-4 h-4 mr-1" />
         即刻调用
       </Button>
 
@@ -98,14 +101,15 @@ export function Sidebar() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-56 bg-white border-r border-purple-100 flex-col p-4 h-screen sticky top-0">
+      <aside className={cn("hidden lg:flex w-56 flex-col p-4 min-h-screen", SIDEBAR_GRADIENT_BG)}>
         <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar */}
       <aside 
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 bg-white border-r border-purple-100 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
+          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
+          SIDEBAR_GRADIENT_BG,
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
