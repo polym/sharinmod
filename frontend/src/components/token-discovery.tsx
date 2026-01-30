@@ -10,7 +10,7 @@ import { apiKeyAPI } from '@/lib/services';
 
 interface DiscoveredAPIKey {
   id: number;
-  vendor: string;
+  provider: string;
   provider_username: string;
   total_uses: number;
   created_at: string;
@@ -20,18 +20,18 @@ interface DiscoveredAPIKey {
 export function APIKeyDiscovery() {
   const [apiKeys, setAPIKeys] = useState<DiscoveredAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [vendorFilter, setVendorFilter] = useState('all');
+  const [providerFilter, setProviderFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const loadAPIKeys = async (pageNum = 1, vendor = 'all') => {
+  const loadAPIKeys = async (pageNum = 1, provider = 'all') => {
     try {
       const response = await apiKeyAPI.discoverAPIKeys({
         page: pageNum,
         limit: 10,
-        vendor: vendor === 'all' ? undefined : vendor,
+        provider: provider === 'all' ? undefined : provider,
       });
 
       if (pageNum === 1) {
@@ -53,17 +53,17 @@ export function APIKeyDiscovery() {
   };
 
   useEffect(() => {
-    loadAPIKeys(1, vendorFilter);
-  }, [vendorFilter]);
+    loadAPIKeys(1, providerFilter);
+  }, [providerFilter]);
 
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
-    loadAPIKeys(nextPage, vendorFilter);
+    loadAPIKeys(nextPage, providerFilter);
   };
 
-  const handleVendorFilter = (value: string) => {
-    setVendorFilter(value);
+  const handleProviderFilter = (value: string) => {
+    setProviderFilter(value);
     setPage(1);
   };
 
@@ -84,7 +84,7 @@ export function APIKeyDiscovery() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
-            <Select value={vendorFilter} onValueChange={handleVendorFilter}>
+            <Select value={providerFilter} onValueChange={handleProviderFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="选择供应商" />
               </SelectTrigger>
@@ -109,7 +109,7 @@ export function APIKeyDiscovery() {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <div className="font-medium">{apiKey.vendor}</div>
+                        <div className="font-medium">{apiKey.provider}</div>
                         <div className="text-sm text-gray-500">
                           提供者: {apiKey.provider_username}
                         </div>

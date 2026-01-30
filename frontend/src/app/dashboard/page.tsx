@@ -15,11 +15,11 @@ import { ProfileSettings } from '@/components/profile-settings';
 
 interface SharedAPIKey {
   id: number;
-  vendor: string;
+  provider: string;
   status: string;
   created_at: string;
   total_uses: number;
-  metadata?: string;
+  api_key_metadata?: string;
 }
 
 export default function DashboardPage() {
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                       {sharedAPIKeys.map((apiKey) => (
                         <div key={apiKey.id} className="flex items-center justify-between p-4 border rounded">
                           <div>
-                            <div className="font-medium">{apiKey.vendor}</div>
+                            <div className="font-medium">{apiKey.provider}</div>
                             <div className="text-sm text-gray-500">
                               创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
                             </div>

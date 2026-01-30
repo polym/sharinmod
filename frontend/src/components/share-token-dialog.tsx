@@ -15,14 +15,14 @@ interface ShareAPIKeyDialogProps {
 
 export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
   const [open, setOpen] = useState(false);
-  const [vendor, setVendor] = useState('');
+  const [provider, setProvider] = useState('');
   const [apiKey, setAPIKey] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vendor || !apiKey) {
+    if (!provider || !apiKey) {
       toast({
         title: '错误',
         description: '请选择供应商并输入API Key',
@@ -34,9 +34,9 @@ export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
     setLoading(true);
     try {
       await apiKeyAPI.shareAPIKey({
-        vendor,
+        provider,
         api_key: apiKey,
-        metadata: JSON.stringify({ source: 'user_input' }),
+        api_key_metadata: JSON.stringify({ source: 'user_input' }),
       });
 
       toast({
@@ -45,7 +45,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
       });
 
       setOpen(false);
-      setVendor('');
+      setProvider('');
       setAPIKey('');
       onAPIKeyShared();
     } catch (error: any) {
@@ -74,10 +74,10 @@ export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="vendor" className="text-right">
-                供应商
+              <Label htmlFor="provider" className="text-right">
+                服务提供商
               </Label>
-              <Select value={vendor} onValueChange={setVendor}>
+              <Select value={provider} onValueChange={setProvider}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="选择供应商" />
                 </SelectTrigger>

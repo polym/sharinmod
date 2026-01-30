@@ -20,7 +20,7 @@ export const userAPI = {
 // API Key API
 export const apiKeyAPI = {
   // Shared API Keys
-  shareAPIKey: (data: { vendor: string; api_key: string; metadata?: string }) =>
+  shareAPIKey: (data: { provider: string; api_key: string; api_key_metadata?: string }) =>
     api.post('/api/api-keys/share', data),
 
   getMySharedAPIKeys: () => api.get('/api/api-keys/my-shared'),
@@ -50,7 +50,7 @@ export const apiKeyAPI = {
     api.post(`/api/api-keys/unified/${apiKeyId}/regenerate`),
 
   // API Key discovery
-  discoverAPIKeys: (params?: { page?: number; limit?: number; vendor?: string }) =>
+  discoverAPIKeys: (params?: { page?: number; limit?: number; provider?: string }) =>
     api.get('/api/api-keys/discover', { params }),
 
   // API Key usage history
