@@ -63,13 +63,11 @@ export function MySharedPage() {
   return (
     <div className="max-w-7xl mx-auto p-8">
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div>
-              <CardTitle>已分享的 API Keys</CardTitle>
-              <CardDescription>
-                启用、停用或删除您的共享 API Keys
-              </CardDescription>
+        <CardHeader className="p-6">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col space-y-1.5">
+              <h3 className="text-xl font-semibold leading-none tracking-tight">已分享的 API Keys</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">启用、停用或删除您的共享 API Keys</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
               <Button className="bg-brand-500 hover:bg-brand-600">

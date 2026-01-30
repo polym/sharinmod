@@ -9,16 +9,16 @@ import {
   Users, 
   Key, 
   BarChart3, 
+  Grid, 
   Sparkles, 
+  Radio, 
+  User, 
   Menu, 
   X,
   Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-// Gradient background matching the main app background for visual cohesion
-const SIDEBAR_GRADIENT_BG = "bg-gradient-to-br from-purple-50 via-white to-purple-50";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -28,15 +28,14 @@ interface NavItemProps {
 }
 
 function NavItem({ icon, label, href, active }: NavItemProps) {
-  // Simplified nav item: default blends with background, hover/active shows clear button state
   return (
     <Link
       href={href}
       className={cn(
         "w-full px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-3 transition-all",
         active 
-          ? "bg-purple-100 text-purple-700" 
-          : "text-gray-600 hover:bg-purple-100 hover:text-purple-700"
+          ? "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700" 
+          : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
       )}
     >
       {icon}
@@ -49,7 +48,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Main navigation items - core business features only, per simplification requirements
   const mainNavItems = [
     { icon: <Store className="w-4 h-4" />, label: "广场", href: "/marketplace" },
     { icon: <Users className="w-4 h-4" />, label: "我的共享", href: "/shared" },
@@ -63,7 +61,7 @@ export function Sidebar() {
       {/* Launch Button */}
       <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
         <Sparkles className="w-4 h-4 mr-2" />
-        Launch an App
+        即刻调用
       </Button>
 
       {/* Main Navigation */}
@@ -100,15 +98,14 @@ export function Sidebar() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className={cn("hidden lg:flex w-56 flex-col p-4 min-h-screen", SIDEBAR_GRADIENT_BG)}>
+      <aside className="hidden lg:flex w-56 bg-white border-r border-purple-100 flex-col p-4 h-screen sticky top-0">
         <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar */}
       <aside 
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
-          SIDEBAR_GRADIENT_BG,
+          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 bg-white border-r border-purple-100 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

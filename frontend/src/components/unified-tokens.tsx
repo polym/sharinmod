@@ -131,15 +131,12 @@ export function UnifiedAPIKeys() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>我的统一API Keys</CardTitle>
-          <CardDescription>
-            创建和管理您的统一 API Key
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-6">
-            <div></div>
+        <CardHeader className="p-6">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col space-y-1.5">
+              <h3 className="text-xl font-semibold leading-none tracking-tight">我的统一API Keys</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">创建和管理您的统一 API Key</p>
+            </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button>创建统一API Key</Button>
@@ -185,6 +182,8 @@ export function UnifiedAPIKeys() {
               </DialogContent>
             </Dialog>
           </div>
+        </CardHeader>
+        <CardContent>
 
           {loading ? (
             <div className="text-center py-8">加载中...</div>

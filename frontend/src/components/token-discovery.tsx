@@ -76,14 +76,12 @@ export function APIKeyDiscovery() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>发现可用的API Keys</CardTitle>
-          <CardDescription>
-            浏览社区分享的API Keys，使用它们进行AI模型调用
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-6">
+        <CardHeader className="p-6">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col space-y-1.5">
+              <h3 className="text-xl font-semibold leading-none tracking-tight">发现 Keys</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">浏览社区分享的 API Keys，使用它们进行 AI 模型调用</p>
+            </div>
             <Select value={providerFilter} onValueChange={handleProviderFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="选择供应商" />
@@ -95,6 +93,8 @@ export function APIKeyDiscovery() {
               </SelectContent>
             </Select>
           </div>
+        </CardHeader>
+        <CardContent>
 
           {loading && apiKeys.length === 0 ? (
             <div className="text-center py-8">加载中...</div>
