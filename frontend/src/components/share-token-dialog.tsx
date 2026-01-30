@@ -7,25 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { tokenAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 
-interface ShareTokenDialogProps {
-  onTokenShared: () => void;
+interface ShareAPIKeyDialogProps {
+  onAPIKeyShared: () => void;
 }
 
-export function ShareTokenDialog({ onTokenShared }: ShareTokenDialogProps) {
+export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
   const [open, setOpen] = useState(false);
   const [vendor, setVendor] = useState('');
-  const [token, setToken] = useState('');
+  const [apiKey, setAPIKey] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vendor || !token) {
+    if (!vendor || !apiKey) {
       toast({
         title: '错误',
-        description: '请选择供应商并输入API token',
+        description: '请选择供应商并输入API Key',
         variant: 'destructive',
       });
       return;
@@ -33,21 +33,21 @@ export function ShareTokenDialog({ onTokenShared }: ShareTokenDialogProps) {
 
     setLoading(true);
     try {
-      await tokenAPI.shareToken({
+      await apiKeyAPI.shareAPIKey({
         vendor,
-        token,
+        api_key: apiKey,
         metadata: JSON.stringify({ source: 'user_input' }),
       });
 
       toast({
         title: '成功',
-        description: 'Token分享成功',
+        description: 'API Key分享成功',
       });
 
       setOpen(false);
       setVendor('');
-      setToken('');
-      onTokenShared();
+      setAPIKey('');
+      onAPIKeyShared();
     } catch (error: any) {
       toast({
         title: '错误',
@@ -62,13 +62,13 @@ export function ShareTokenDialog({ onTokenShared }: ShareTokenDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>分享新Token</Button>
+        <Button>分享新API Key</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>分享API Token</DialogTitle>
+          <DialogTitle>分享API Key</DialogTitle>
           <DialogDescription>
-            将您的API token分享给社区，其他用户可以使用您的token进行API调用
+            将您的API Key分享给社区，其他用户可以使用您的API Key进行API调用
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -89,14 +89,14 @@ export function ShareTokenDialog({ onTokenShared }: ShareTokenDialogProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="token" className="text-right">
-                API Token
+                API Key
               </Label>
               <Input
                 id="token"
                 type="password"
-                placeholder="输入您的API token"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
+                placeholder="输入您的API Key"
+                value={apiKey}
+                onChange={(e) => setAPIKey(e.target.value)}
                 className="col-span-3"
               />
             </div>

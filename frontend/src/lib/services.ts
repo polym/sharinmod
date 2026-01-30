@@ -17,57 +17,57 @@ export const userAPI = {
     api.patch('/api/users/me/profile', data),
 };
 
-// Token API
-export const tokenAPI = {
-  // Shared tokens
-  shareToken: (data: { vendor: string; token: string; metadata?: string }) =>
-    api.post('/api/tokens/share', data),
+// API Key API
+export const apiKeyAPI = {
+  // Shared API Keys
+  shareAPIKey: (data: { vendor: string; api_key: string; metadata?: string }) =>
+    api.post('/api/api-keys/share', data),
 
-  getMySharedTokens: () => api.get('/api/tokens/my-shared'),
+  getMySharedAPIKeys: () => api.get('/api/api-keys/my-shared'),
 
-  disableSharedToken: (tokenId: number) =>
-    api.put(`/api/tokens/disable/${tokenId}`),
+  disableSharedAPIKey: (apiKeyId: number) =>
+    api.put(`/api/api-keys/disable/${apiKeyId}`),
 
-  enableSharedToken: (tokenId: number) =>
-    api.put(`/api/tokens/enable/${tokenId}`),
+  enableSharedAPIKey: (apiKeyId: number) =>
+    api.put(`/api/api-keys/enable/${apiKeyId}`),
 
-  deleteSharedToken: (tokenId: number) =>
-    api.delete(`/api/tokens/${tokenId}`),
+  deleteSharedAPIKey: (apiKeyId: number) =>
+    api.delete(`/api/api-keys/${apiKeyId}`),
 
-  // Unified tokens
-  createUnifiedToken: (data: { token_name: string; description?: string; token_ids: number[] }) =>
-    api.post('/api/tokens/unified', data),
+  // Unified API Keys
+  createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }) =>
+    api.post('/api/api-keys/unified', data),
 
-  getMyUnifiedTokens: () => api.get('/api/tokens/my-unified'),
+  getMyUnifiedAPIKeys: () => api.get('/api/api-keys/my-unified'),
 
-  blockUnifiedToken: (tokenId: number) =>
-    api.put(`/api/tokens/unified/${tokenId}/block`),
+  blockUnifiedAPIKey: (apiKeyId: number) =>
+    api.put(`/api/api-keys/unified/${apiKeyId}/block`),
 
-  deleteUnifiedToken: (tokenId: number) =>
-    api.delete(`/api/tokens/unified/${tokenId}`),
+  deleteUnifiedAPIKey: (apiKeyId: number) =>
+    api.delete(`/api/api-keys/unified/${apiKeyId}`),
 
-  regenerateUnifiedToken: (tokenId: number) =>
-    api.post(`/api/tokens/unified/${tokenId}/regenerate`),
+  regenerateUnifiedAPIKey: (apiKeyId: number) =>
+    api.post(`/api/api-keys/unified/${apiKeyId}/regenerate`),
 
-  // Token discovery
-  discoverTokens: (params?: { page?: number; limit?: number; vendor?: string }) =>
-    api.get('/api/tokens/discover', { params }),
+  // API Key discovery
+  discoverAPIKeys: (params?: { page?: number; limit?: number; vendor?: string }) =>
+    api.get('/api/api-keys/discover', { params }),
 
-  // Token usage history
+  // API Key usage history
   getUsageHistory: (params?: { page?: number; limit?: number }) =>
-    api.get('/api/users/me/usage-history', { params }),
+    api.get('/api/users/me/api-key-usage', { params }),
 
-  // Token consumption (proxy)
+  // API Key consumption (proxy)
   consumeChatCompletion: (data: {
     model: string;
     messages: Array<{ role: string; content: string }>;
     temperature?: number;
     max_tokens?: number;
     stream?: boolean;
-  }, unifiedToken: string) =>
+  }, unifiedAPIKey: string) =>
     api.post('/api/proxy/chat/completions', data, {
       headers: {
-        Authorization: `Bearer ${unifiedToken}`,
+        Authorization: `Bearer ${unifiedAPIKey}`,
       },
     }),
 };

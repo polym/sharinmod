@@ -11,7 +11,7 @@ type UserRead = {
   // Add other fields as needed
 };
 
-type TokenRead = {
+type APIKeyRead = {
   id: number;
   name: string;
   provider: string;
@@ -22,7 +22,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const SharimodDashboard = () => {
   const [users, setUsers] = useState<UserRead[] | null>(null);
-  const [tokens, setTokens] = useState<TokenRead[] | null>(null);
+  const [apiKeys, setAPIKeys] = useState<APIKeyRead[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,11 +34,11 @@ const SharimodDashboard = () => {
 
         // TODO: Replace with actual sharinmod API endpoints
         // const usersResponse = await fetch(`${API_BASE_URL}/users/`);
-        // const tokensResponse = await fetch(`${API_BASE_URL}/tokens/`);
+        // const apiKeysResponse = await fetch(`${API_BASE_URL}/api-keys/`);
 
         // For now, show placeholder data
         setUsers([]);
-        setTokens([]);
+        setAPIKeys([]);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load data. Please check if the backend is running.');
@@ -109,19 +109,19 @@ const SharimodDashboard = () => {
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Shared Tokens</h2>
+              <h2 className="text-xl font-semibold mb-4">Shared API Keys</h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Available tokens: {tokens?.length || 0}
+                Available API keys: {apiKeys?.length || 0}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Token sharing features coming soon...
+                API key sharing features coming soon...
               </p>
             </CardContent>
           </Card>
         </div>
 
         <div className="mt-8 text-center text-gray-500">
-          <p>🚧 This is the initial setup. User registration and token sharing features will be implemented in upcoming stories.</p>
+          <p>🚧 This is the initial setup. User registration and API key sharing features will be implemented in upcoming stories.</p>
         </div>
       </main>
     </div>

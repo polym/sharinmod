@@ -7,42 +7,42 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/toast';
-import { tokenAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 
-interface UnifiedToken {
+interface UnifiedAPIKey {
   id: number;
-  token_name: string;
-  token: string;
+  api_key_name: string;
+  api_key: string;
   status: string;
   litellm_key?: string;
   created_at: string;
   revoked_at?: string;
 }
 
-export function UnifiedTokens() {
-  const [tokens, setTokens] = useState<UnifiedToken[]>([]);
+export function UnifiedAPIKeys() {
+  const [apiKeys, setAPIKeys] = useState<UnifiedAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const { toast } = useToast();
 
-  const loadTokens = async () => {
+  const loadAPIKeys = async () => {
     try {
-      const response = await tokenAPI.getMyUnifiedTokens();
-      setTokens(response.data.items);
+      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
+      setAPIKeys(response.data.items);
     } catch (error) {
-      console.error('Failed to load tokens:', error);
+      console.error('Failed to load API keys:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTokens();
+    loadAPIKeys();
   }, []);
 
-  const handleCreateUnifiedToken = async () => {
+  const handleCreateUnifiedAPIKey = async () => {
     if (!name) {
       toast({
         title: '错误',
@@ -53,21 +53,21 @@ export function UnifiedTokens() {
     }
 
     try {
-      await tokenAPI.createUnifiedToken({
-        token_name: name,
+      await apiKeyAPI.createUnifiedAPIKey({
+        api_key_name: name,
         description,
-        token_ids: [],
+        api_key_ids: [],
       });
 
       toast({
         title: '成功',
-        description: '统一token创建成功',
+        description: '统一API Key创建成功',
       });
 
       setCreateDialogOpen(false);
       setName('');
       setDescription('');
-      loadTokens();
+      loadAPIKeys();
     } catch (error: any) {
       toast({
         title: '错误',
@@ -77,14 +77,14 @@ export function UnifiedTokens() {
     }
   };
 
-  const handleBlockUnifiedToken = async (id: number) => {
+  const handleBlockUnifiedAPIKey = async (id: number) => {
     try {
-      await tokenAPI.blockUnifiedToken(id);
+      await apiKeyAPI.blockUnifiedAPIKey(id);
       toast({
         title: '成功',
-        description: '统一token已停用',
+        description: '统一API Key已停用',
       });
-      loadTokens();
+      loadAPIKeys();
     } catch (error: any) {
       toast({
         title: '错误',
@@ -94,14 +94,14 @@ export function UnifiedTokens() {
     }
   };
 
-  const handleDeleteUnifiedToken = async (id: number) => {
+  const handleDeleteUnifiedAPIKey = async (id: number) => {
     try {
-      await tokenAPI.deleteUnifiedToken(id);
+      await apiKeyAPI.deleteUnifiedAPIKey(id);
       toast({
         title: '成功',
-        description: '统一token删除成功',
+        description: '统一API Key删除成功',
       });
-      loadTokens();
+      loadAPIKeys();
     } catch (error: any) {
       toast({
         title: '错误',
@@ -111,14 +111,14 @@ export function UnifiedTokens() {
     }
   };
 
-  const handleRegenerateToken = async (id: number) => {
+  const handleRegenerateAPIKey = async (id: number) => {
     try {
-      await tokenAPI.regenerateUnifiedToken(id);
+      await apiKeyAPI.regenerateUnifiedAPIKey(id);
       toast({
         title: '成功',
         description: 'API Key已重新生成',
       });
-      loadTokens();
+      loadAPIKeys();
     } catch (error: any) {
       toast({
         title: '错误',
@@ -132,9 +132,9 @@ export function UnifiedTokens() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>我的统一Tokens</CardTitle>
+          <CardTitle>我的统一API Keys</CardTitle>
           <CardDescription>
-            创建和管理您的统一 API Token
+            创建和管理您的统一 API Key
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,13 +142,13 @@ export function UnifiedTokens() {
             <div></div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>创建统一Token</Button>
+                <Button>创建统一API Key</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>创建统一Token</DialogTitle>
+                  <DialogTitle>创建统一API Key</DialogTitle>
                   <DialogDescription>
-                    创建一个新的统一 API Token
+                    创建一个新的统一 API Key
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -161,7 +161,7 @@ export function UnifiedTokens() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="col-span-3"
-                      placeholder="统一token名称"
+                      placeholder="统一API Key名称"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -178,7 +178,7 @@ export function UnifiedTokens() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateUnifiedToken}>
+                  <Button onClick={handleCreateUnifiedAPIKey}>
                     创建
                   </Button>
                 </DialogFooter>
@@ -188,64 +188,64 @@ export function UnifiedTokens() {
 
           {loading ? (
             <div className="text-center py-8">加载中...</div>
-          ) : tokens.length === 0 ? (
+          ) : apiKeys.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              您还没有创建任何统一token
+              您还没有创建任何统一API Key
             </div>
           ) : (
             <div className="space-y-4">
-              {tokens.map((token) => (
-                <Card key={token.id}>
+              {apiKeys.map((apiKey) => (
+                <Card key={apiKey.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <div className="font-medium">{token.token_name || '未命名'}</div>
+                        <div className="font-medium">{apiKey.api_key_name || '未命名'}</div>
                         <div className="text-sm text-gray-500">
-                          状态: {token.status === 'active' ? '活跃' : '已停用'}
+                          状态: {apiKey.status === 'active' ? '活跃' : '已停用'}
                         </div>
-                        {token.litellm_key && token.litellm_key.length > 16 && (
+                        {apiKey.litellm_key && apiKey.litellm_key.length > 16 && (
                           <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-                            {token.litellm_key.substring(0, 8)}***{token.litellm_key.substring(token.litellm_key.length - 8)}
+                            {apiKey.litellm_key.substring(0, 8)}***{apiKey.litellm_key.substring(apiKey.litellm_key.length - 8)}
                           </div>
                         )}
-                        {token.litellm_key && token.litellm_key.length <= 16 && (
+                        {apiKey.litellm_key && apiKey.litellm_key.length <= 16 && (
                           <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-                            {token.litellm_key.substring(0, 4)}***{token.litellm_key.substring(token.litellm_key.length - 4)}
+                            {apiKey.litellm_key.substring(0, 4)}***{apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}
                           </div>
                         )}
                         <div className="text-sm text-gray-500">
-                          创建时间: {new Date(token.created_at).toLocaleDateString()}
+                          创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
                         </div>
-                        {token.revoked_at && (
+                        {apiKey.revoked_at && (
                           <div className="text-sm text-gray-500">
-                            停用时间: {new Date(token.revoked_at).toLocaleDateString()}
+                            停用时间: {new Date(apiKey.revoked_at).toLocaleDateString()}
                           </div>
                         )}
                       </div>
                       <div className="flex gap-2">
-                        {token.status === 'active' && (
+                        {apiKey.status === 'active' && (
                           <>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleRegenerateToken(token.id)}
+                              onClick={() => handleRegenerateAPIKey(apiKey.id)}
                             >
                               重新生成
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleBlockUnifiedToken(token.id)}
+                              onClick={() => handleBlockUnifiedAPIKey(apiKey.id)}
                             >
                               停用
                             </Button>
                           </>
                         )}
-                        {token.status === 'revoked' && (
+                        {apiKey.status === 'revoked' && (
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteUnifiedToken(token.id)}
+                            onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
                           >
                             删除
                           </Button>

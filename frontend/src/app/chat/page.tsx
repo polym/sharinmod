@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/lib/store';
-import { tokenAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,8 +20,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [unifiedTokens, setUnifiedTokens] = useState<any[]>([]);
-  const [selectedTokenId, setSelectedTokenId] = useState('');
+  const [unifiedAPIKeys, setUnifiedAPIKeys] = useState<any[]>([]);
+  const [selectedAPIKeyId, setSelectedAPIKeyId] = useState('');
   const [tempToken, setTempToken] = useState<string | null>(null);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -34,34 +34,34 @@ export default function ChatPage() {
       return;
     }
 
-    loadUnifiedTokens();
+    loadUnifiedAPIKeys();
 
-    // Check if we have a tokenId from discovery page
-    const tokenId = searchParams.get('tokenId');
-    if (tokenId) {
-      // For now, we'll create a temporary unified token or handle this differently
+    // Check if we have a apiKeyId from discovery page
+    const apiKeyId = searchParams.get('apiKeyId');
+    if (apiKeyId) {
+      // For now, we'll create a temporary unified API key or handle this differently
       // In a real implementation, you might want to allow direct usage
       toast({
         title: '提示',
-        description: '请先创建统一token来使用发现的tokens',
+        description: '请先创建统一API Key来使用发现的API Keys',
       });
     }
   }, [isAuthenticated, router, searchParams]);
 
-  const loadUnifiedTokens = async () => {
+  const loadUnifiedAPIKeys = async () => {
     try {
-      const response = await tokenAPI.getMyUnifiedTokens();
-      setUnifiedTokens(response.data.items);
+      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
+      setUnifiedAPIKeys(response.data.items);
     } catch (error) {
-      console.error('Failed to load unified tokens:', error);
+      console.error('Failed to load unified API keys:', error);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || !selectedTokenId) {
+    if (!input.trim() || !selectedAPIKeyId) {
       toast({
         title: '错误',
-        description: '请输入消息并选择token',
+        description: '请输入消息并选择API Key',
         variant: 'destructive',
       });
       return;
@@ -73,19 +73,19 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const selectedToken = unifiedTokens.find(t => t.id.toString() === selectedTokenId);
-      if (!selectedToken) {
-        throw new Error('Selected token not found');
+      const selectedAPIKey = unifiedAPIKeys.find(t => t.id.toString() === selectedAPIKeyId);
+      if (!selectedAPIKey) {
+        throw new Error('Selected API key not found');
       }
 
-      const response = await tokenAPI.consumeChatCompletion(
+      const response = await apiKeyAPI.consumeChatCompletion(
         {
           model: 'glm-4.7', // Default model
           messages: [...messages, userMessage],
           temperature: 0.7,
           max_tokens: 1000,
         },
-        selectedToken.token // Assuming the token field contains the unified token
+        selectedAPIKey.api_key // The api_key field contains the unified API key
       );
 
       const assistantMessage: Message = {
@@ -134,17 +134,17 @@ export default function ChatPage() {
           <CardHeader>
             <CardTitle>与AI对话</CardTitle>
             <CardDescription>
-              使用您的统一token与AI模型进行对话
+              使用您的统一API Key与AI模型进行对话
             </CardDescription>
             <div className="flex gap-4">
-              <Select value={selectedTokenId} onValueChange={setSelectedTokenId}>
+              <Select value={selectedAPIKeyId} onValueChange={setSelectedAPIKeyId}>
                 <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="选择统一token" />
+                  <SelectValue placeholder="选择统一API Key" />
                 </SelectTrigger>
                 <SelectContent>
-                  {unifiedTokens.map((token) => (
-                    <SelectItem key={token.id} value={token.id.toString()}>
-                      {token.name}
+                  {unifiedAPIKeys.map((apiKey) => (
+                    <SelectItem key={apiKey.id} value={apiKey.id.toString()}>
+                      {apiKey.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -189,12 +189,12 @@ export default function ChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="输入您的消息..."
-                disabled={loading || !selectedTokenId}
+                disabled={loading || !selectedAPIKeyId}
                 className="flex-1"
               />
               <Button
                 onClick={handleSendMessage}
-                disabled={loading || !input.trim() || !selectedTokenId}
+                disabled={loading || !input.trim() || !selectedAPIKeyId}
               >
                 {loading ? '发送中...' : '发送'}
               </Button>

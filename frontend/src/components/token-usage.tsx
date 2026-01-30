@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { tokenAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 
 interface UsageRecord {
   id: number;
-  token_id: number;
-  unified_token_id?: number;
+  api_key_id: number;
+  unified_api_key_id?: number;
   endpoint: string;
   method: string;
   status_code: number;
@@ -16,7 +16,7 @@ interface UsageRecord {
   vendor?: string;
 }
 
-export function TokenUsage() {
+export function APIKeyUsage() {
   const [usage, setUsage] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -24,7 +24,7 @@ export function TokenUsage() {
 
   const loadUsage = async (pageNum = 1) => {
     try {
-      const response = await tokenAPI.getUsageHistory({
+      const response = await apiKeyAPI.getUsageHistory({
         page: pageNum,
         limit: 20,
       });
@@ -56,9 +56,9 @@ export function TokenUsage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Token使用历史</CardTitle>
+        <CardTitle>API Key使用历史</CardTitle>
         <CardDescription>
-          查看您的token使用记录和API调用历史
+          查看您的API Key使用记录和API调用历史
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -78,7 +78,7 @@ export function TokenUsage() {
                   </div>
                   <div className="text-sm text-gray-500">
                     {record.vendor && `供应商: ${record.vendor}`}
-                    {record.unified_token_id && ` | 统一Token ID: ${record.unified_token_id}`}
+                    {record.unified_api_key_id && ` | 统一API Key ID: ${record.unified_api_key_id}`}
                   </div>
                   <div className="text-sm text-gray-500">
                     时间: {new Date(record.created_at).toLocaleString()}

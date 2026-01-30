@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { tokenAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 
-interface DiscoveredToken {
+interface DiscoveredAPIKey {
   id: number;
   vendor: string;
   provider_username: string;
@@ -17,8 +17,8 @@ interface DiscoveredToken {
   status: string;
 }
 
-export function TokenDiscovery() {
-  const [tokens, setTokens] = useState<DiscoveredToken[]>([]);
+export function APIKeyDiscovery() {
+  const [apiKeys, setAPIKeys] = useState<DiscoveredAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [vendorFilter, setVendorFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -26,25 +26,25 @@ export function TokenDiscovery() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const loadTokens = async (pageNum = 1, vendor = 'all') => {
+  const loadAPIKeys = async (pageNum = 1, vendor = 'all') => {
     try {
-      const response = await tokenAPI.discoverTokens({
+      const response = await apiKeyAPI.discoverAPIKeys({
         page: pageNum,
         limit: 10,
         vendor: vendor === 'all' ? undefined : vendor,
       });
 
       if (pageNum === 1) {
-        setTokens(response.data.items);
+        setAPIKeys(response.data.items);
       } else {
-        setTokens(prev => [...prev, ...response.data.items]);
+        setAPIKeys(prev => [...prev, ...response.data.items]);
       }
 
       setHasMore(response.data.items.length === 10);
     } catch (error: any) {
       toast({
         title: '错误',
-        description: '加载token失败',
+        description: '加载API Key失败',
         variant: 'destructive',
       });
     } finally {
@@ -53,13 +53,13 @@ export function TokenDiscovery() {
   };
 
   useEffect(() => {
-    loadTokens(1, vendorFilter);
+    loadAPIKeys(1, vendorFilter);
   }, [vendorFilter]);
 
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
-    loadTokens(nextPage, vendorFilter);
+    loadAPIKeys(nextPage, vendorFilter);
   };
 
   const handleVendorFilter = (value: string) => {
@@ -67,19 +67,19 @@ export function TokenDiscovery() {
     setPage(1);
   };
 
-  const handleUseToken = async (tokenId: number) => {
+  const handleUseAPIKey = async (apiKeyId: number) => {
     // For now, redirect to chat page - in a real implementation,
-    // you might want to create a unified token first or handle this differently
-    router.push(`/chat?tokenId=${tokenId}`);
+    // you might want to create a unified API key first or handle this differently
+    router.push(`/chat?apiKeyId=${apiKeyId}`);
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>发现可用的Tokens</CardTitle>
+          <CardTitle>发现可用的API Keys</CardTitle>
           <CardDescription>
-            浏览社区分享的API tokens，使用它们进行AI模型调用
+            浏览社区分享的API Keys，使用它们进行AI模型调用
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -96,39 +96,39 @@ export function TokenDiscovery() {
             </Select>
           </div>
 
-          {loading && tokens.length === 0 ? (
+          {loading && apiKeys.length === 0 ? (
             <div className="text-center py-8">加载中...</div>
-          ) : tokens.length === 0 ? (
+          ) : apiKeys.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              暂无可用的tokens
+              暂无可用的API Keys
             </div>
           ) : (
             <div className="space-y-4">
-              {tokens.map((token) => (
-                <Card key={token.id}>
+              {apiKeys.map((apiKey) => (
+                <Card key={apiKey.id}>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <div className="font-medium">{token.vendor}</div>
+                        <div className="font-medium">{apiKey.vendor}</div>
                         <div className="text-sm text-gray-500">
-                          提供者: {token.provider_username}
+                          提供者: {apiKey.provider_username}
                         </div>
                         <div className="text-sm text-gray-500">
-                          使用次数: {token.total_uses}
+                          使用次数: {apiKey.total_uses}
                         </div>
                         <div className="text-sm text-gray-500">
-                          创建时间: {new Date(token.created_at).toLocaleDateString()}
+                          创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className={`px-2 py-1 rounded text-sm ${
-                          token.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          apiKey.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {token.status}
+                          {apiKey.status}
                         </div>
                         <Button
-                          onClick={() => handleUseToken(token.id)}
-                          disabled={token.status !== 'active'}
+                          onClick={() => handleUseAPIKey(apiKey.id)}
+                          disabled={apiKey.status !== 'active'}
                         >
                           使用
                         </Button>

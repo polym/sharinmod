@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthStore } from '@/lib/store';
-import { tokenAPI } from '@/lib/services';
-import { ShareTokenDialog } from '@/components/share-token-dialog';
-import { TokenDiscovery } from '@/components/token-discovery';
-import { UnifiedTokens } from '@/components/unified-tokens';
-import { TokenUsage } from '@/components/token-usage';
+import { apiKeyAPI } from '@/lib/services';
+import { ShareAPIKeyDialog } from '@/components/share-token-dialog';
+import { APIKeyDiscovery } from '@/components/token-discovery';
+import { UnifiedAPIKeys } from '@/components/unified-tokens';
+import { APIKeyUsage } from '@/components/token-usage';
 import { ProfileSettings } from '@/components/profile-settings';
 
-interface SharedToken {
+interface SharedAPIKey {
   id: number;
   vendor: string;
   status: string;
@@ -23,7 +23,7 @@ interface SharedToken {
 }
 
 export default function DashboardPage() {
-  const [sharedTokens, setSharedTokens] = useState<SharedToken[]>([]);
+  const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [isHydrated, setIsHydrated] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -42,49 +42,49 @@ export default function DashboardPage() {
       return;
     }
 
-    loadSharedTokens();
+    loadSharedAPIKeys();
   }, [isAuthenticated, router, isHydrated]);
 
-  const loadSharedTokens = async () => {
+  const loadSharedAPIKeys = async () => {
     try {
-      const response = await tokenAPI.getMySharedTokens();
-      setSharedTokens(response.data.items);
+      const response = await apiKeyAPI.getMySharedAPIKeys();
+      setSharedAPIKeys(response.data.items);
     } catch (error) {
-      console.error('Failed to load shared tokens:', error);
+      console.error('Failed to load shared API keys:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDisableToken = async (tokenId: number) => {
+  const handleDisableAPIKey = async (apiKeyId: number) => {
     try {
-      await tokenAPI.disableSharedToken(tokenId);
-      await loadSharedTokens();
+      await apiKeyAPI.disableSharedAPIKey(apiKeyId);
+      await loadSharedAPIKeys();
     } catch (error) {
-      console.error('Failed to disable token:', error);
+      console.error('Failed to disable API key:', error);
       alert('停用失败，请重试');
     }
   };
 
-  const handleEnableToken = async (tokenId: number) => {
+  const handleEnableAPIKey = async (apiKeyId: number) => {
     try {
-      await tokenAPI.enableSharedToken(tokenId);
-      await loadSharedTokens();
+      await apiKeyAPI.enableSharedAPIKey(apiKeyId);
+      await loadSharedAPIKeys();
     } catch (error) {
-      console.error('Failed to enable token:', error);
+      console.error('Failed to enable API key:', error);
       alert('启用失败，请重试');
     }
   };
 
-  const handleDeleteToken = async (tokenId: number) => {
-    if (!confirm('确定要删除这个token吗？此操作不可撤销。')) {
+  const handleDeleteAPIKey = async (apiKeyId: number) => {
+    if (!confirm('确定要删除这个API Key吗？此操作不可撤销。')) {
       return;
     }
     try {
-      await tokenAPI.deleteSharedToken(tokenId);
-      await loadSharedTokens();
+      await apiKeyAPI.deleteSharedAPIKey(apiKeyId);
+      await loadSharedAPIKeys();
     } catch (error) {
-      console.error('Failed to delete token:', error);
+      console.error('Failed to delete API key:', error);
       alert('删除失败，请重试');
     }
   };
@@ -118,75 +118,75 @@ export default function DashboardPage() {
         <div className="px-4 py-6 sm:px-0">
           <Tabs defaultValue="discover" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="discover">发现Token</TabsTrigger>
-              <TabsTrigger value="share">分享Token</TabsTrigger>
-              <TabsTrigger value="unified">我的Token</TabsTrigger>
+              <TabsTrigger value="discover">发现API Key</TabsTrigger>
+              <TabsTrigger value="share">分享API Key</TabsTrigger>
+              <TabsTrigger value="unified">我的API Key</TabsTrigger>
               <TabsTrigger value="usage">使用历史</TabsTrigger>
               <TabsTrigger value="profile">个人资料</TabsTrigger>
             </TabsList>
 
             <TabsContent value="discover">
-              <TokenDiscovery />
+              <APIKeyDiscovery />
             </TabsContent>
 
             <TabsContent value="share">
               <Card>
                 <CardHeader>
-                  <CardTitle>分享您的API Token</CardTitle>
+                  <CardTitle>分享您的API Key</CardTitle>
                   <CardDescription>
-                    将您的bigmodel或z.ai API token分享给社区，其他用户可以使用您的token进行API调用
+                    将您的bigmodel或z.ai API Key分享给社区，其他用户可以使用您的API Key进行API调用
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ShareTokenDialog onTokenShared={loadSharedTokens} />
+                  <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys} />
                 </CardContent>
               </Card>
 
               <Card className="mt-6">
                 <CardHeader>
-                  <CardTitle>我分享的Tokens</CardTitle>
+                  <CardTitle>我分享的API Keys</CardTitle>
                   <CardDescription>
-                    您当前分享的API tokens状态
+                    您当前分享的API Keys状态
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
                     <div>加载中...</div>
-                  ) : sharedTokens.length === 0 ? (
-                    <div className="text-gray-500">您还没有分享任何token</div>
+                  ) : sharedAPIKeys.length === 0 ? (
+                    <div className="text-gray-500">您还没有分享任何API Key</div>
                   ) : (
                     <div className="space-y-4">
-                      {sharedTokens.map((token) => (
-                        <div key={token.id} className="flex items-center justify-between p-4 border rounded">
+                      {sharedAPIKeys.map((apiKey) => (
+                        <div key={apiKey.id} className="flex items-center justify-between p-4 border rounded">
                           <div>
-                            <div className="font-medium">{token.vendor}</div>
+                            <div className="font-medium">{apiKey.vendor}</div>
                             <div className="text-sm text-gray-500">
-                              创建时间: {new Date(token.created_at).toLocaleDateString()}
+                              创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
                             </div>
                             <div className="text-sm text-gray-500">
-                              使用次数: {token.total_uses}
+                              使用次数: {apiKey.total_uses}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className={`px-2 py-1 rounded text-sm ${
-                              token.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                              apiKey.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {token.status}
+                              {apiKey.status}
                             </div>
                             <div className="flex gap-2">
-                              {token.status === 'active' ? (
+                              {apiKey.status === 'active' ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleDisableToken(token.id)}
+                                  onClick={() => handleDisableAPIKey(apiKey.id)}
                                 >
                                   停用
                                 </Button>
-                              ) : token.status === 'inactive' ? (
+                              ) : apiKey.status === 'inactive' ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleEnableToken(token.id)}
+                                  onClick={() => handleEnableAPIKey(apiKey.id)}
                                 >
                                   启用
                                 </Button>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => handleDeleteToken(token.id)}
+                                onClick={() => handleDeleteAPIKey(apiKey.id)}
                               >
                                 删除
                               </Button>
@@ -209,11 +209,11 @@ export default function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="unified">
-              <UnifiedTokens />
+              <UnifiedAPIKeys />
             </TabsContent>
 
             <TabsContent value="usage">
-              <TokenUsage />
+              <APIKeyUsage />
             </TabsContent>
 
             <TabsContent value="profile">
