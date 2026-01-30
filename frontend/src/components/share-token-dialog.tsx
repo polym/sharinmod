@@ -11,9 +11,10 @@ import { apiKeyAPI } from '@/lib/services';
 
 interface ShareAPIKeyDialogProps {
   onAPIKeyShared: () => void;
+  children?: React.ReactNode;
 }
 
-export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
+export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialogProps) {
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState('');
   const [apiKey, setAPIKey] = useState('');
@@ -62,7 +63,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared }: ShareAPIKeyDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>分享新API Key</Button>
+        {children || <Button>分享新API Key</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
