@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { DashboardLayout, PageType } from '@/components/layout/DashboardLayout';
 import { MarketplacePage } from '@/components/MarketplacePage';
+import { MySharedPage } from '@/components/MySharedPage';
 import { UnifiedAPIKeys } from '@/components/unified-tokens';
 import { APIKeyUsage } from '@/components/token-usage';
 import { ProfileSettings } from '@/components/profile-settings';
@@ -41,6 +42,8 @@ export default function DashboardPage() {
     switch (currentPage) {
       case 'marketplace':
         return <MarketplacePage />;
+      case 'my-shared':
+        return <MySharedPage />;
       case 'api-keys':
         return (
           <div className="space-y-6">
