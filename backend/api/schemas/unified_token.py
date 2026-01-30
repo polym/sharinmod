@@ -19,6 +19,7 @@ class UnifiedTokenResponse(BaseModel):
     token: str
     status: UnifiedTokenStatus
     token_name: Optional[str]
+    litellm_key: Optional[str]
     created_at: datetime
     revoked_at: Optional[datetime]
     

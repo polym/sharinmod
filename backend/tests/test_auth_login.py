@@ -41,8 +41,15 @@ def client_fixture(session: Session):
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture(client: TestClient):
+def test_user_fixture(client: TestClient, mocker):
     """Create a test user for login tests"""
+    # Mock LiteLLM API success
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = {"user_id": "logintest@example.com"}
+    mock_response.raise_for_status.return_value = None
+    
+    mocker.patch('httpx.AsyncClient.post', return_value=mock_response)
+    
     response = client.post("/api/users/register", json={
         "email": "logintest@example.com",
         "password": "TestPass123!"

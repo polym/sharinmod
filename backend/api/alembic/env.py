@@ -3,6 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
+import os
 
 # Import all models for Alembic autogenerate
 from api.models.user import User
@@ -13,6 +14,11 @@ from api.models.unified_token import UnifiedToken
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Override sqlalchemy.url with DATABASE_URI if available
+database_uri = os.getenv("DATABASE_URI")
+if database_uri:
+    config.set_main_option("sqlalchemy.url", database_uri)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

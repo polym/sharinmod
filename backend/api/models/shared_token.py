@@ -45,6 +45,7 @@ class SharedToken(SQLModel, table=True):
     last_used_at: Optional[datetime] = Field(default=None)
     total_uses: int = Field(default=0)
     token_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
+    litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM
     
     # Unique constraint: one token per vendor per user
     __table_args__ = (

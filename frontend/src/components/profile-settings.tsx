@@ -8,18 +8,39 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/lib/store';
-import { userAPI } from '@/lib/services';
+import { authAPI, userAPI } from '@/lib/services';
 
 export function ProfileSettings() {
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { user, updateUser } = useAuthStore();
   const { toast } = useToast();
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await authAPI.getProfile();
+        const userData = response.data;
+        updateUser(userData);
+        setEmail(userData.email || '');
+        setName(userData.name || '');
+        setBio(userData.bio || '');
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [updateUser]);
+
+  useEffect(() => {
     if (user) {
+      setEmail(user.email || '');
       setName(user.name || '');
       setBio(user.bio || '');
     }
@@ -67,7 +88,7 @@ export function ProfileSettings() {
           <Input
             id="email"
             type="email"
-            value={user?.email || ''}
+            value={email}
             disabled
             className="bg-gray-50"
           />

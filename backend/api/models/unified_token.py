@@ -29,6 +29,7 @@ class UnifiedToken(SQLModel, table=True):
     token: str = Field(unique=True, max_length=64)  # 32 bytes base64 = ~44 chars
     status: UnifiedTokenStatus = Field(default=UnifiedTokenStatus.ACTIVE)
     token_name: Optional[str] = Field(default=None, max_length=100)
+    litellm_key: Optional[str] = Field(default=None, max_length=255)  # Full LiteLLM API key
     created_at: datetime = Field(default_factory=datetime.utcnow)
     revoked_at: Optional[datetime] = Field(default=None)
     

@@ -34,19 +34,22 @@ async def create_user(db: Session, user_data: UserCreate) -> User:
         hashed_password=hashed_password
     )
     
-    # First, create user in LiteLLM
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                f"{settings.LITELLM_BASE_URL}/user/new",
-                json={"user_id": user_data.email},
-                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-            )
-            response.raise_for_status()
-            litellm_data = response.json()
-            litellm_user_id = litellm_data.get("user_id", user_data.email)
-    except Exception as e:
-        raise ValueError(f"Failed to create user in LiteLLM: {str(e)}")
+    # First, create user in LiteLLM (skip in testing)
+    if not settings.TESTING:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    f"{settings.LITELLM_BASE_URL}/user/new",
+                    json={"user_id": user_data.email},
+                    headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                )
+                response.raise_for_status()
+                litellm_data = response.json()
+                litellm_user_id = litellm_data["user_id"]
+        except Exception as e:
+            raise ValueError(f"Failed to create user in LiteLLM: {str(e)}")
+    else:
+        litellm_user_id = user_data.email
     
     # Set the LiteLLM user ID
     db_user.litellm_user_id = litellm_user_id

@@ -10,7 +10,7 @@ base_url = "http://localhost:8000"
 print("Test 1: Successful registration...")
 response = httpx.post(
     f"{base_url}/api/users/register",
-    json={"email": "test@example.com", "password": "SecurePass123!"}
+    json={"email": "unique@example.com", "password": "SecurePass123!"}
 )
 print(f"Status: {response.status_code}")
 print(f"Response: {response.json()}\n")
@@ -19,7 +19,7 @@ print(f"Response: {response.json()}\n")
 print("Test 2: Duplicate email...")
 response = httpx.post(
     f"{base_url}/api/users/register",
-    json={"email": "test@example.com", "password": "AnotherPass123!"}
+    json={"email": "unique@example.com", "password": "AnotherPass123!"}
 )
 print(f"Status: {response.status_code}")
 print(f"Response: {response.json()}\n")
@@ -38,6 +38,15 @@ print("Test 4: Weak password (no uppercase)...")
 response = httpx.post(
     f"{base_url}/api/users/register",
     json={"email": "test2@example.com", "password": "nouppercase1!"}
+)
+print(f"Status: {response.status_code}")
+print(f"Response: {response.json()}\n")
+
+# Test 5: Successful login
+print("Test 5: Successful login...")
+response = httpx.post(
+    f"{base_url}/api/auth/login",
+    json={"email": "unique@example.com", "password": "SecurePass123!"}
 )
 print(f"Status: {response.status_code}")
 print(f"Response: {response.json()}\n")

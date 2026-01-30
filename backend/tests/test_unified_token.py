@@ -6,6 +6,7 @@ Test Coverage:
 - AC#2: 5-token limit enforcement
 - AC#3: Token listing with status and info
 - AC#4: Token revocation with status change and logging
+- LiteLLM Integration: Key generation, blocking, deletion, regeneration
 - Security: Authentication requirements
 - Edge cases: Token uniqueness, ownership, already-revoked
 """
@@ -14,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel
 from sqlmodel.pool import StaticPool
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
 
 from api.app import create_app
 from api.config import Settings
@@ -54,7 +56,8 @@ def client_fixture(session: Session):
 def test_user_fixture(session: Session):
     user = User(
         email="testuser@example.com",
-        hashed_password="$2b$12$test_hash"
+        hashed_password="$2b$12$test_hash",
+        litellm_user_id="test_litellm_user_123"
     )
     session.add(user)
     session.commit()

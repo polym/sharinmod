@@ -25,17 +25,25 @@ interface SharedToken {
 export default function DashboardPage() {
   const [sharedTokens, setSharedTokens] = useState<SharedToken[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
 
+  // Wait for Zustand hydration
   useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
 
     loadSharedTokens();
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, isHydrated]);
 
   const loadSharedTokens = async () => {
     try {
@@ -45,6 +53,39 @@ export default function DashboardPage() {
       console.error('Failed to load shared tokens:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDisableToken = async (tokenId: number) => {
+    try {
+      await tokenAPI.disableSharedToken(tokenId);
+      await loadSharedTokens();
+    } catch (error) {
+      console.error('Failed to disable token:', error);
+      alert('停用失败，请重试');
+    }
+  };
+
+  const handleEnableToken = async (tokenId: number) => {
+    try {
+      await tokenAPI.enableSharedToken(tokenId);
+      await loadSharedTokens();
+    } catch (error) {
+      console.error('Failed to enable token:', error);
+      alert('启用失败，请重试');
+    }
+  };
+
+  const handleDeleteToken = async (tokenId: number) => {
+    if (!confirm('确定要删除这个token吗？此操作不可撤销。')) {
+      return;
+    }
+    try {
+      await tokenAPI.deleteSharedToken(tokenId);
+      await loadSharedTokens();
+    } catch (error) {
+      console.error('Failed to delete token:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -126,10 +167,38 @@ export default function DashboardPage() {
                               使用次数: {token.total_uses}
                             </div>
                           </div>
-                          <div className={`px-2 py-1 rounded text-sm ${
-                            token.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {token.status}
+                          <div className="flex items-center gap-3">
+                            <div className={`px-2 py-1 rounded text-sm ${
+                              token.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {token.status}
+                            </div>
+                            <div className="flex gap-2">
+                              {token.status === 'active' ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDisableToken(token.id)}
+                                >
+                                  停用
+                                </Button>
+                              ) : token.status === 'inactive' ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEnableToken(token.id)}
+                                >
+                                  启用
+                                </Button>
+                              ) : null}
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteToken(token.id)}
+                              >
+                                删除
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}

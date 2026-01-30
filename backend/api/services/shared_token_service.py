@@ -10,6 +10,7 @@ from typing import List, Optional, Dict
 from datetime import datetime
 from fastapi import HTTPException
 import httpx
+import json
 
 
 def check_vendor_token_exists(session: Session, user_id: int, vendor: TokenVendor) -> bool:
@@ -56,47 +57,78 @@ async def _sync_to_litellm(user: User, vendor: TokenVendor, token: str) -> None:
         raise ValueError(f"User {user.email} does not have a LiteLLM user ID")
     
     async with httpx.AsyncClient(timeout=10.0) as client:
-        # Step 1: Create credential in LiteLLM
+        # Step 1: Check if credential exists, update if exists, create if not
         credential_payload = {
-            "credential_name": credential_name,
             "credential_values": {
                 "api_key": token,
                 "api_base": api_base
             },
             "credential_info": {
-                "vendor": vendor.value,
-                "user_email": user.email
+                "custom_llm_provider": "OpenAI_Text"
             }
         }
         
-        credential_response = await client.post(
-            f"{settings.LITELLM_BASE_URL}/credential",
-            json=credential_payload,
+        # Check if credential exists
+        credential_check_response = await client.get(
+            f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
         )
-        credential_response.raise_for_status()
+        if credential_check_response.status_code == 500:
+            print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
+        
+        if credential_check_response.status_code == 200:
+            # Credential exists, update it
+            update_payload = {
+                "credential_name": credential_name,
+                **credential_payload
+            }
+            credential_response = await client.patch(
+                f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                json=update_payload,
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            if credential_response.status_code == 500:
+                print(f"LiteLLM credential update failed with 500: {credential_response.text}")
+            credential_response.raise_for_status()
+        else:
+            # Credential doesn't exist, create it
+            create_payload = {
+                "credential_name": credential_name,
+                **credential_payload
+            }
+            credential_response = await client.post(
+                f"{settings.LITELLM_BASE_URL}/credentials",
+                json=create_payload,
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            if credential_response.status_code == 500:
+                print(f"LiteLLM credential creation failed with 500: {credential_response.text}")
+            credential_response.raise_for_status()
         
         # Step 2: Create model in LiteLLM
         model_payload = {
             "model_name": "glm-4.7",
             "litellm_params": {
-                "model": "glm-4.7",
-                "api_key": f"credential:{credential_name}",
-                "api_base": api_base
+                "custom_llm_provider": "anthropic",
+                "litellm_credential_name": credential_name,
+                "model": "glm-4.7"
             },
-            "model_info": {
-                "id": user.litellm_user_id,
-                "user_email": user.email,
-                "vendor": vendor.value
-            }
+            "provider": "anthropic",
+            "litellm_model_name": "glm-4.7",
         }
+
+        print("Creating model in LiteLLM with payload:", json.dumps(model_payload, indent=2))
         
         model_response = await client.post(
             f"{settings.LITELLM_BASE_URL}/model/new",
             json=model_payload,
             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
         )
+        if model_response.status_code == 500:
+            print(f"LiteLLM model creation failed with 500: {model_response.text}")
         model_response.raise_for_status()
+        
+        return model_response.json()["model_id"]
 
 
 async def create_shared_token(
@@ -157,7 +189,8 @@ async def create_shared_token(
     # Sync with LiteLLM (create credential and model) - skip in testing
     if not settings.TESTING:
         try:
-            await _sync_to_litellm(user, vendor, token)
+            model_id = await _sync_to_litellm(user, vendor, token)
+            shared_token.litellm_model_id = model_id
         except Exception as e:
             # Rollback local token creation if LiteLLM sync fails
             session.delete(shared_token)
@@ -201,3 +234,335 @@ def get_user_shared_tokens(session: Session, user_id: int) -> List[Dict]:
     
     # Convert to dicts (Pydantic will handle SharedTokenResponse validation)
     return [token.model_dump() for token in results]
+
+
+async def disable_shared_token(session: Session, token_id: int, user_id: int) -> SharedToken:
+    """
+    Disable a shared token and remove it from LiteLLM
+    
+    Args:
+        session: Database session
+        token_id: Token ID to disable
+        user_id: User ID (for authorization check)
+        
+    Returns:
+        Updated SharedToken
+        
+    Raises:
+        HTTPException: If token not found, not owned by user, or LiteLLM sync fails
+    """
+    # Get token and verify ownership
+    statement = select(SharedToken).where(
+        SharedToken.id == token_id,
+        SharedToken.user_id == user_id
+    )
+    token = session.exec(statement).first()
+    
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Token not found or you don't have permission to modify it"
+        )
+    
+    # Check if already inactive
+    if token.status == TokenStatus.INACTIVE:
+        return token
+    
+    # Get user info for LiteLLM sync
+    user_statement = select(User).where(User.id == user_id)
+    user = session.exec(user_statement).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Store original status for rollback
+    original_status = token.status
+    
+    # Update status to INACTIVE
+    token.status = TokenStatus.INACTIVE
+    token.updated_at = datetime.utcnow()
+    session.add(token)
+    session.commit()
+    session.refresh(token)
+    
+    # Sync with LiteLLM - delete the model and credential (skip in testing)
+    if not settings.TESTING:
+        try:
+            credential_name = f"{token.vendor.value}/{user.email}"
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Delete model from LiteLLM if model_id exists
+                if token.litellm_model_id:
+                    # Check if model exists before deleting
+                    model_check_response = await client.get(
+                        f"{settings.LITELLM_BASE_URL}/models/{token.litellm_model_id}",
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    if model_check_response.status_code == 500:
+                        print(f"LiteLLM model check failed with 500: {model_check_response.text}")
+                    
+                    if model_check_response.status_code == 200:
+                        delete_response = await client.post(
+                            f"{settings.LITELLM_BASE_URL}/model/delete",
+                            json={"id": token.litellm_model_id},
+                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                        )
+                        if delete_response.status_code == 500:
+                            print(f"LiteLLM model deletion failed with 500: {delete_response.text}")
+                        delete_response.raise_for_status()
+                    else:
+                        # Model not found, skip deletion
+                        pass
+                
+                # Also delete the credential to prevent accumulation
+                # Check if credential exists before deleting
+                credential_check_response = await client.get(
+                    f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
+                    headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                )
+                if credential_check_response.status_code == 500:
+                    print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
+                
+                if credential_check_response.status_code == 200:
+                    delete_credential_response = await client.delete(
+                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    if delete_credential_response.status_code == 500:
+                        print(f"LiteLLM credential deletion failed with 500: {delete_credential_response.text}")
+                    delete_credential_response.raise_for_status()
+                else:
+                    # Credential not found, skip deletion
+                    pass
+                
+        except Exception as e:
+            # Rollback status change if LiteLLM sync fails
+            token.status = original_status
+            token.updated_at = datetime.utcnow()
+            session.add(token)
+            session.commit()
+            session.refresh(token)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to sync disable with LiteLLM: {str(e)}"
+            )
+    
+    # Log the disable action
+    # Note: Using SHARED action as TokenAction enum doesn't have DISABLED
+    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
+    log_token_usage(
+        db=session,
+        user_id=user_id,
+        token_id=str(token_id),
+        action=TokenAction.SHARED,
+        details=f"Disabled {token.vendor.value} token"
+    )
+    
+    return token
+
+
+async def enable_shared_token(session: Session, token_id: int, user_id: int) -> SharedToken:
+    """
+    Enable a shared token and add it back to LiteLLM
+    
+    Args:
+        session: Database session
+        token_id: Token ID to enable
+        user_id: User ID (for authorization check)
+        
+    Returns:
+        Updated SharedToken
+        
+    Raises:
+        HTTPException: If token not found, not owned by user, or LiteLLM sync fails
+    """
+    # Get token and verify ownership
+    statement = select(SharedToken).where(
+        SharedToken.id == token_id,
+        SharedToken.user_id == user_id
+    )
+    token = session.exec(statement).first()
+    
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Token not found or you don't have permission to modify it"
+        )
+    
+    # Check if already active
+    if token.status == TokenStatus.ACTIVE:
+        return token
+    
+    # Cannot enable revoked tokens
+    if token.status == TokenStatus.REVOKED:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot enable a revoked token"
+        )
+    
+    # Get user info for LiteLLM sync
+    user_statement = select(User).where(User.id == user_id)
+    user = session.exec(user_statement).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Store original status for rollback
+    original_status = token.status
+    
+    # Update status to ACTIVE
+    token.status = TokenStatus.ACTIVE
+    token.updated_at = datetime.utcnow()
+    session.add(token)
+    session.commit()
+    session.refresh(token)
+    
+    # Sync with LiteLLM - recreate the model (skip in testing)
+    if not settings.TESTING:
+        try:
+            # Decrypt token to get plain text for LiteLLM
+            plain_token = decrypt_token(token.encrypted_token)
+            model_id = await _sync_to_litellm(user, token.vendor, plain_token)
+            token.litellm_model_id = model_id
+            session.add(token)
+            session.commit()
+            session.refresh(token)
+            
+        except Exception as e:
+            # Rollback status change if LiteLLM sync fails
+            token.status = original_status
+            token.updated_at = datetime.utcnow()
+            session.add(token)
+            session.commit()
+            session.refresh(token)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to sync enable with LiteLLM: {str(e)}"
+            )
+    
+    # Log the enable action
+    # Note: Using SHARED action as TokenAction enum doesn't have ENABLED
+    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
+    log_token_usage(
+        db=session,
+        user_id=user_id,
+        token_id=str(token_id),
+        action=TokenAction.SHARED,
+        details=f"Enabled {token.vendor.value} token"
+    )
+    
+    return token
+
+
+async def delete_shared_token(session: Session, token_id: int, user_id: int) -> None:
+    """
+    Delete a shared token and remove it from LiteLLM
+    
+    This operation is idempotent for repeated deletion of the same token,
+    but will return 404 if trying to delete a token that doesn't exist
+    or belongs to another user (for security).
+    
+    Args:
+        session: Database session
+        token_id: Token ID to delete
+        user_id: User ID (for authorization check)
+        
+    Raises:
+        HTTPException: If token not found/not owned by user, or LiteLLM sync fails
+    """
+    # Get token and verify ownership
+    statement = select(SharedToken).where(
+        SharedToken.id == token_id,
+        SharedToken.user_id == user_id
+    )
+    token = session.exec(statement).first()
+    
+    # Return 404 for non-existent or unauthorized access
+    # This is important for security - don't reveal if a token_id exists
+    if not token:
+        raise HTTPException(
+            status_code=404,
+            detail="Token not found or you don't have permission to delete it"
+        )
+    
+    # Get user info for LiteLLM sync
+    user_statement = select(User).where(User.id == user_id)
+    user = session.exec(user_statement).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Sync with LiteLLM - delete model and credential (skip in testing)
+    if not settings.TESTING:
+        try:
+            credential_name = f"{token.vendor.value}/{user.email}"
+            
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Check if model exists before deleting
+                if token.litellm_model_id:
+                    model_check_response = await client.get(
+                        f"{settings.LITELLM_BASE_URL}/models/{token.litellm_model_id}",
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    if model_check_response.status_code == 500:
+                        print(f"LiteLLM model check failed with 500: {model_check_response.text}")
+                    
+                    if model_check_response.status_code == 200:
+                        # Delete model from LiteLLM
+                        delete_model_response = await client.post(
+                            f"{settings.LITELLM_BASE_URL}/model/delete",
+                            json={"id": token.litellm_model_id},
+                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                        )
+                        if delete_model_response.status_code == 500:
+                            print(f"LiteLLM model deletion failed with 500: {delete_model_response.text}")
+                        delete_model_response.raise_for_status()
+                    else:
+                        # Model not found, skip deletion
+                        pass
+                else:
+                    # No model_id stored, skip model deletion
+                    pass
+                
+                # Check if credential exists before deleting
+                credential_check_response = await client.get(
+                    f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
+                    headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                )
+                if credential_check_response.status_code == 500:
+                    print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
+                
+                if credential_check_response.status_code == 200:
+                    # Delete credential from LiteLLM
+                    delete_credential_response = await client.delete(
+                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    if delete_credential_response.status_code == 500:
+                        print(f"LiteLLM credential deletion failed with 500: {delete_credential_response.text}")
+                    delete_credential_response.raise_for_status()
+                else:
+                    # Credential not found, skip deletion
+                    pass
+                
+        except Exception as e:
+            # Don't delete database record if LiteLLM sync fails
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to delete from LiteLLM: {str(e)}"
+            )
+    
+    # Log the delete action before deletion
+    # Note: Using SHARED action as TokenAction enum doesn't have DELETED
+    # TODO: Consider adding DISABLED, ENABLED, DELETED actions to TokenAction enum
+    log_token_usage(
+        db=session,
+        user_id=user_id,
+        token_id=str(token_id),
+        action=TokenAction.SHARED,
+        details=f"Deleted {token.vendor.value} token"
+    )
+    
+    # Delete from database
+    session.delete(token)
+    session.commit()

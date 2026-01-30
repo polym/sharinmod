@@ -11,6 +11,10 @@ from api.app import create_app
 from api.config import Settings
 from api.database import get_db
 
+# Set testing mode globally for this test file
+import api.config
+api.config.settings.TESTING = True
+
 
 # Create in-memory SQLite database for testing
 @pytest.fixture(name="session")
@@ -33,6 +37,7 @@ def client_fixture(session: Session):
         return session
 
     settings = Settings()
+    settings.TESTING = True  # Enable testing mode
     app = create_app(settings)
     app.dependency_overrides[get_db] = get_session_override
     
@@ -45,16 +50,18 @@ def client_fixture(session: Session):
 def auth_token_fixture(client: TestClient):
     """Create user and get auth token"""
     # Register
-    client.post("/api/users/register", json={
+    register_response = client.post("/api/users/register", json={
         "email": "profiletest@example.com",
         "password": "TestPass123!"
     })
+    assert register_response.status_code == 201
     # Login
-    response = client.post("/api/auth/login", json={
+    login_response = client.post("/api/auth/login", json={
         "email": "profiletest@example.com",
         "password": "TestPass123!"
     })
-    return response.json()["access_token"]
+    assert login_response.status_code == 200
+    return login_response.json()["access_token"]
 
 
 def test_get_profile_success(client: TestClient, auth_token):

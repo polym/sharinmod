@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
     summary="Register new user",
     description="Create a new user account with email and password"
 )
-def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+async def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user account
     
@@ -32,15 +32,22 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     - 201: User created successfully
     - 409: Email already registered
     - 422: Validation error (invalid email or weak password)
+    - 500: LiteLLM integration failed
     """
     try:
-        user = create_user(db, user_data)
+        user = await create_user(db, user_data)
         return user
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
+        if "LiteLLM" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=str(e)
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(e)
+            )
 
 
 @router.get("/me", response_model=UserResponse)
