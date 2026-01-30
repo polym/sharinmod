@@ -17,6 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Gradient background matching the main app background for visual cohesion
+const SIDEBAR_GRADIENT_BG = "bg-gradient-to-br from-purple-50 via-white to-purple-50";
+
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
@@ -25,14 +28,15 @@ interface NavItemProps {
 }
 
 function NavItem({ icon, label, href, active }: NavItemProps) {
+  // Simplified nav item: default blends with background, hover/active shows clear button state
   return (
     <Link
       href={href}
       className={cn(
         "w-full px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-3 transition-all",
         active 
-          ? "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700" 
-          : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
+          ? "bg-purple-100 text-purple-700" 
+          : "text-gray-600 hover:bg-purple-100 hover:text-purple-700"
       )}
     >
       {icon}
@@ -56,14 +60,6 @@ export function Sidebar() {
 
   const SidebarContent = () => (
     <>
-      {/* Logo */}
-      <div className="flex items-center gap-2 mb-6 px-2">
-        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-          SM
-        </div>
-        <span className="font-semibold text-gray-900">SharinMod</span>
-      </div>
-
       {/* Launch Button */}
       <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
         <Sparkles className="w-4 h-4 mr-2" />
@@ -104,14 +100,15 @@ export function Sidebar() {
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-56 bg-white border-r border-purple-100 flex-col p-4 h-screen sticky top-0">
+      <aside className={cn("hidden lg:flex w-56 flex-col p-4 min-h-screen", SIDEBAR_GRADIENT_BG)}>
         <SidebarContent />
       </aside>
 
       {/* Mobile Sidebar */}
       <aside 
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 bg-white border-r border-purple-100 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
+          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
+          SIDEBAR_GRADIENT_BG,
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

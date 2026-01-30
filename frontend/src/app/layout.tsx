@@ -19,10 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <div className="flex min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50">
-          <Sidebar />
-          <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
-            <Header />
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50">
+          {/* Header spans full width at top */}
+          <Header />
+          
+          {/* Sidebar and main content below header */}
+          <div className="flex">
+            <Sidebar />
             <main className="flex-1 overflow-auto">
               {children}
             </main>
