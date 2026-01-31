@@ -34,6 +34,9 @@ export const apiKeyAPI = {
   deleteSharedAPIKey: (apiKeyId: number) =>
     api.delete(`/api/api-keys/${apiKeyId}`),
 
+  getSharedAPIKeyMetrics: (apiKeyId: number) =>
+    api.get(`/api/api-keys/shared/${apiKeyId}/metrics`),
+
   // Unified API Keys
   createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }) =>
     api.post('/api/api-keys/unified', data),

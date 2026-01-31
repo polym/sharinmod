@@ -12,7 +12,7 @@ PROVIDER_CONFIGS = {
         "test_model": "glm-4"
     },
     APIKeyProvider.ZAI: {
-        "base_url": "https://api.z.ai/v1",
+        "base_url": "https://api.z.ai/api/paas/v4",
         "test_endpoint": "/models",
         "header_name": "Authorization",
         "test_model": "gpt-4"

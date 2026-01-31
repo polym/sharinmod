@@ -7,10 +7,28 @@ from api.services.api_key_usage_service import log_api_key_usage
 from api.models.api_key_usage import APIKeyAction
 from api.config import settings
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException
 import httpx
 import json
+import random
+
+
+# Provider configuration for supported models, websites, and logo paths
+PROVIDER_INFO = {
+    APIKeyProvider.BIGMODEL: {
+        "name": "智谱 AI Coding Plan",
+        "website": "https://bigmodel.cn",
+        "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
+        "logo_path": "/providers/bigmodel-logo.png"
+    },
+    APIKeyProvider.ZAI: {
+        "name": "Z.AI Coding Plan",
+        "website": "https://z.ai",
+        "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
+        "logo_path": "/providers/zai-logo.png"
+    }
+}
 
 
 def check_provider_api_key_exists(session: Session, user_id: int, provider: APIKeyProvider) -> bool:
@@ -64,7 +82,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
                 "api_base": api_base
             },
             "credential_info": {
-                "custom_llm_provider": "OpenAI_Text"
+                "custom_llm_provider": "anthropic"
             }
         }
         
@@ -217,14 +235,14 @@ async def create_shared_api_key(
 
 def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     """
-    Get all shared API keys for a user
+    Get all shared API keys for a user with provider info
     
     Args:
         session: Database session
         user_id: User ID
         
     Returns:
-        List of dicts compatible with SharedAPIKeyResponse
+        List of dicts compatible with SharedAPIKeyResponse (with provider info)
     """
     statement = select(SharedAPIKey).where(
         SharedAPIKey.user_id == user_id
@@ -232,8 +250,18 @@ def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     
     results = session.exec(statement).all()
     
-    # Convert to dicts (Pydantic will handle SharedAPIKeyResponse validation)
-    return [api_key.model_dump() for api_key in results]
+    # Convert to dicts and add provider info
+    api_keys = []
+    for api_key in results:
+        api_key_dict = api_key.model_dump()
+        provider_info = PROVIDER_INFO.get(api_key.provider, {})
+        api_key_dict['supported_models'] = provider_info.get('supported_models')
+        api_key_dict['provider_website'] = provider_info.get('website')
+        api_key_dict['provider_display_name'] = provider_info.get('name')
+        api_key_dict['provider_logo_path'] = provider_info.get('logo_path')
+        api_keys.append(api_key_dict)
+    
+    return api_keys
 
 
 async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int) -> SharedAPIKey:
@@ -560,3 +588,46 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
     # Delete from database
     session.delete(api_key)
     session.commit()
+
+
+def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) -> Dict:
+    """
+    Get metrics for a shared API key (currently returns mock data)
+    
+    Args:
+        session: Database session
+        api_key_id: API key ID
+        user_id: User ID for authorization check
+        
+    Returns:
+        Dict with metrics data (total_tokens, total_duration_days, total_requests, chart_data)
+        
+    Raises:
+        HTTPException: If API key not found or user doesn't own it
+    """
+    # Verify ownership
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.id == api_key_id,
+        SharedAPIKey.user_id == user_id
+    )
+    api_key = session.exec(statement).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=404,
+            detail="API key not found"
+        )
+    
+    # Generate mock chart data - 48 hours of random values
+    chart_data = []
+    for i in range(48):
+        hour = (datetime.now() - timedelta(hours=47-i)).strftime("%Y-%m-%d %H:00")
+        value = random.randint(20, 100)
+        chart_data.append({"date": hour, "value": value})
+    
+    return {
+        "total_tokens": 592.5,
+        "total_duration_days": 2.5,
+        "total_requests": 45,
+        "chart_data": chart_data
+    }

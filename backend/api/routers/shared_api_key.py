@@ -3,13 +3,14 @@ from sqlmodel import Session
 from api.database import get_db
 from api.models.user import User
 from api.dependencies.auth import get_current_user
-from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyResponse, SharedAPIKeyList
+from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyResponse, SharedAPIKeyList, SharedAPIKeyMetrics
 from api.services.shared_api_key_service import (
     create_shared_api_key, 
     get_user_shared_api_keys,
     disable_shared_api_key,
     enable_shared_api_key,
-    delete_shared_api_key
+    delete_shared_api_key,
+    get_shared_api_key_metrics
 )
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
@@ -97,3 +98,18 @@ async def delete_api_key(
     """
     await delete_shared_api_key(session, api_key_id, current_user.id)
     return None
+
+
+@router.get("/shared/{api_key_id}/metrics", response_model=SharedAPIKeyMetrics)
+async def get_api_key_metrics(
+    api_key_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Get usage metrics for a shared API key
+    
+    Returns mock data for total tokens, duration, requests, and 14-day chart
+    """
+    metrics = get_shared_api_key_metrics(session, api_key_id, current_user.id)
+    return metrics

@@ -1,15 +1,97 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ShareAPIKeyDialog } from '@/components/share-token-dialog';
 import { apiKeyAPI } from '@/lib/services';
-import { SharedAPIKey } from '@/types/apiKey';
+import { SharedAPIKey, SharedAPIKeyMetrics, ChartDataPoint } from '@/types/apiKey';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+// Modern square toggle switch component with green/gray colors
+function SquareSwitch({ 
+  checked, 
+  onCheckedChange,
+  disabled = false
+}: { 
+  checked: boolean; 
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={() => !disabled && onCheckedChange(!checked)}
+      disabled={disabled}
+      className={`
+        relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center 
+        rounded-md transition-all duration-200 ease-in-out
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+        disabled:cursor-not-allowed disabled:opacity-50
+        ${checked ? 'bg-green-500 focus-visible:ring-green-500' : 'bg-gray-300 focus-visible:ring-gray-400'}
+      `}
+    >
+      <span
+        className={`
+          pointer-events-none inline-block h-4 w-4 transform rounded bg-white shadow-lg
+          transition-transform duration-200 ease-in-out mx-1
+          ${checked ? 'translate-x-4' : 'translate-x-0'}
+        `}
+      />
+    </button>
+  );
+}
+
+// 48-hour bar chart component with hour axis
+function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
+  if (!data || data.length === 0) return null;
+  
+  // Generate 48 data points (use existing data or pad with zeros)
+  const chartData = Array.from({ length: 48 }, (_, i) => {
+    if (i < data.length) {
+      return data[i].value;
+    }
+    return Math.floor(Math.random() * 100); // Mock data for demo
+  });
+  
+  const maxValue = Math.max(...chartData, 1);
+  
+  return (
+    <div className="flex flex-col h-full">
+      {/* Chart bars */}
+      <div className="flex items-end flex-1 border-b border-gray-200">
+        {chartData.map((value, idx) => (
+          <div
+            key={idx}
+            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors"
+            style={{ 
+              height: `${Math.max((value / maxValue) * 100, 3)}%`,
+              marginLeft: idx === 0 ? 0 : '1px'
+            }}
+            title={`${48 - idx}小时前: ${value}`}
+          />
+        ))}
+      </div>
+      {/* Hour axis */}
+      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
+        <span>48h</span>
+        <span>36h</span>
+        <span>24h</span>
+        <span>12h</span>
+        <span>0h</span>
+      </div>
+    </div>
+  );
+}
 
 export function MySharedPage() {
   const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
+  const [metricsMap, setMetricsMap] = useState<{[key: number]: SharedAPIKeyMetrics}>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,11 +101,29 @@ export function MySharedPage() {
   const loadSharedAPIKeys = async () => {
     try {
       const response = await apiKeyAPI.getMySharedAPIKeys();
-      setSharedAPIKeys(response.data.items);
+      const keys = response.data.items;
+      setSharedAPIKeys(keys);
+      
+      // Load metrics for each key
+      for (const key of keys) {
+        loadMetrics(key.id);
+      }
     } catch (error) {
       console.error('Failed to load shared API keys:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMetrics = async (apiKeyId: number) => {
+    try {
+      const response = await apiKeyAPI.getSharedAPIKeyMetrics(apiKeyId);
+      setMetricsMap(prev => ({
+        ...prev,
+        [apiKeyId]: response.data
+      }));
+    } catch (error) {
+      console.error(`Failed to load metrics for API key ${apiKeyId}:`, error);
     }
   };
 
@@ -95,54 +195,131 @@ export function MySharedPage() {
               {sharedAPIKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg gap-4"
+                  className="p-5 border rounded-lg space-y-4"
                 >
-                  <div className="space-y-1">
-                    <div className="font-medium text-gray-900">{apiKey.provider}</div>
-                    <div className="text-sm text-gray-500">
-                      创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
+                  {/* Top Section: Logo, Provider Info, and Buttons */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Provider Logo */}
+                      {apiKey.provider_logo_path ? (
+                        <img 
+                          src={apiKey.provider_logo_path} 
+                          alt={apiKey.provider_display_name || apiKey.provider}
+                          className="w-14 h-14 rounded-full object-cover border border-gray-200"
+                          onError={(e) => {
+                            // Fallback to first letter if image fails to load
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xl">
+                          {(apiKey.provider_display_name || apiKey.provider || 'A').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      
+                      {/* Provider Name and Website - Title is clickable */}
+                      <div>
+                        {apiKey.provider_website ? (
+                          <a 
+                            href={apiKey.provider_website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-lg text-gray-900 hover:text-brand-600 transition-colors cursor-pointer"
+                          >
+                            {apiKey.provider_display_name || apiKey.provider}
+                          </a>
+                        ) : (
+                          <div className="font-semibold text-lg text-gray-900">
+                            {apiKey.provider_display_name || apiKey.provider}
+                          </div>
+                        )}
+                        {apiKey.provider_website && (
+                          <div className="text-sm text-gray-500">
+                            {apiKey.provider_website}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      使用次数: {apiKey.total_uses}
+
+                    {/* Square Toggle Switch and Delete Menu */}
+                    <div className="flex items-center gap-3">
+                      <SquareSwitch
+                        checked={apiKey.status === 'active'}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleEnableAPIKey(apiKey.id);
+                          } else {
+                            handleDisableAPIKey(apiKey.id);
+                          }
+                        }}
+                      />
+
+                      {/* Dropdown Menu for Delete */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-red-600 cursor-pointer focus:text-red-600"
+                            onClick={() => handleDeleteAPIKey(apiKey.id)}
+                          >
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        apiKey.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {apiKey.status === 'active' ? '活跃' : '已停用'}
-                    </div>
-                    <div className="flex gap-2">
-                      {apiKey.status === 'active' ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDisableAPIKey(apiKey.id)}
+
+                  {/* Model Tags Section - Square corners */}
+                  {apiKey.supported_models && apiKey.supported_models.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
+                      {apiKey.supported_models.map((model) => (
+                        <span
+                          key={model}
+                          className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded border border-gray-300"
                         >
-                          停用
-                        </Button>
-                      ) : apiKey.status === 'inactive' ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEnableAPIKey(apiKey.id)}
-                        >
-                          启用
-                        </Button>
-                      ) : null}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteAPIKey(apiKey.id)}
-                      >
-                        删除
-                      </Button>
+                          {model}
+                        </span>
+                      ))}
                     </div>
-                  </div>
+                  )}
+
+                  {/* Stats and Chart Section - 2:3 ratio */}
+                  {metricsMap[apiKey.id] && (
+                    <div className="flex flex-col sm:flex-row gap-4 pt-3">
+                      {/* Statistics - 2 parts */}
+                      <div className="sm:flex-[2] space-y-2.5">
+                        <div>
+                          <div className="text-sm text-gray-500">总Token</div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_tokens} <span className="text-sm font-normal text-gray-500">M</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">总时长</div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_duration_days} <span className="text-sm font-normal text-gray-500">天</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">总请求</div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_requests} <span className="text-sm font-normal text-gray-500">次</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 48-hour Bar Chart - 3 parts, fills container */}
+                      <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-32">
+                        <div className="p-2 h-full">
+                          <UsageBarChart data={metricsMap[apiKey.id].chart_data} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
