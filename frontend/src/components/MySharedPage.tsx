@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-// Modern square toggle switch component with green/gray colors
+// Modern square toggle switch component with custom soft colors
 function SquareSwitch({ 
   checked, 
   onCheckedChange,
@@ -28,12 +28,15 @@ function SquareSwitch({
     <button
       onClick={() => !disabled && onCheckedChange(!checked)}
       disabled={disabled}
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? "启用" : "禁用"}
       className={`
         relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center 
         rounded-md transition-all duration-200 ease-in-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
         disabled:cursor-not-allowed disabled:opacity-50
-        ${checked ? 'bg-green-500 focus-visible:ring-green-500' : 'bg-gray-300 focus-visible:ring-gray-400'}
+        ${checked ? 'bg-switch-on border border-green-300' : 'bg-switch-off'}
       `}
     >
       <span
@@ -170,7 +173,7 @@ export function MySharedPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400">添加、启用、停用或删除您的订阅 Keys</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-              <Button className="bg-brand-500 hover:bg-brand-600">
+              <Button className="bg-brand-300 hover:bg-brand-400">
                 绑定新订阅
               </Button>
             </ShareAPIKeyDialog>
@@ -279,7 +282,7 @@ export function MySharedPage() {
                       {apiKey.supported_models.map((model) => (
                         <span
                           key={model}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded border border-gray-300"
+                          className="px-2.5 py-0.5 bg-white text-gray-700 text-xs rounded border border-gray-200"
                         >
                           {model}
                         </span>
@@ -289,28 +292,28 @@ export function MySharedPage() {
 
                   {/* Stats and Chart Section - 2:3 ratio */}
                   {metricsMap[apiKey.id] && (
-                    <div className="flex flex-col sm:flex-row gap-4 pt-3">
+                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
                       {/* Statistics - 2 parts */}
-                      <div className="sm:flex-[2] space-y-2.5">
-                        <div>
-                          <div className="text-sm text-gray-500">总Token</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_tokens} <span className="text-sm font-normal text-gray-500">M</span>
-                          </div>
+                      <dl className="sm:flex-[2] flex flex-row gap-4 sm:gap-6 items-center">
+                        <div className="flex flex-col">
+                          <dt className="text-xs text-gray-500">总Token</dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_tokens}<span className="text-sm font-normal text-gray-500 ml-1">M</span>
+                          </dd>
                         </div>
-                        <div>
-                          <div className="text-sm text-gray-500">总时长</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_duration_days} <span className="text-sm font-normal text-gray-500">天</span>
-                          </div>
+                        <div className="flex flex-col">
+                          <dt className="text-xs text-gray-500">总时长</dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-gray-500 ml-1">天</span>
+                          </dd>
                         </div>
-                        <div>
-                          <div className="text-sm text-gray-500">总请求</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_requests} <span className="text-sm font-normal text-gray-500">次</span>
-                          </div>
+                        <div className="flex flex-col">
+                          <dt className="text-xs text-gray-500">总请求</dt>
+                          <dd className="text-2xl font-semibold text-gray-900">
+                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-gray-500 ml-1">次</span>
+                          </dd>
                         </div>
-                      </div>
+                      </dl>
                       
                       {/* 48-hour Bar Chart - 3 parts, fills container */}
                       <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-32">

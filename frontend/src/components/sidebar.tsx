@@ -62,7 +62,7 @@ export function Sidebar() {
   const SidebarContent = () => (
     <>
       {/* Launch Button */}
-      <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700">
+      <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
         <Sparkles className="w-4 h-4 mr-1" />
         即刻调用
       </Button>

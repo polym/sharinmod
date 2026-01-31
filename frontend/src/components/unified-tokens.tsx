@@ -290,7 +290,7 @@ export function UnifiedAPIKeys() {
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>创建 API Key</Button>
+                <Button className="bg-purple-500 hover:bg-purple-600 text-white">创建 API Key</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>

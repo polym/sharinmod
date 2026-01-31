@@ -27,6 +27,10 @@ const config: Config = {
           800: '#5b21b6',
           900: '#4c1d95',
         },
+        switch: {
+          on: '#F0FDF4',
+          off: '#F8F9FC',
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
