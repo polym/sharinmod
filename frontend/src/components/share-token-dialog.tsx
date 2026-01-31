@@ -42,7 +42,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
 
       toast({
         title: '成功',
-        description: 'API Key分享成功',
+        description: '订阅绑定成功',
       });
 
       setOpen(false);
@@ -52,7 +52,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
     } catch (error: any) {
       toast({
         title: '错误',
-        description: error.response?.data?.message || '分享失败，请重试',
+        description: error.response?.data?.message || '绑定失败，请重试',
         variant: 'destructive',
       });
     } finally {
@@ -63,24 +63,24 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {children || <Button>分享新API Key</Button>}
+        {children || <Button>绑定新订阅</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>分享API Key</DialogTitle>
+          <DialogTitle>绑定订阅</DialogTitle>
           <DialogDescription>
-            将您的API Key分享给社区，其他用户可以使用您的API Key进行API调用
+            将订阅平台的 APIKey 绑定到平台，平台用户共享使用您的订阅，但不会直接获取 APIKey 信息
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="provider" className="text-right">
-                服务提供商
+                订阅平台
               </Label>
               <Select value={provider} onValueChange={setProvider}>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="选择供应商" />
+                  <SelectValue placeholder="选择平台" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="bigmodel">bigmodel</SelectItem>
@@ -95,7 +95,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
               <Input
                 id="token"
                 type="password"
-                placeholder="输入您的API Key"
+                placeholder="输入您的 API Key"
                 value={apiKey}
                 onChange={(e) => setAPIKey(e.target.value)}
                 className="col-span-3"
@@ -104,7 +104,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '分享中...' : '分享'}
+              {loading ? '绑定中...' : '绑定'}
             </Button>
           </DialogFooter>
         </form>

@@ -48,7 +48,7 @@ export function MySharedPage() {
   };
 
   const handleDeleteAPIKey = async (apiKeyId: number) => {
-    if (!confirm('确定要删除这个API Key吗？此操作不可撤销。')) {
+    if (!confirm('确定要删除这个订阅吗？此操作不可撤销。')) {
       return;
     }
     try {
@@ -66,12 +66,12 @@ export function MySharedPage() {
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">已分享的 API Keys</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">启用、停用或删除您的共享 API Keys</p>
+              <h3 className="text-xl font-semibold leading-none tracking-tight">管理订阅</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">添加、启用、停用或删除您的订阅 Keys</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
               <Button className="bg-brand-500 hover:bg-brand-600">
-                分享新 API Key
+                绑定新订阅
               </Button>
             </ShareAPIKeyDialog>
           </div>
@@ -83,10 +83,10 @@ export function MySharedPage() {
             </div>
           ) : sharedAPIKeys.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-500 mb-4">暂无共享的 API Key</div>
+              <div className="text-gray-500 mb-4">暂无绑定的订阅</div>
               <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
                 <Button variant="outline">
-                  分享您的第一个 API Key
+                  绑定您的第一个订阅
                 </Button>
               </ShareAPIKeyDialog>
             </div>

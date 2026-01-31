@@ -48,7 +48,7 @@ async def generate_litellm_key(
             "user_id": user.litellm_user_id,
             "key_alias": api_key_name or f"unified_api_key_{datetime.utcnow().isoformat()}",
         }
-        
+
         # Add models if api_key_ids provided (would need to map api_key_ids to model names)
         # For now, we'll allow access to all models the user has access to
         
@@ -68,6 +68,7 @@ async def generate_litellm_key(
                 )
             return key
         except httpx.HTTPError as e:
+            print(f"Error response: {payload} {response.text}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to generate LiteLLM key: {str(e)}"

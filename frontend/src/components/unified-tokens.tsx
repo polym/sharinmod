@@ -61,7 +61,7 @@ export function UnifiedAPIKeys() {
 
       toast({
         title: '成功',
-        description: '统一API Key创建成功',
+        description: 'API Key 创建成功',
       });
 
       setCreateDialogOpen(false);
@@ -82,7 +82,7 @@ export function UnifiedAPIKeys() {
       await apiKeyAPI.blockUnifiedAPIKey(id);
       toast({
         title: '成功',
-        description: '统一API Key已停用',
+        description: 'API Key 已停用',
       });
       loadAPIKeys();
     } catch (error: any) {
@@ -99,7 +99,7 @@ export function UnifiedAPIKeys() {
       await apiKeyAPI.deleteUnifiedAPIKey(id);
       toast({
         title: '成功',
-        description: '统一API Key删除成功',
+        description: 'API Key 删除成功',
       });
       loadAPIKeys();
     } catch (error: any) {
@@ -116,7 +116,7 @@ export function UnifiedAPIKeys() {
       await apiKeyAPI.regenerateUnifiedAPIKey(id);
       toast({
         title: '成功',
-        description: 'API Key已重新生成',
+        description: 'API Key 已重新生成',
       });
       loadAPIKeys();
     } catch (error: any) {
@@ -134,19 +134,16 @@ export function UnifiedAPIKeys() {
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">我的统一API Keys</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">创建和管理您的统一 API Key</p>
+              <h3 className="text-xl font-semibold leading-none tracking-tight">我的 API Key</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">创建和管理您的 API Key，使用 API Key 调用大模型</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>创建统一API Key</Button>
+                <Button>创建 API Key</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>创建统一API Key</DialogTitle>
-                  <DialogDescription>
-                    创建一个新的统一 API Key
-                  </DialogDescription>
+                  <DialogTitle>创建 API Key</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -158,7 +155,7 @@ export function UnifiedAPIKeys() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="col-span-3"
-                      placeholder="统一API Key名称"
+                      placeholder="API Key 名称"
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -176,7 +173,7 @@ export function UnifiedAPIKeys() {
                 </div>
                 <DialogFooter>
                   <Button onClick={handleCreateUnifiedAPIKey}>
-                    创建
+                    生成
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -189,7 +186,7 @@ export function UnifiedAPIKeys() {
             <div className="text-center py-8">加载中...</div>
           ) : apiKeys.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              您还没有创建任何统一API Key
+              您还没有 API Key
             </div>
           ) : (
             <div className="space-y-4">
