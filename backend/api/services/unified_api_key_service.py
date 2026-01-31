@@ -175,7 +175,8 @@ def count_active_user_api_keys(session: Session, user_id: int) -> int:
 async def create_unified_api_key_async(
     session: Session,
     user: User,
-    api_key_name: Optional[str] = None
+    api_key_name: Optional[str] = None,
+    description: Optional[str] = None
 ) -> UnifiedAPIKey:
     """
     Generate a new unified API key for user with LiteLLM integration
@@ -184,6 +185,7 @@ async def create_unified_api_key_async(
         session: Database session
         user: Current authenticated user
         api_key_name: Optional user-friendly name
+        description: Optional description
         
     Returns:
         Created UnifiedAPIKey object with litellm_key
@@ -227,6 +229,7 @@ async def create_unified_api_key_async(
         api_key=api_key,
         status=UnifiedAPIKeyStatus.ACTIVE,
         api_key_name=api_key_name,
+        description=description,
         litellm_key=litellm_key
     )
     
@@ -503,5 +506,77 @@ async def regenerate_unified_api_key_async(
         action=APIKeyAction.GENERATED,  # Reusing GENERATED as closest action
         details=f"Regenerated LiteLLM key for unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
+    
+    return api_key
+
+async def update_unified_api_key_async(
+    session: Session,
+    user: User,
+    api_key_id: int,
+    api_key_name: Optional[str] = None,
+    description: Optional[str] = None,
+    status: Optional[UnifiedAPIKeyStatus] = None
+) -> UnifiedAPIKey:
+    """
+    Update a unified API key's metadata and status
+    
+    Args:
+        session: Database session
+        user: Current authenticated user
+        api_key_id: API key ID to update
+        api_key_name: New name (optional)
+        description: New description (optional)
+        status: New status (optional)
+        
+    Returns:
+        Updated UnifiedAPIKey
+        
+    Raises:
+        HTTPException: If API key not found or not owned by user
+    """
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
+    )
+    
+    api_key = session.exec(statement).first()
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=404,
+            detail="API key not found or not owned by you"
+        )
+    
+    # Update fields if provided
+    if api_key_name is not None:
+        api_key.api_key_name = api_key_name
+    
+    if description is not None:
+        api_key.description = description
+    
+    if status is not None:
+        old_status = api_key.status
+        api_key.status = status
+        
+        # If changing to REVOKED, set revoked_at
+        if status == UnifiedAPIKeyStatus.REVOKED and old_status != UnifiedAPIKeyStatus.REVOKED:
+            api_key.revoked_at = datetime.utcnow()
+            
+            # Block LiteLLM key if exists
+            if api_key.litellm_key:
+                try:
+                    await block_litellm_key(api_key.litellm_key)
+                except HTTPException as e:
+                    import logging
+                    logging.error(f"Failed to block LiteLLM key during update: {e.detail}")
+                    # Rollback the revocation if LiteLLM block fails
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to revoke API key: LiteLLM synchronization failed. {e.detail}"
+                    )
+    
+    session.add(api_key)
+    session.commit()
+    session.refresh(api_key)
     
     return api_key

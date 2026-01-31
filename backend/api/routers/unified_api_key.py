@@ -10,7 +10,8 @@ from api.models.user import User
 from api.schemas.unified_api_key import (
     UnifiedAPIKeyGenerate,
     UnifiedAPIKeyResponse,
-    UnifiedAPIKeyList
+    UnifiedAPIKeyList,
+    UnifiedAPIKeyUpdate
 )
 from api.services.unified_api_key_service import (
     create_unified_api_key_async,
@@ -18,7 +19,8 @@ from api.services.unified_api_key_service import (
     revoke_unified_api_key,
     block_unified_api_key_async,
     delete_unified_api_key_async,
-    regenerate_unified_api_key_async
+    regenerate_unified_api_key_async,
+    update_unified_api_key_async
 )
 
 
@@ -39,7 +41,9 @@ async def generate_api_key(
     - Logs GENERATED action in usage history
     - Creates LiteLLM API key for the unified API key
     """
-    api_key = await create_unified_api_key_async(session, current_user, request.api_key_name)
+    api_key = await create_unified_api_key_async(
+        session, current_user, request.api_key_name, request.description
+    )
     return api_key
 
 
@@ -56,7 +60,9 @@ async def create_unified_api_key_endpoint(
     - Returns 201 Created with API key details
     - Creates LiteLLM API key for the unified API key
     """
-    api_key = await create_unified_api_key_async(session, current_user, request.api_key_name)
+    api_key = await create_unified_api_key_async(
+        session, current_user, request.api_key_name, request.description
+    )
     return api_key
 
 
@@ -161,4 +167,29 @@ async def regenerate_api_key(
     - Returns updated API key with new key
     """
     api_key = await regenerate_unified_api_key_async(session, current_user, api_key_id)
+    return api_key
+
+
+@router.put("/unified/{api_key_id}", response_model=UnifiedAPIKeyResponse)
+async def update_api_key(
+    api_key_id: int,
+    request: UnifiedAPIKeyUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Update a unified API key's metadata and status
+    
+    - Updates name, description, and/or status
+    - If status changed to REVOKED, blocks LiteLLM key
+    - Returns updated API key
+    """
+    api_key = await update_unified_api_key_async(
+        session, 
+        current_user, 
+        api_key_id,
+        api_key_name=request.api_key_name,
+        description=request.description,
+        status=request.status
+    )
     return api_key

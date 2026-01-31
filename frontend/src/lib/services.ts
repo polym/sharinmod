@@ -40,6 +40,9 @@ export const apiKeyAPI = {
 
   getMyUnifiedAPIKeys: () => api.get('/api/api-keys/my-unified'),
 
+  updateUnifiedAPIKey: (apiKeyId: number, data: { api_key_name?: string; description?: string; status?: string }) =>
+    api.put(`/api/api-keys/unified/${apiKeyId}`, data),
+
   blockUnifiedAPIKey: (apiKeyId: number) =>
     api.put(`/api/api-keys/unified/${apiKeyId}/block`),
 

@@ -444,3 +444,135 @@ def test_revoke_api_key_not_owned(
     
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+# ==================== New Tests for Description Field and Edit ====================
+
+def test_generate_api_key_with_description(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test generating API key with description"""
+    response = client.post(
+        "/api/api-keys/unified",
+        json={
+            "api_key_name": "Test Key",
+            "description": "This is a test API key for development",
+            "api_key_ids": []
+        },
+        headers=auth_headers
+    )
+    
+    assert response.status_code == 201
+    data = response.json()
+    assert data["api_key_name"] == "Test Key"
+    assert data["description"] == "This is a test API key for development"
+
+
+def test_update_api_key_metadata(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test updating API key name and description"""
+    # Create API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={
+            "api_key_name": "Original Name",
+            "description": "Original description",
+            "api_key_ids": []
+        },
+        headers=auth_headers
+    )
+    api_key_id = create_response.json()["id"]
+    
+    # Update API key
+    update_response = client.put(
+        f"/api/api-keys/unified/{api_key_id}",
+        json={
+            "api_key_name": "Updated Name",
+            "description": "Updated description"
+        },
+        headers=auth_headers
+    )
+    
+    assert update_response.status_code == 200
+    data = update_response.json()
+    assert data["api_key_name"] == "Updated Name"
+    assert data["description"] == "Updated description"
+    assert data["status"] == "active"
+
+
+def test_update_api_key_status(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test updating API key status to revoked"""
+    # Create API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={
+            "api_key_name": "Test Key",
+            "api_key_ids": []
+        },
+        headers=auth_headers
+    )
+    api_key_id = create_response.json()["id"]
+    
+    # Update status to revoked
+    update_response = client.put(
+        f"/api/api-keys/unified/{api_key_id}",
+        json={
+            "status": "revoked"
+        },
+        headers=auth_headers
+    )
+    
+    assert update_response.status_code == 200
+    data = update_response.json()
+    assert data["status"] == "revoked"
+    assert data["revoked_at"] is not None
+
+
+def test_update_api_key_not_owned(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test that user cannot update another user's API key"""
+    # Create second user
+    other_user = User(
+        email="other2@example.com",
+        hashed_password="$2b$12$other_hash"
+    )
+    session.add(other_user)
+    session.commit()
+    session.refresh(other_user)
+    
+    other_access_token = create_access_token(data={"sub": other_user.email})
+    other_headers = {"Authorization": f"Bearer {other_access_token}"}
+    
+    # Other user creates an API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={"api_key_name": "Other's Key", "api_key_ids": []},
+        headers=other_headers
+    )
+    other_api_key_id = create_response.json()["id"]
+    
+    # Test user tries to update it
+    response = client.put(
+        f"/api/api-keys/unified/{other_api_key_id}",
+        json={"api_key_name": "Hacked Name"},
+        headers=auth_headers
+    )
+    
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
