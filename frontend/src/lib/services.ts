@@ -43,6 +43,9 @@ export const apiKeyAPI = {
   blockUnifiedAPIKey: (apiKeyId: number) =>
     api.put(`/api/api-keys/unified/${apiKeyId}/block`),
 
+  unblockUnifiedAPIKey: (apiKeyId: number) =>
+    api.put(`/api/api-keys/unified/${apiKeyId}/unblock`), // Note: Backend support required
+
   deleteUnifiedAPIKey: (apiKeyId: number) =>
     api.delete(`/api/api-keys/unified/${apiKeyId}`),
 

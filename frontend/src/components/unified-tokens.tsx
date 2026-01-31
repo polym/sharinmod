@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { Power, PowerOff, RotateCcw, Trash2 } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/services';
 
 interface UnifiedAPIKey {
@@ -25,6 +27,7 @@ export function UnifiedAPIKeys() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [loadingKeys, setLoadingKeys] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
   const loadAPIKeys = async () => {
@@ -78,6 +81,7 @@ export function UnifiedAPIKeys() {
   };
 
   const handleBlockUnifiedAPIKey = async (id: number) => {
+    setLoadingKeys(prev => new Set(prev).add(id));
     try {
       await apiKeyAPI.blockUnifiedAPIKey(id);
       toast({
@@ -91,10 +95,42 @@ export function UnifiedAPIKeys() {
         description: error.response?.data?.detail || '停用失败',
         variant: 'destructive',
       });
+    } finally {
+      setLoadingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleUnblockUnifiedAPIKey = async (id: number) => {
+    setLoadingKeys(prev => new Set(prev).add(id));
+    try {
+      await apiKeyAPI.unblockUnifiedAPIKey(id);
+      toast({
+        title: '成功',
+        description: 'API Key 已启用',
+      });
+      loadAPIKeys();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '启用失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
     }
   };
 
   const handleDeleteUnifiedAPIKey = async (id: number) => {
+    if (!confirm('确认删除此 API Key？此操作不可撤销。')) return;
+    setLoadingKeys(prev => new Set(prev).add(id));
     try {
       await apiKeyAPI.deleteUnifiedAPIKey(id);
       toast({
@@ -108,10 +144,17 @@ export function UnifiedAPIKeys() {
         description: error.response?.data?.detail || '删除失败',
         variant: 'destructive',
       });
+    } finally {
+      setLoadingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
     }
   };
 
   const handleRegenerateAPIKey = async (id: number) => {
+    setLoadingKeys(prev => new Set(prev).add(id));
     try {
       await apiKeyAPI.regenerateUnifiedAPIKey(id);
       toast({
@@ -124,6 +167,12 @@ export function UnifiedAPIKeys() {
         title: '错误',
         description: error.response?.data?.detail || '重新生成失败',
         variant: 'destructive',
+      });
+    } finally {
+      setLoadingKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
       });
     }
   };
@@ -173,7 +222,7 @@ export function UnifiedAPIKeys() {
                 </div>
                 <DialogFooter>
                   <Button onClick={handleCreateUnifiedAPIKey}>
-                    生成
+                    创建
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -181,7 +230,6 @@ export function UnifiedAPIKeys() {
           </div>
         </CardHeader>
         <CardContent>
-
           {loading ? (
             <div className="text-center py-8">加载中...</div>
           ) : apiKeys.length === 0 ? (
@@ -189,68 +237,86 @@ export function UnifiedAPIKeys() {
               您还没有 API Key
             </div>
           ) : (
-            <div className="space-y-4">
-              {apiKeys.map((apiKey) => (
-                <Card key={apiKey.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="font-medium">{apiKey.api_key_name || '未命名'}</div>
-                        <div className="text-sm text-gray-500">
-                          状态: {apiKey.status === 'active' ? '活跃' : '已停用'}
-                        </div>
-                        {apiKey.litellm_key && apiKey.litellm_key.length > 16 && (
-                          <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-                            {apiKey.litellm_key.substring(0, 8)}***{apiKey.litellm_key.substring(apiKey.litellm_key.length - 8)}
-                          </div>
-                        )}
-                        {apiKey.litellm_key && apiKey.litellm_key.length <= 16 && (
-                          <div className="text-sm font-mono bg-gray-100 p-2 rounded">
-                            {apiKey.litellm_key.substring(0, 4)}***{apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}
-                          </div>
-                        )}
-                        <div className="text-sm text-gray-500">
-                          创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
-                        </div>
-                        {apiKey.revoked_at && (
-                          <div className="text-sm text-gray-500">
-                            停用时间: {new Date(apiKey.revoked_at).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
+            <div className="overflow-x-auto">
+              <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名称</TableHead>
+                  <TableHead>API Key</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {apiKeys.map((apiKey) => (
+                  <TableRow key={apiKey.id}>
+                    <TableCell>{apiKey.api_key_name || '未命名'}</TableCell>
+                    <TableCell>
+                      {apiKey.litellm_key ? (
+                        <span className="font-mono bg-gray-100 p-1 rounded text-sm">
+                          {apiKey.litellm_key.length > 8
+                            ? `${apiKey.litellm_key.substring(0, 4)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
+                            : apiKey.litellm_key}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">无</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{apiKey.status === 'active' ? '活跃' : '已停用'}</TableCell>
+                    <TableCell>{new Date(apiKey.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
                       <div className="flex gap-2">
                         {apiKey.status === 'active' && (
                           <>
                             <Button 
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm"
                               onClick={() => handleRegenerateAPIKey(apiKey.id)}
+                              aria-label="重新生成 API Key"
+                              disabled={loadingKeys.has(apiKey.id)}
                             >
-                              重新生成
+                              <RotateCcw className="h-4 w-4" />
                             </Button>
                             <Button 
-                              variant="outline" 
+                              variant="ghost" 
                               size="sm"
                               onClick={() => handleBlockUnifiedAPIKey(apiKey.id)}
+                              aria-label="停用 API Key"
+                              disabled={loadingKeys.has(apiKey.id)}
                             >
-                              停用
+                              <PowerOff className="h-4 w-4" />
                             </Button>
                           </>
                         )}
                         {apiKey.status === 'revoked' && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
-                          >
-                            删除
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleUnblockUnifiedAPIKey(apiKey.id)}
+                              aria-label="启用 API Key"
+                              disabled={loadingKeys.has(apiKey.id)}
+                            >
+                              <Power className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
+                              aria-label="删除 API Key"
+                              disabled={loadingKeys.has(apiKey.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             </div>
           )}
         </CardContent>
