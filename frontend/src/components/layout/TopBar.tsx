@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Settings, Key, LogOut } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/UserAvatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,16 +26,6 @@ export function TopBar({ onPageChange }: TopBarProps) {
     router.push('/login');
   };
 
-  const getInitials = () => {
-    if (user?.name) {
-      return user.name.charAt(0).toUpperCase();
-    }
-    if (user?.email) {
-      return user.email.charAt(0).toUpperCase();
-    }
-    return 'U';
-  };
-
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
       {/* Left side - can add page title or breadcrumb */}
@@ -49,14 +39,12 @@ export function TopBar({ onPageChange }: TopBarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded-full">
-              <Avatar className="h-10 w-10 cursor-pointer">
-                {user?.avatar_url && (
-                  <AvatarImage src={user.avatar_url} alt={user.name || user.email || 'User'} />
-                )}
-                <AvatarFallback className="bg-brand-500 text-white font-medium">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                email={user?.email}
+                name={user?.name}
+                avatar_url={user?.avatar_url}
+                className="h-10 w-10 cursor-pointer"
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

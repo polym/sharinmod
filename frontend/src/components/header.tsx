@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { User } from "lucide-react";
+import { useAuthStore } from "@/lib/store";
+import { UserAvatar } from "@/components/UserAvatar";
 
 export function Header() {
+  const { user } = useAuthStore();
+
   // Simplified header: Logo moved from sidebar to header, navigation simplified to account avatar only
   return (
     <header className="bg-white border-b border-purple-100 px-8 py-4">
@@ -16,10 +19,15 @@ export function Header() {
           </div>
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
         </Link>
-        
+
         {/* Account Avatar */}
-        <Link href="/settings" className="flex items-center justify-center w-8 h-8 bg-purple-100 hover:bg-purple-200 rounded-full transition-colors">
-          <User className="w-4 h-4 text-purple-600" />
+        <Link href="/settings" className="transition-opacity hover:opacity-90">
+          <UserAvatar
+            email={user?.email}
+            name={user?.name}
+            avatar_url={user?.avatar_url}
+            className="h-8 w-8"
+          />
         </Link>
       </div>
     </header>
