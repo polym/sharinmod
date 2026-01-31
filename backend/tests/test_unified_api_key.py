@@ -555,10 +555,10 @@ def test_update_api_key_not_owned(
     session.add(other_user)
     session.commit()
     session.refresh(other_user)
-    
+
     other_access_token = create_access_token(data={"sub": other_user.email})
     other_headers = {"Authorization": f"Bearer {other_access_token}"}
-    
+
     # Other user creates an API key
     create_response = client.post(
         "/api/api-keys/unified",
@@ -566,13 +566,151 @@ def test_update_api_key_not_owned(
         headers=other_headers
     )
     other_api_key_id = create_response.json()["id"]
-    
+
     # Test user tries to update it
     response = client.put(
         f"/api/api-keys/unified/{other_api_key_id}",
         json={"api_key_name": "Hacked Name"},
         headers=auth_headers
     )
-    
+
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+
+
+# ==================== Unblock API Key Tests ====================
+
+def test_unblock_api_key_success(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test successfully unblocking a revoked API key"""
+    # Create and revoke an API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={"api_key_name": "To Unblock", "api_key_ids": []},
+        headers=auth_headers
+    )
+    api_key_id = create_response.json()["id"]
+
+    # Revoke it first
+    client.put(f"/api/api-keys/unified/{api_key_id}/block", headers=auth_headers)
+
+    # Unblock it
+    response = client.put(f"/api/api-keys/unified/{api_key_id}/unblock", headers=auth_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "active"
+    assert data["revoked_at"] is None
+
+
+def test_unblock_api_key_not_found(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test unblocking non-existent API key"""
+    response = client.put("/api/api-keys/unified/99999/unblock", headers=auth_headers)
+
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"].lower()
+
+
+def test_unblock_api_key_not_revoked(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test unblocking an active API key (should fail)"""
+    # Create an API key (it will be active by default)
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={"api_key_name": "Already Active", "api_key_ids": []},
+        headers=auth_headers
+    )
+    api_key_id = create_response.json()["id"]
+
+    # Try to unblock it (should fail since it's not revoked)
+    response = client.put(f"/api/api-keys/unified/{api_key_id}/unblock", headers=auth_headers)
+
+    assert response.status_code == 400
+    assert "only revoked" in response.json()["detail"].lower()
+
+
+def test_unblock_api_key_without_auth(client: TestClient, session: Session):
+    """Test that unblocking requires authentication"""
+    response = client.put("/api/api-keys/unified/1/unblock")
+
+    assert response.status_code in [401, 403]
+
+
+def test_update_api_key_from_revoked_to_active(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test updating API key status from revoked to active via update endpoint"""
+    # Create and revoke an API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={"api_key_name": "To Reactivate", "api_key_ids": []},
+        headers=auth_headers
+    )
+    api_key_id = create_response.json()["id"]
+
+    client.put(f"/api/api-keys/unified/{api_key_id}/block", headers=auth_headers)
+
+    # Update status back to active
+    update_response = client.put(
+        f"/api/api-keys/unified/{api_key_id}",
+        json={"status": "active"},
+        headers=auth_headers
+    )
+
+    assert update_response.status_code == 200
+    data = update_response.json()
+    assert data["status"] == "active"
+    assert data["revoked_at"] is None
+
+
+def test_unblock_api_key_not_owned(
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict
+):
+    """Test that user cannot unblock another user's API key"""
+    # Create second user
+    other_user = User(
+        email="other3@example.com",
+        hashed_password="$2b$12$other_hash"
+    )
+    session.add(other_user)
+    session.commit()
+    session.refresh(other_user)
+
+    other_access_token = create_access_token(data={"sub": other_user.email})
+    other_headers = {"Authorization": f"Bearer {other_access_token}"}
+
+    # Other user creates and blocks an API key
+    create_response = client.post(
+        "/api/api-keys/unified",
+        json={"api_key_name": "Other's Key", "api_key_ids": []},
+        headers=other_headers
+    )
+    other_api_key_id = create_response.json()["id"]
+    client.put(f"/api/api-keys/unified/{other_api_key_id}/block", headers=other_headers)
+
+    # Test user tries to unblock it
+    response = client.put(
+        f"/api/api-keys/unified/{other_api_key_id}/unblock",
+        headers=auth_headers
+    )
+
+    assert response.status_code == 404

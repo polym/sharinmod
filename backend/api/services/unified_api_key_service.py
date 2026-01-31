@@ -78,10 +78,10 @@ async def generate_litellm_key(
 async def block_litellm_key(key: str) -> None:
     """
     Block a LiteLLM API key
-    
+
     Args:
         key: LiteLLM API key to block
-        
+
     Raises:
         HTTPException: If LiteLLM API call fails
     """
@@ -97,6 +97,31 @@ async def block_litellm_key(key: str) -> None:
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to block LiteLLM key: {str(e)}"
+            )
+
+
+async def unlock_litellm_key(key: str) -> None:
+    """
+    Unblock a LiteLLM API key
+
+    Args:
+        key: LiteLLM API key to unblock
+
+    Raises:
+        HTTPException: If LiteLLM API call fails
+    """
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            response = await client.post(
+                f"{settings.LITELLM_BASE_URL}/key/unlock",
+                json={"key": key},
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to unlock LiteLLM key: {str(e)}"
             )
 
 
@@ -327,12 +352,12 @@ async def block_unified_api_key_async(
 ) -> None:
     """
     Block a unified API key and its LiteLLM key
-    
+
     Args:
         session: Database session
         user: Current authenticated user
         api_key_id: API key ID to block
-        
+
     Raises:
         HTTPException: If API key not found, not owned by user, already revoked, or LiteLLM block fails
     """
@@ -340,21 +365,21 @@ async def block_unified_api_key_async(
         UnifiedAPIKey.id == api_key_id,
         UnifiedAPIKey.user_id == user.id
     )
-    
+
     api_key = session.exec(statement).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=404,
             detail="API key not found or not owned by you"
         )
-    
+
     if api_key.status == UnifiedAPIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
             detail="API key already revoked"
         )
-    
+
     # Block LiteLLM key if exists
     if api_key.litellm_key:
         try:
@@ -363,14 +388,14 @@ async def block_unified_api_key_async(
             # Log but don't fail if LiteLLM block fails
             import logging
             logging.warning(f"Failed to block LiteLLM key: {e.detail}")
-    
+
     # Revoke API key
     api_key.status = UnifiedAPIKeyStatus.REVOKED
     api_key.revoked_at = datetime.utcnow()
-    
+
     session.add(api_key)
     session.commit()
-    
+
     # Log revocation action
     log_api_key_usage(
         db=session,
@@ -379,6 +404,74 @@ async def block_unified_api_key_async(
         action=APIKeyAction.REVOKED,
         details=f"Blocked unified API key: {api_key.api_key_name or 'Unnamed'}"
     )
+
+
+async def unblock_unified_api_key_async(
+    session: Session,
+    user: User,
+    api_key_id: int
+) -> UnifiedAPIKey:
+    """
+    Unblock a unified API key and its LiteLLM key
+
+    Args:
+        session: Database session
+        user: Current authenticated user
+        api_key_id: API key ID to unblock
+
+    Returns:
+        Updated UnifiedAPIKey
+
+    Raises:
+        HTTPException: If API key not found, not owned by user, not revoked, or LiteLLM unblock fails
+    """
+    statement = select(UnifiedAPIKey).where(
+        UnifiedAPIKey.id == api_key_id,
+        UnifiedAPIKey.user_id == user.id
+    )
+
+    api_key = session.exec(statement).first()
+
+    if not api_key:
+        raise HTTPException(
+            status_code=404,
+            detail="API key not found or not owned by you"
+        )
+
+    # Only allow unblocking revoked keys
+    if api_key.status != UnifiedAPIKeyStatus.REVOKED:
+        raise HTTPException(
+            status_code=400,
+            detail="Only revoked API keys can be unblocked"
+        )
+
+    # Unblock LiteLLM key if exists
+    if api_key.litellm_key:
+        try:
+            await unlock_litellm_key(api_key.litellm_key)
+        except HTTPException as e:
+            # Log but don't fail if LiteLLM unblock fails
+            import logging
+            logging.warning(f"Failed to unblock LiteLLM key: {e.detail}")
+
+    # Update status to ACTIVE and clear revoked_at
+    api_key.status = UnifiedAPIKeyStatus.ACTIVE
+    api_key.revoked_at = None
+
+    session.add(api_key)
+    session.commit()
+    session.refresh(api_key)
+
+    # Log unblock action
+    log_api_key_usage(
+        db=session,
+        user_id=user.id,
+        api_key_id=str(api_key_id),
+        action=APIKeyAction.GENERATED,  # Reusing GENERATED as closest action
+        details=f"Unblocked unified API key: {api_key.api_key_name or 'Unnamed'}"
+    )
+
+    return api_key
 
 
 async def delete_unified_api_key_async(
@@ -556,24 +649,44 @@ async def update_unified_api_key_async(
     
     if status is not None:
         old_status = api_key.status
-        api_key.status = status
-        
-        # If changing to REVOKED, set revoked_at
+
+        # If changing to REVOKED, block LiteLLM key first before modifying state
         if status == UnifiedAPIKeyStatus.REVOKED and old_status != UnifiedAPIKeyStatus.REVOKED:
-            api_key.revoked_at = datetime.utcnow()
-            
-            # Block LiteLLM key if exists
+            # Block LiteLLM key if exists (do this BEFORE modifying state)
             if api_key.litellm_key:
                 try:
                     await block_litellm_key(api_key.litellm_key)
                 except HTTPException as e:
                     import logging
                     logging.error(f"Failed to block LiteLLM key during update: {e.detail}")
-                    # Rollback the revocation if LiteLLM block fails
                     raise HTTPException(
                         status_code=500,
                         detail=f"Failed to revoke API key: LiteLLM synchronization failed. {e.detail}"
                     )
+            # Only modify state after LiteLLM call succeeds
+            api_key.status = status
+            api_key.revoked_at = datetime.utcnow()
+
+        # If changing from REVOKED to ACTIVE, unlock the key first before modifying state
+        elif status == UnifiedAPIKeyStatus.ACTIVE and old_status == UnifiedAPIKeyStatus.REVOKED:
+            # Unlock LiteLLM key if exists (do this BEFORE modifying state)
+            if api_key.litellm_key:
+                try:
+                    await unlock_litellm_key(api_key.litellm_key)
+                except HTTPException as e:
+                    import logging
+                    logging.error(f"Failed to unlock LiteLLM key during update: {e.detail}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to activate API key: LiteLLM synchronization failed. {e.detail}"
+                    )
+            # Only modify state after LiteLLM call succeeds
+            api_key.status = status
+            api_key.revoked_at = None
+
+        else:
+            # Simple status change without LiteLLM sync
+            api_key.status = status
     
     session.add(api_key)
     session.commit()

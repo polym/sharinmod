@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { Copy, Edit, Trash2 } from 'lucide-react';
+import { Copy, Edit, Trash2, Check } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/services';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -36,6 +36,7 @@ export function UnifiedAPIKeys() {
   const [editDescription, setEditDescription] = useState('');
   const [editEnabled, setEditEnabled] = useState(true);
   const [loadingKeys, setLoadingKeys] = useState<Set<number>>(new Set());
+  const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
   const { toast } = useToast();
 
   const loadAPIKeys = async () => {
@@ -163,23 +164,21 @@ export function UnifiedAPIKeys() {
     }
   };
 
-  const handleCopyAPIKey = (key: string) => {
+  const handleCopyAPIKey = (key: string, id: number) => {
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(key).then(() => {
-        toast({
-          title: '成功',
-          description: 'API Key 已复制到剪贴板',
-        });
+        setCopiedKeyId(id);
+        setTimeout(() => setCopiedKeyId(null), 1500);
       }).catch(() => {
-        fallbackCopy(key);
+        fallbackCopy(key, id);
       });
     } else {
-      fallbackCopy(key);
+      fallbackCopy(key, id);
     }
   };
 
-  const fallbackCopy = (text: string) => {
+  const fallbackCopy = (text: string, id: number) => {
     // Fallback for older browsers or non-HTTPS contexts
     const textArea = document.createElement('textarea');
     textArea.value = text;
@@ -189,10 +188,8 @@ export function UnifiedAPIKeys() {
     textArea.select();
     try {
       document.execCommand('copy');
-      toast({
-        title: '成功',
-        description: 'API Key 已复制到剪贴板',
-      });
+      setCopiedKeyId(id);
+      setTimeout(() => setCopiedKeyId(null), 1500);
     } catch (err) {
       toast({
         title: '错误',
@@ -375,27 +372,56 @@ export function UnifiedAPIKeys() {
                         {apiKey.litellm_key ? (
                           <>
                             <span className="font-mono bg-gray-100 p-1 rounded text-sm">
-                              {apiKey.litellm_key.length > 8
-                                ? `${apiKey.litellm_key.substring(0, 4)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
+                              {apiKey.litellm_key.length > 10
+                                ? `${apiKey.litellm_key.substring(0, 6)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
                                 : apiKey.litellm_key}
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyAPIKey(apiKey.litellm_key!)}
-                              aria-label="复制 API Key"
-                              className="h-6 w-6 p-0"
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center w-[92px]">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyAPIKey(apiKey.litellm_key!, apiKey.id)}
+                                aria-label="复制 API Key"
+                                className="h-6 w-6 p-0"
+                              >
+                                {copiedKeyId === apiKey.id ? (
+                                  <Check className="h-3 w-3 text-purple-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                              {copiedKeyId === apiKey.id && (
+                                <span className="text-xs text-purple-600 ml-1 inline-block w-16">
+                                  已复制！
+                                </span>
+                              )}
+                            </div>
                           </>
                         ) : (
                           <span className="text-gray-500">无</span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{apiKey.status === 'active' ? '活跃' : '已停用'}</TableCell>
-                    <TableCell>{new Date(apiKey.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        apiKey.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {apiKey.status === 'active' ? '活跃' : '已停用'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(apiKey.created_at).toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button 

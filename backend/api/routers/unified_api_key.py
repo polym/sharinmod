@@ -18,6 +18,7 @@ from api.services.unified_api_key_service import (
     get_user_unified_api_keys,
     revoke_unified_api_key,
     block_unified_api_key_async,
+    unblock_unified_api_key_async,
     delete_unified_api_key_async,
     regenerate_unified_api_key_async,
     update_unified_api_key_async
@@ -127,13 +128,30 @@ async def block_api_key(
 ):
     """
     Block a unified API key and its LiteLLM key
-    
+
     - Changes status to REVOKED
     - Blocks LiteLLM key
     - Returns 204 No Content
     """
     await block_unified_api_key_async(session, current_user, api_key_id)
     return None
+
+
+@router.put("/unified/{api_key_id}/unblock", status_code=status.HTTP_200_OK, response_model=UnifiedAPIKeyResponse)
+async def unblock_api_key(
+    api_key_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Unblock a unified API key and its LiteLLM key
+
+    - Changes status from REVOKED to ACTIVE
+    - Unblocks LiteLLM key
+    - Returns 200 OK with updated API key
+    """
+    api_key = await unblock_unified_api_key_async(session, current_user, api_key_id)
+    return api_key
 
 
 @router.delete("/unified/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
