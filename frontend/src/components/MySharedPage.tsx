@@ -173,7 +173,7 @@ export function MySharedPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400">添加、启用、停用或删除您的订阅 Keys</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-              <Button className="bg-brand-300 hover:bg-brand-400">
+              <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">
                 绑定新订阅
               </Button>
             </ShareAPIKeyDialog>
@@ -298,7 +298,7 @@ export function MySharedPage() {
                         <div className="flex flex-col">
                           <dt className="text-xs text-gray-500">总Token</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_tokens}<span className="text-sm font-normal text-gray-500 ml-1">M</span>
+                            {metricsMap[apiKey.id].total_tokens}<span className="text-sm font-normal text-gray-500 ml-1">百万</span>
                           </dd>
                         </div>
                         <div className="flex flex-col">
