@@ -6,6 +6,7 @@ from typing import Dict, Any
 import redis
 from dotenv import load_dotenv
 import os
+import json
 
 from api.schemas.litellm_callback import LiteLLMCallbackRequest, WebhookResponse
 from api.services.litellm_callback_service import enqueue_callback
@@ -45,6 +46,12 @@ async def litellm_success_callback(
         HTTPException 503: Redis connection failed
     """
     try:
+        # Log raw request body for debugging
+        print("=" * 80)
+        print("[WEBHOOK] Received LiteLLM callback request")
+        print(f"[WEBHOOK] Raw request body:\n{json.dumps(callback_data, indent=2, ensure_ascii=False)}")
+        print("=" * 80)
+
         # Parse callback data
         callback = LiteLLMCallbackRequest(**callback_data)
 

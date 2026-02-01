@@ -36,10 +36,13 @@ def enqueue_callback(redis_client, callback_data: Dict[str, Any]) -> bool:
         True if enqueued successfully, False otherwise
     """
     try:
+        # Extract model_id for logging
+        model_id = callback_data.get('model_id') or callback_data.get('hidden_params', {}).get('model_id', 'unknown')
+
         # Serialize to JSON and push to list
         json_data = json.dumps(callback_data)
         redis_client.lpush(CALLBACK_QUEUE_KEY, json_data)
-        logger.info(f"Enqueued callback to Redis: {callback_data.get('model_id')}")
+        logger.info(f"Enqueued callback to Redis: model_id={model_id}")
         return True
     except Exception as e:
         logger.error(f"Failed to enqueue callback: {e}")
@@ -83,6 +86,42 @@ def parse_callback_data(data: Dict[str, Any]) -> Optional[LiteLLMCallbackRequest
     except Exception as e:
         logger.error(f"Failed to parse callback data: {e}")
         return None
+
+
+def extract_api_key_hash(callback: LiteLLMCallbackRequest) -> Optional[str]:
+    """
+    Extract user_api_key_hash from callback data
+
+    The hash may be in metadata.user_api_key_hash
+
+    Args:
+        callback: Parsed callback data
+
+    Returns:
+        API key hash or None
+    """
+    if callback.metadata and callback.metadata.user_api_key_hash:
+        return callback.metadata.user_api_key_hash
+    return None
+
+
+def extract_model_id(callback: LiteLLMCallbackRequest) -> Optional[str]:
+    """
+    Extract model_id from callback data
+
+    The model_id may be at root level or in hidden_params
+
+    Args:
+        callback: Parsed callback data
+
+    Returns:
+        Model ID or None
+    """
+    if callback.model_id:
+        return callback.model_id
+    if callback.hidden_params and callback.hidden_params.model_id:
+        return callback.hidden_params.model_id
+    return None
 
 
 def find_user_by_api_key_hash(session: Session, api_key_hash: str) -> Optional[User]:
@@ -206,18 +245,31 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         return False
 
     try:
+        # Extract api_key_hash from callback (from metadata)
+        api_key_hash = extract_api_key_hash(callback)
+        if not api_key_hash:
+            logger.warning("No api_key_hash found in callback metadata")
+            # Don't fail - just log and continue
+
+        # Extract model_id from callback (root or hidden_params)
+        model_id = extract_model_id(callback)
+        if not model_id:
+            logger.warning(f"No model_id found in callback for model={callback.model}")
+
         # Find consumer by api_key_hash
-        consumer = find_user_by_api_key_hash(session, callback.user_api_key_hash)
+        consumer = None
+        if api_key_hash:
+            consumer = find_user_by_api_key_hash(session, api_key_hash)
         if not consumer:
-            logger.warning(
-                f"No consumer found for api_key_hash: {callback.user_api_key_hash}"
-            )
+            logger.warning(f"No consumer found for api_key_hash: {api_key_hash}")
             # Don't fail - just log and continue
 
         # Find subscription by model_id
-        subscription = find_subscription_by_model_id(session, callback.model_id)
+        subscription = None
+        if model_id:
+            subscription = find_subscription_by_model_id(session, model_id)
         if not subscription:
-            logger.warning(f"No subscription found for model_id: {callback.model_id}")
+            logger.warning(f"No subscription found for model_id: {model_id}")
             # Don't fail - just log and continue
 
         # Update statistics

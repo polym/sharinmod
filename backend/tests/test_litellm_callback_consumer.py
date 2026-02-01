@@ -24,15 +24,39 @@ def session_fixture():
         yield session
 
 
+def make_valid_callback_data(user_hash="test_hash", model="model-123", tokens=1000):
+    """Helper to create valid LiteLLM callback data"""
+    return {
+        "id": "chatcmpl-test",
+        "trace_id": "trace-test",
+        "call_type": "acompletion",
+        "cache_hit": False,
+        "stream": True,
+        "status": "success",
+        "custom_llm_provider": "openai",
+        "startTime": 1768809251.711881,
+        "endTime": 1768809253.019879,
+        "response_time": 0.199,
+        "model": "openai/gpt-4",
+        "model_id": model,
+        "total_tokens": tokens,
+        "prompt_tokens": tokens // 2,
+        "completion_tokens": tokens // 2,
+        "response_cost": 0.0,
+        "metadata": {
+            "user_api_key_hash": user_hash
+        },
+        "hidden_params": {
+            "model_id": model
+        }
+    }
+
+
 # Test 1: Consumer processes callback successfully
 @patch("api.consumers.litellm_callback_consumer.dequeue_callback")
 def test_consumer_processes_callback(mock_dequeue, session: Session):
     """Test consumer processes a callback message"""
-    callback_data = {
-        "user_api_key_hash": "test_hash",
-        "model_id": "model-123",
-        "total_tokens": 1000
-    }
+    callback_data = make_valid_callback_data()
     mock_dequeue.return_value = callback_data
 
     result = process_callback(session, callback_data)
@@ -51,11 +75,7 @@ def test_consumer_handles_missing_user(
     """Test consumer handles case when user is not found"""
     from api.schemas.litellm_callback import LiteLLMCallbackRequest
 
-    callback_data = {
-        "user_api_key_hash": "nonexistent_hash",
-        "model_id": "model-123",
-        "total_tokens": 1000
-    }
+    callback_data = make_valid_callback_data(user_hash="nonexistent_hash")
 
     mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
     mock_find_user.return_value = None  # User not found
@@ -80,11 +100,7 @@ def test_consumer_handles_missing_subscription(
     from api.schemas.litellm_callback import LiteLLMCallbackRequest
     from api.models.user import User
 
-    callback_data = {
-        "user_api_key_hash": "test_hash",
-        "model_id": "nonexistent_model",
-        "total_tokens": 1000
-    }
+    callback_data = make_valid_callback_data(model="nonexistent_model")
 
     mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
 
@@ -156,11 +172,7 @@ def test_consumer_retries_on_transient_error(
     from api.schemas.litellm_callback import LiteLLMCallbackRequest
     from api.models.user import User
 
-    callback_data = {
-        "user_api_key_hash": "test_hash",
-        "model_id": "model-123",
-        "total_tokens": 1000
-    }
+    callback_data = make_valid_callback_data()
 
     mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
 

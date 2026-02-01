@@ -40,12 +40,17 @@ async def ip_whitelist_middleware(request: Request, call_next):
         # Direct request, not through trusted proxy
         client_ip = direct_ip
 
+    # Log for debugging
+    print(f"[IP_WHITELIST] Path: {request.url.path}, Direct IP: {direct_ip}, Client IP: {client_ip}, Whitelist: {settings.LITELLM_WEBHOOK_IP_WHITELIST}")
+
     # Check whitelist
     whitelist = settings.LITELLM_WEBHOOK_IP_WHITELIST
     if whitelist and client_ip not in whitelist:
+        print(f"[IP_WHITELIST] REJECTED: IP {client_ip} not in whitelist")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"IP {client_ip} is not authorized to access this endpoint"
         )
 
+    print(f"[IP_WHITELIST] ALLOWED: IP {client_ip} passed whitelist check")
     return await call_next(request)

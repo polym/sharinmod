@@ -90,14 +90,16 @@ def process_message(redis_client: redis.Redis, session: Session) -> bool:
     if callback_data is None:
         return False
 
-    logger.info(f"Processing callback: model_id={callback_data.get('model_id')}")
+    # Extract model_id for logging (may be at root or in hidden_params)
+    model_id = callback_data.get('model_id') or callback_data.get('hidden_params', {}).get('model_id', callback_data.get('model', 'unknown'))
+    logger.info(f"Processing callback: model_id={model_id}")
 
     try:
         success = process_callback(session, callback_data)
         if success:
-            logger.info(f"Successfully processed callback for model_id={callback_data.get('model_id')}")
+            logger.info(f"Successfully processed callback for model_id={model_id}")
         else:
-            logger.warning(f"Failed to process callback for model_id={callback_data.get('model_id')}")
+            logger.warning(f"Failed to process callback for model_id={model_id}")
         return True
     except Exception as e:
         logger.error(f"Error processing callback: {e}", exc_info=True)

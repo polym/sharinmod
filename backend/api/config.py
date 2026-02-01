@@ -3,6 +3,7 @@ import secrets
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 
 
 def load_env():
@@ -37,8 +38,21 @@ class Settings(BaseSettings):
         "z.ai": "https://z.ai/api/anthropic"
     }
 
-    # LiteLLM webhook IP whitelist (comma-separated list)
-    LITELLM_WEBHOOK_IP_WHITELIST: list = os.getenv("LITELLM_WEBHOOK_IP_WHITELIST", "").split(",") if os.getenv("LITELLM_WEBHOOK_IP_WHITELIST") else []
+    # LiteLLM webhook IP whitelist (comma-separated string, will be parsed to list)
+    LITELLM_WEBHOOK_IP_WHITELIST_STR: str = ""
+    LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
+
+    @field_validator("LITELLM_WEBHOOK_IP_WHITELIST", mode="before")
+    @classmethod
+    def parse_whitelist(cls, v: str | list, info) -> list[str]:
+        """Parse IP whitelist from environment variable"""
+        # If already a list (from default), return as is
+        if isinstance(v, list):
+            return [ip.strip() for ip in v if ip.strip()]
+        # If string, split by comma
+        if isinstance(v, str):
+            return [ip.strip() for ip in v.split(",") if ip.strip()]
+        return []
 
     class Config:
         case_sensitive = True

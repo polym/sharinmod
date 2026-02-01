@@ -12,7 +12,9 @@ from api.services.litellm_callback_service import (
     find_subscription_by_model_id,
     update_token_statistics,
     enqueue_callback,
-    process_callback
+    process_callback,
+    extract_api_key_hash,
+    extract_model_id
 )
 from api.models.user import User
 from api.models.shared_api_key import SharedAPIKey, APIKeyProvider
@@ -113,13 +115,32 @@ def test_unified_api_key_fixture(session: Session, test_user_consumer: User):
 
 @pytest.fixture(name="valid_callback_data")
 def valid_callback_data_fixture():
-    """Valid callback data"""
+    """Valid callback data matching actual LiteLLM structure"""
     return {
-        "user_api_key_hash": "litellm_key_hash",
+        "id": "chatcmpl-test123",
+        "trace_id": "trace-123",
+        "call_type": "acompletion",
+        "cache_hit": False,
+        "stream": True,
+        "status": "success",
+        "custom_llm_provider": "openai",
+        "startTime": 1768809251.711881,
+        "endTime": 1768809253.019879,
+        "completionStartTime": 1768809251.911402,
+        "response_time": 0.19952106475830078,
+        "model": "openai/Qwen/Qwen2.5-3B-Instruct",
         "model_id": "model-123",
         "total_tokens": 1500,
-        "start_time": "2026-02-01T10:00:00Z",
-        "end_time": "2026-02-01T10:00:05Z"
+        "prompt_tokens": 500,
+        "completion_tokens": 1000,
+        "response_cost": 0.0,
+        "metadata": {
+            "user_api_key_hash": "litellm_key_hash"
+        },
+        "hidden_params": {
+            "model_id": "model-123",
+            "api_base": "http://localhost:8000/v1"
+        }
     }
 
 
@@ -129,23 +150,88 @@ def test_parse_callback_data_success(valid_callback_data):
     result = parse_callback_data(valid_callback_data)
     assert result is not None
     assert isinstance(result, LiteLLMCallbackRequest)
-    assert result.user_api_key_hash == "litellm_key_hash"
+    assert result.metadata.user_api_key_hash == "litellm_key_hash"
     assert result.model_id == "model-123"
     assert result.total_tokens == 1500
 
 
-# Test 2: Parse callback data with missing fields
+# Test 2: Extract api_key_hash from callback
+def test_extract_api_key_hash_success(valid_callback_data):
+    """Test extracting api_key_hash from callback"""
+    callback = parse_callback_data(valid_callback_data)
+    result = extract_api_key_hash(callback)
+    assert result == "litellm_key_hash"
+
+
+# Test 3: Extract api_key_hash when missing
+def test_extract_api_key_hash_missing():
+    """Test extracting api_key_hash when metadata is None"""
+    from api.schemas.litellm_callback import LiteLLMCallbackRequest
+    callback_data = {
+        "id": "chatcmpl-test",
+        "trace_id": "trace-test",
+        "call_type": "acompletion",
+        "custom_llm_provider": "openai",
+        "startTime": 1768809251.711881,
+        "endTime": 1768809253.019879,
+        "response_time": 0.199,
+        "model": "openai/gpt-4",
+        "total_tokens": 100,
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "response_cost": 0.0
+    }
+    callback = LiteLLMCallbackRequest(**callback_data)
+    result = extract_api_key_hash(callback)
+    assert result is None
+
+
+# Test 4: Extract model_id from callback (root level)
+def test_extract_model_id_root_level(valid_callback_data):
+    """Test extracting model_id from root level"""
+    callback = parse_callback_data(valid_callback_data)
+    result = extract_model_id(callback)
+    assert result == "model-123"
+
+
+# Test 5: Extract model_id from callback (hidden_params)
+def test_extract_model_id_hidden_params():
+    """Test extracting model_id from hidden_params when root is None"""
+    from api.schemas.litellm_callback import LiteLLMCallbackRequest, LiteLLMHiddenParams
+    callback_data = {
+        "id": "chatcmpl-test",
+        "trace_id": "trace-test",
+        "call_type": "acompletion",
+        "custom_llm_provider": "openai",
+        "startTime": 1768809251.711881,
+        "endTime": 1768809253.019879,
+        "response_time": 0.199,
+        "model": "openai/gpt-4",
+        "total_tokens": 100,
+        "prompt_tokens": 50,
+        "completion_tokens": 50,
+        "response_cost": 0.0,
+        "hidden_params": {
+            "model_id": "model-from-hidden"
+        }
+    }
+    callback = LiteLLMCallbackRequest(**callback_data)
+    result = extract_model_id(callback)
+    assert result == "model-from-hidden"
+
+
+# Test 6: Parse callback data with missing fields
 def test_parse_callback_data_missing_fields():
-    """Test parsing callback data with missing fields"""
+    """Test parsing callback data with missing required fields"""
     invalid_data = {
-        "user_api_key_hash": "test_hash"
-        # Missing model_id and total_tokens
+        "id": "test"
+        # Missing many required fields like trace_id, custom_llm_provider, total_tokens, etc.
     }
     result = parse_callback_data(invalid_data)
     assert result is None
 
 
-# Test 3: Find user by api_key_hash - success
+# Test 7: Find user by api_key_hash - success
 def test_find_user_by_api_key_hash_success(session: Session, test_unified_api_key: UnifiedAPIKey, test_user_consumer: User):
     """Test finding user by api_key_hash"""
     result = find_user_by_api_key_hash(session, "litellm_key_hash")
@@ -154,14 +240,14 @@ def test_find_user_by_api_key_hash_success(session: Session, test_unified_api_ke
     assert result.email == "consumer@example.com"
 
 
-# Test 4: Find user by api_key_hash - not found
+# Test 8: Find user by api_key_hash - not found
 def test_find_user_by_api_key_hash_not_found(session: Session):
     """Test finding user with non-existent api_key_hash"""
     result = find_user_by_api_key_hash(session, "nonexistent_hash")
     assert result is None
 
 
-# Test 5: Find subscription by model_id - success
+# Test 9: Find subscription by model_id - success
 def test_find_subscription_by_model_id_success(session: Session, test_subscription: Subscription):
     """Test finding subscription by model_id"""
     result = find_subscription_by_model_id(session, "model-123")
@@ -170,14 +256,14 @@ def test_find_subscription_by_model_id_success(session: Session, test_subscripti
     assert result.model_id == "model-123"
 
 
-# Test 6: Find subscription by model_id - not found
+# Test 10: Find subscription by model_id - not found
 def test_find_subscription_by_model_id_not_found(session: Session):
     """Test finding subscription with non-existent model_id"""
     result = find_subscription_by_model_id(session, "nonexistent_model")
     assert result is None
 
 
-# Test 7: Update token statistics - consumer only
+# Test 11: Update token statistics - consumer only
 def test_update_token_statistics_consumer_only(
     session: Session,
     test_user_consumer: User,
@@ -195,7 +281,7 @@ def test_update_token_statistics_consumer_only(
     assert test_user_consumer.contributed_tokens == 0
 
 
-# Test 8: Update token statistics - consumer and contributor
+# Test 12: Update token statistics - consumer and contributor
 def test_update_token_statistics_consumer_and_contributor(
     session: Session,
     test_user_consumer: User,
@@ -227,7 +313,7 @@ def test_update_token_statistics_consumer_and_contributor(
     assert test_shared_api_key.total_tokens == 1500
 
 
-# Test 9: Enqueue callback to Redis
+# Test 13: Enqueue callback to Redis
 def test_enqueue_callback_success(valid_callback_data):
     """Test enqueuing callback to Redis"""
     mock_redis = Mock()
@@ -239,7 +325,7 @@ def test_enqueue_callback_success(valid_callback_data):
     mock_redis.lpush.assert_called_once()
 
 
-# Test 10: Process callback - end to end
+# Test 14: Process callback - end to end
 def test_process_callback_success(
     session: Session,
     test_unified_api_key: UnifiedAPIKey,
@@ -265,7 +351,7 @@ def test_process_callback_success(
     assert test_shared_api_key.total_tokens == 1500
 
 
-# Test 11: Process callback - invalid data
+# Test 15: Process callback - invalid data
 def test_process_callback_invalid_data(session: Session):
     """Test processing invalid callback data"""
     invalid_data = {"invalid": "data"}
@@ -276,7 +362,7 @@ def test_process_callback_invalid_data(session: Session):
     assert result is False
 
 
-# Test 12: Process callback - missing subscription (graceful handling)
+# Test 16: Process callback - missing subscription (graceful handling)
 def test_process_callback_missing_subscription(
     session: Session,
     test_unified_api_key: UnifiedAPIKey,

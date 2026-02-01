@@ -2,13 +2,27 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Settings, LogOut } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { UserAvatar } from "@/components/UserAvatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const router = useRouter();
 
-  // Simplified header: Logo moved from sidebar to header, navigation simplified to account avatar only
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   return (
     <header className="bg-white border-b border-purple-100 px-8 py-4">
       <div className="flex items-center justify-between">
@@ -20,15 +34,39 @@ export function Header() {
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
         </Link>
 
-        {/* Account Avatar */}
-        <Link href="/settings" className="transition-opacity hover:opacity-90">
-          <UserAvatar
-            email={user?.email}
-            name={user?.name}
-            avatar_url={user?.avatar_url}
-            className="h-8 w-8"
-          />
-        </Link>
+        {/* Account Avatar with Dropdown Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-full transition-opacity hover:opacity-90"
+              aria-label="用户菜单"
+            >
+              <UserAvatar
+                email={user?.email}
+                name={user?.name}
+                avatar_url={user?.avatar_url}
+                className="h-8 w-8"
+              />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => router.push("/settings")}
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              设置
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              登出
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

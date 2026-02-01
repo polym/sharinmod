@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, Mock
 import redis.asyncio as redis
 
 from api.app import create_app
@@ -44,13 +44,27 @@ def client_fixture(session: Session):
 
 @pytest.fixture(name="valid_callback_data")
 def valid_callback_data_fixture():
-    """Valid callback data for testing"""
+    """Valid callback data matching actual LiteLLM structure"""
     return {
-        "user_api_key_hash": "test_key_hash_123",
+        "id": "chatcmpl-test456",
+        "trace_id": "trace-456",
+        "call_type": "acompletion",
+        "cache_hit": False,
+        "stream": True,
+        "status": "success",
+        "custom_llm_provider": "openai",
+        "startTime": 1768809251.711881,
+        "endTime": 1768809253.019879,
+        "response_time": 0.19952106475830078,
+        "model": "openai/Qwen/Qwen2.5-3B-Instruct",
         "model_id": "model-456",
         "total_tokens": 2500,
-        "start_time": "2026-02-01T10:00:00Z",
-        "end_time": "2026-02-01T10:00:05Z"
+        "prompt_tokens": 800,
+        "completion_tokens": 1700,
+        "response_cost": 0.0,
+        "metadata": {
+            "user_api_key_hash": "test_key_hash_123"
+        }
     }
 
 
