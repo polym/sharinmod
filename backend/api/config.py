@@ -37,6 +37,9 @@ class Settings(BaseSettings):
         "z.ai": "https://z.ai/api/anthropic"
     }
 
+    # LiteLLM webhook IP whitelist (comma-separated list)
+    LITELLM_WEBHOOK_IP_WHITELIST: list = os.getenv("LITELLM_WEBHOOK_IP_WHITELIST", "").split(",") if os.getenv("LITELLM_WEBHOOK_IP_WHITELIST") else []
+
     class Config:
         case_sensitive = True
 

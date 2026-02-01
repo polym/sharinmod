@@ -35,3 +35,7 @@ class User(SQLModel, table=True):
     
     # LiteLLM integration
     litellm_user_id: Optional[str] = Field(default=None, max_length=255)
+
+    # Token statistics
+    consumed_tokens: int = Field(default=0)  # Tokens consumed by this user
+    contributed_tokens: int = Field(default=0)  # Tokens contributed by this user's shared API keys

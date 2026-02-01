@@ -48,6 +48,11 @@ class SharedAPIKey(SQLModel, table=True):
     api_key_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
     litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM (deprecated, use litellm_model_ids)
     litellm_model_ids: Optional[str] = Field(default=None, max_length=1000)  # JSON string mapping model_name -> litellm_model_id
+
+    # Token statistics
+    api_key_hash: Optional[str] = Field(default=None, max_length=255)  # LiteLLM token_id for identifying user API key in callbacks
+    total_requests: int = Field(default=0)  # Total number of requests made using this shared API key
+    total_tokens: int = Field(default=0)  # Total tokens consumed through this shared API key
     
     # Unique constraint: one API key per provider per user
     __table_args__ = (

@@ -22,18 +22,18 @@ async def generate_litellm_key(
     user: User,
     api_key_name: Optional[str] = None,
     api_key_ids: Optional[List[int]] = None
-) -> str:
+) -> Dict[str, str]:
     """
     Generate a new LiteLLM API key for unified API key
-    
+
     Args:
         user: User object with litellm_user_id
         api_key_name: Optional name for the key
         api_key_ids: Optional list of shared API key IDs to associate
-        
+
     Returns:
-        Generated LiteLLM API key
-        
+        Dict with "key" and optionally "token_id" from LiteLLM response
+
     Raises:
         HTTPException: If LiteLLM API call fails or user has no litellm_user_id
     """
@@ -42,7 +42,7 @@ async def generate_litellm_key(
             status_code=400,
             detail="User does not have a LiteLLM user ID. Please contact support."
         )
-    
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         payload = {
             "user_id": user.litellm_user_id,
@@ -51,7 +51,7 @@ async def generate_litellm_key(
 
         # Add models if api_key_ids provided (would need to map api_key_ids to model names)
         # For now, we'll allow access to all models the user has access to
-        
+
         try:
             response = await client.post(
                 f"{settings.LITELLM_BASE_URL}/key/generate",
@@ -66,7 +66,11 @@ async def generate_litellm_key(
                     status_code=500,
                     detail="LiteLLM API returned invalid response: missing key"
                 )
-            return key
+            # Return both key and token_id (if present) for tracking
+            return {
+                "key": key,
+                "token_id": data.get("token_id", key)  # Use key as fallback if no token_id
+            }
         except httpx.HTTPError as e:
             print(f"Error response: {payload} {response.text}")
             raise HTTPException(
@@ -154,27 +158,27 @@ async def regenerate_litellm_key(
     user: User,
     old_key: str,
     api_key_name: Optional[str] = None
-) -> str:
+) -> Dict[str, str]:
     """
     Regenerate a LiteLLM API key (delete old, create new)
-    
+
     Args:
         user: User object with litellm_user_id
         old_key: Old LiteLLM API key to delete
         api_key_name: Optional name for the new key
-        
+
     Returns:
-        New generated LiteLLM API key
-        
+        Dict with "key" and optionally "token_id" from LiteLLM response
+
     Raises:
         HTTPException: If LiteLLM API calls fail
     """
     # Delete old key
     await delete_litellm_key(old_key)
-    
+
     # Generate new key
     new_key = await generate_litellm_key(user, api_key_name)
-    
+
     return new_key
 
 
@@ -243,19 +247,24 @@ async def create_unified_api_key_async(
     
     # Generate LiteLLM key
     try:
-        litellm_key = await generate_litellm_key(user, api_key_name)
+        litellm_result = await generate_litellm_key(user, api_key_name)
     except HTTPException as e:
         # LiteLLM key generation failed, abort API key creation
         raise e
-    
-    # Create unified API key record with LiteLLM key
+
+    # Extract key and token_id from result
+    litellm_key = litellm_result["key"]
+    api_key_hash = litellm_result.get("token_id")
+
+    # Create unified API key record with LiteLLM key and hash
     unified_api_key = UnifiedAPIKey(
         user_id=user.id,
         api_key=api_key,
         status=UnifiedAPIKeyStatus.ACTIVE,
         api_key_name=api_key_name,
         description=description,
-        litellm_key=litellm_key
+        litellm_key=litellm_key,
+        api_key_hash=api_key_hash  # Store token_id for callback matching
     )
     
     session.add(unified_api_key)
@@ -574,18 +583,23 @@ async def regenerate_unified_api_key_async(
     old_key = api_key.litellm_key
     if old_key:
         try:
-            new_key = await regenerate_litellm_key(user, old_key, api_key.api_key_name)
+            litellm_result = await regenerate_litellm_key(user, old_key, api_key.api_key_name)
         except HTTPException as e:
             raise e
     else:
         # If no existing key, generate new one
         try:
-            new_key = await generate_litellm_key(user, api_key.api_key_name)
+            litellm_result = await generate_litellm_key(user, api_key.api_key_name)
         except HTTPException as e:
             raise e
-    
-    # Update API key with new key
+
+    # Extract key and token_id from result
+    new_key = litellm_result["key"]
+    new_api_key_hash = litellm_result.get("token_id")
+
+    # Update API key with new key and hash
     api_key.litellm_key = new_key
+    api_key.api_key_hash = new_api_key_hash
     
     session.add(api_key)
     session.commit()

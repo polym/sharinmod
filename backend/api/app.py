@@ -14,6 +14,8 @@ from api.routers.api_key_usage import router as api_key_usage_router
 from api.routers.shared_api_key import router as shared_api_key_router
 from api.routers.unified_api_key import router as unified_api_key_router
 from api.routers.api_key_discovery import router as api_key_discovery_router
+from api.routers.webhooks import router as webhooks_router
+from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
 import redis.asyncio as redis
@@ -57,6 +59,9 @@ def create_app(settings: Settings):
         allow_headers=["*"],
     )
 
+    # Add IP whitelist middleware for webhooks
+    app.middleware("http")(ip_whitelist_middleware)
+
     # Health check endpoint
     @app.get("/")
     async def health_check():
@@ -69,6 +74,7 @@ def create_app(settings: Settings):
     app.include_router(shared_api_key_router)
     app.include_router(unified_api_key_router)
     app.include_router(api_key_discovery_router)
+    app.include_router(webhooks_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app

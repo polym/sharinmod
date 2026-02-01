@@ -31,6 +31,7 @@ class UnifiedAPIKey(SQLModel, table=True):
     api_key_name: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     litellm_key: Optional[str] = Field(default=None, max_length=255)  # Full LiteLLM API key
+    api_key_hash: Optional[str] = Field(default=None, max_length=255, index=True)  # Token ID from LiteLLM for callback matching
     created_at: datetime = Field(default_factory=datetime.utcnow)
     revoked_at: Optional[datetime] = Field(default=None)
     
