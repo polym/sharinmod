@@ -63,13 +63,13 @@ def test_login_success(client: TestClient, test_user):
     AC #1: Test successful login with correct credentials
     Given correct email and password,
     When I login,
-    Then I receive JWT token.
+    Then I receive JWT token and user info.
     """
     response = client.post("/api/auth/login", json={
         "email": "logintest@example.com",
         "password": "TestPass123!"
     })
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
@@ -77,6 +77,18 @@ def test_login_success(client: TestClient, test_user):
     # Token should be a non-empty string
     assert isinstance(data["access_token"], str)
     assert len(data["access_token"]) > 0
+
+    # Verify user object is returned
+    assert "user" in data
+    user = data["user"]
+    assert user["email"] == "logintest@example.com"
+    assert "id" in user
+    assert "hashed_password" not in user
+    # Verify token_balance computed field
+    assert "token_balance" in user
+    assert "contributed_tokens" in user
+    assert "consumed_tokens" in user
+    assert user["token_balance"] == user["contributed_tokens"] - user["consumed_tokens"]
 
 
 def test_login_wrong_password(client: TestClient, test_user):

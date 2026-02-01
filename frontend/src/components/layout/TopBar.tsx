@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Settings, Key, LogOut } from 'lucide-react';
+import { Settings, Key, LogOut, Zap } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,10 @@ export function TopBar({ onPageChange }: TopBarProps) {
 
       {/* Right side - User menu */}
       <div className="flex items-center gap-4">
+        <Button variant="ghost" className="bg-brand-100 text-amber-700 gap-1.5">
+          <Zap className="h-4 w-4 text-brand-500" />
+          <span className="text-sm font-medium">{user?.token_balance ?? 0}</span>
+        </Button>
         <span className="text-sm text-gray-600 hidden sm:block">
           {user?.email}
         </span>

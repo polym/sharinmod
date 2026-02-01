@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from api.database import get_db
 from api.schemas.auth import UserLogin, TokenResponse
+from api.schemas.user import UserResponse
 from api.services.auth_service import authenticate_user, create_user_token
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -33,4 +34,4 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         )
     
     access_token = create_user_token(user)
-    return TokenResponse(access_token=access_token, token_type="bearer")
+    return TokenResponse(access_token=access_token, token_type="bearer", user=UserResponse.model_validate(user))

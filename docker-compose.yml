@@ -25,7 +25,7 @@ services:
     environment:
       - DATABASE_URI=postgresql://postgres:postgres@db:5432/sharinmod
       - REDIS_DATABASE=redis://redis:6379/0
-      - LITELLM_WEBHOOK_IP_WHITELIST=["127.0.0.1","172.16.0.0/12","10.0.0.0/8"]
+      - LITELLM_WEBHOOK_IP_WHITELIST=["192.168.96.7"]
     volumes:
       - ./backend:/app
 

@@ -198,7 +198,9 @@ export function MySharedPage() {
               {sharedAPIKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className="p-5 border rounded-lg space-y-4"
+                  className={`p-5 border rounded-lg space-y-4 ${
+                    apiKey.status !== 'active' ? 'opacity-50 grayscale' : ''
+                  }`}
                 >
                   {/* Top Section: Logo, Provider Info, and Buttons */}
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -220,10 +222,10 @@ export function MySharedPage() {
                         </div>
                       )}
                       
-                      {/* Provider Name and Website - Title is clickable */}
+                      {/* Provider Name - Title is clickable */}
                       <div>
                         {apiKey.provider_website ? (
-                          <a 
+                          <a
                             href={apiKey.provider_website}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -236,9 +238,17 @@ export function MySharedPage() {
                             {apiKey.provider_display_name || apiKey.provider}
                           </div>
                         )}
-                        {apiKey.provider_website && (
-                          <div className="text-sm text-gray-500">
-                            {apiKey.provider_website}
+                        {/* Model Tags */}
+                        {apiKey.supported_models && apiKey.supported_models.length > 0 && (
+                          <div className="flex gap-2 flex-wrap mt-1">
+                            {apiKey.supported_models.map((model) => (
+                              <span
+                                key={model}
+                                className="px-2.5 py-0.5 bg-white text-gray-700 text-xs rounded border border-gray-200"
+                              >
+                                {model}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -275,20 +285,6 @@ export function MySharedPage() {
                       </DropdownMenu>
                     </div>
                   </div>
-
-                  {/* Model Tags Section - Square corners */}
-                  {apiKey.supported_models && apiKey.supported_models.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {apiKey.supported_models.map((model) => (
-                        <span
-                          key={model}
-                          className="px-2.5 py-0.5 bg-white text-gray-700 text-xs rounded border border-gray-200"
-                        >
-                          {model}
-                        </span>
-                      ))}
-                    </div>
-                  )}
 
                   {/* Stats and Chart Section - 2:3 ratio */}
                   {metricsMap[apiKey.id] && (

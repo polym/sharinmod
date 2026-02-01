@@ -1,7 +1,7 @@
 """
 User schemas for API request/response validation
 """
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, computed_field
 from datetime import datetime
 from typing import Optional
 import re
@@ -42,7 +42,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     """
     Schema for user data in API responses
-    
+
     Excludes sensitive fields like password/hashed_password
     """
     id: int
@@ -51,7 +51,19 @@ class UserResponse(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
     created_at: datetime
-    
+    contributed_tokens: int = 0
+    consumed_tokens: int = 0
+
+    @computed_field
+    @property
+    def token_balance(self) -> int:
+        """
+        Computed token balance: contributed - consumed.
+        Note: This is a simple integer subtraction with negligible performance impact.
+        Consider caching at database level if this becomes a bottleneck.
+        """
+        return self.contributed_tokens - self.consumed_tokens
+
     model_config = {
         "from_attributes": True
     }
