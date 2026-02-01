@@ -347,7 +347,7 @@ def test_share_api_key_logs_usage_history(
     assert len(shared_actions) >= 1
 
 
-# Test 12: Test LiteLLM integration - successful sync
+# Test 12: Test LiteLLM integration - successful sync with multiple models
 @patch("api.services.shared_api_key_service.validate_api_key")
 @patch("api.services.shared_api_key_service.httpx.AsyncClient")
 @patch("api.config.settings.TESTING", False)
@@ -360,35 +360,53 @@ def test_share_api_key_litellm_success(
     auth_headers: dict,
     mock_validation_success
 ):
-    """Test successful LiteLLM credential and model creation"""
+    """Test successful LiteLLM credential and 3 model creation"""
     # Setup user with litellm_user_id
     test_user.litellm_user_id = "testuser@example.com"
     session.add(test_user)
     session.commit()
-    
+
     # Mock validation
     mock_validate.return_value = mock_validation_success
-    
+
     # Mock httpx responses
-    mock_credential_response = AsyncMock()
-    mock_credential_response.status_code = 200
-    mock_credential_response.raise_for_status = lambda: None  # Sync function, not async
-    
-    mock_model_response = AsyncMock()
-    mock_model_response.status_code = 200
-    mock_model_response.raise_for_status = lambda: None  # Sync function, not async
-    
+    # Credential check returns 404 (not exists)
+    mock_credential_check_response = AsyncMock()
+    mock_credential_check_response.status_code = 404
+    mock_credential_check_response.text = '{"detail": "Credential not found"}'
+
+    # Credential creation succeeds
+    mock_credential_create_response = AsyncMock()
+    mock_credential_create_response.status_code = 200
+    mock_credential_create_response.text = '{"message": "Credential created"}'
+    mock_credential_create_response.raise_for_status = lambda: None
+
+    # 3 model creation responses (glm-4.7, glm-4.6, glm-4.5-air)
+    mock_model_responses = []
+    for i, model_name in enumerate(["glm-4.7", "glm-4.6", "glm-4.5-air"]):
+        resp = AsyncMock()
+        resp.status_code = 200
+        resp.json = lambda idx=i, name=model_name: {"model_id": f"model-id-{idx+1}", "model_name": name}
+        resp.raise_for_status = lambda: None
+        resp.text = f'{{"model_id": "model-id-{i+1}"}}'
+        mock_model_responses.append(resp)
+
     mock_client_instance = AsyncMock()
     mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
     mock_client_instance.__aexit__ = AsyncMock(return_value=None)
-    mock_client_instance.post = AsyncMock(side_effect=[mock_credential_response, mock_model_response])
+    # Chain: credential check, credential create, 3 model creates
+    mock_client_instance.get = AsyncMock(return_value=mock_credential_check_response)
+    mock_client_instance.post = AsyncMock(side_effect=[
+        mock_credential_create_response,
+        *mock_model_responses
+    ])
     mock_async_client.return_value = mock_client_instance
-    
+
     # Temporarily disable TESTING mode for this test
     from api import services
     original_testing = services.shared_api_key_service.settings.TESTING
     services.shared_api_key_service.settings.TESTING = False
-    
+
     try:
         # Share API key
         response = client.post(
@@ -399,14 +417,16 @@ def test_share_api_key_litellm_success(
             },
             headers=auth_headers
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["provider"] == "bigmodel"
         assert data["status"] == "active"
-        
-        # Verify LiteLLM was called twice (credential + model)
-        assert mock_client_instance.post.call_count == 2
+
+        # Verify LiteLLM was called correctly:
+        # 1 GET for credential check, 1 POST for credential create, 3 POST for models
+        assert mock_client_instance.get.call_count == 1  # Credential check
+        assert mock_client_instance.post.call_count == 4  # 1 credential + 3 models
     finally:
         services.shared_api_key_service.settings.TESTING = original_testing
 

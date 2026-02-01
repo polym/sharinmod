@@ -46,7 +46,8 @@ class SharedAPIKey(SQLModel, table=True):
     last_used_at: Optional[datetime] = Field(default=None)
     total_uses: int = Field(default=0)
     api_key_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
-    litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM
+    litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM (deprecated, use litellm_model_ids)
+    litellm_model_ids: Optional[str] = Field(default=None, max_length=1000)  # JSON string mapping model_name -> litellm_model_id
     
     # Unique constraint: one API key per provider per user
     __table_args__ = (

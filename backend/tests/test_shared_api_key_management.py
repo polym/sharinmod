@@ -422,3 +422,79 @@ def test_cannot_delete_other_user_api_key(
     # Verify API key still exists
     api_key_check = session.get(SharedAPIKey, other_api_key.id)
     assert api_key_check is not None
+
+
+# Test 10: Test disable deletes models but keeps credential (LiteLLM integration)
+@patch("api.services.shared_api_key_service.validate_api_key")
+@patch("api.services.shared_api_key_service.httpx.AsyncClient")
+def test_disable_shared_api_key_deletes_models_only(
+    mock_async_client,
+    mock_validate,
+    client: TestClient,
+    session: Session,
+    test_user: User,
+    auth_headers: dict,
+    mock_validation_success
+):
+    """Test that disable deletes models but preserves credential"""
+    mock_validate.return_value = mock_validation_success
+
+    # Share an API key first
+    share_response = client.post(
+        "/api/api-keys/share",
+        json={
+            "provider": "bigmodel",
+            "api_key": "test-api-key"
+        },
+        headers=auth_headers
+    )
+    assert share_response.status_code == 201
+    api_key_id = share_response.json()["id"]
+
+    # Set up the model IDs for the API key
+    api_key = session.get(SharedAPIKey, api_key_id)
+    api_key.litellm_model_ids = '{"glm-4.7": "model-id-1", "glm-4.6": "model-id-2", "glm-4.5-air": "model-id-3"}'
+    api_key.litellm_model_id = "model-id-1"
+    session.add(api_key)
+    session.commit()
+
+    # Mock model deletion responses (3 models)
+    mock_delete_responses = []
+    for i in range(3):
+        resp = AsyncMock()
+        resp.status_code = 200
+        resp.text = '{"message": "Model deleted"}'
+        resp.raise_for_status = lambda: None
+        mock_delete_responses.append(resp)
+
+    mock_client_instance = AsyncMock()
+    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.post = AsyncMock(side_effect=mock_delete_responses)
+    mock_async_client.return_value = mock_client_instance
+
+    # Temporarily disable TESTING mode for this test
+    from api import services
+    original_testing = services.shared_api_key_service.settings.TESTING
+    services.shared_api_key_service.settings.TESTING = False
+
+    try:
+        # Disable the API key
+        disable_response = client.put(
+            f"/api/api-keys/disable/{api_key_id}",
+            headers=auth_headers
+        )
+        assert disable_response.status_code == 200
+        data = disable_response.json()
+        assert data["status"] == "inactive"
+
+        # Verify models were deleted (3 POST calls for model deletions)
+        assert mock_client_instance.post.call_count == 3
+
+        # Verify litellm_model_ids was cleared
+        session.refresh(api_key)
+        assert api_key.litellm_model_ids is None
+        assert api_key.litellm_model_id is None
+
+    finally:
+        services.shared_api_key_service.settings.TESTING = original_testing

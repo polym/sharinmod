@@ -6,12 +6,39 @@ from api.services.api_key_validation_service import validate_api_key
 from api.services.api_key_usage_service import log_api_key_usage
 from api.models.api_key_usage import APIKeyAction
 from api.config import settings
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 import httpx
 import json
 import random
+
+
+def _handle_litellm_response(response, operation_name: str) -> bool:
+    """
+    Handle LiteLLM API response with unified error handling
+
+    Args:
+        response: httpx.Response object
+        operation_name: Description of the operation for logging
+
+    Returns:
+        True if operation succeeded (2xx or 404)
+
+    Raises:
+        httpx.HTTPStatusError: If response status code is not 2xx or 404
+    """
+    print(f"[{operation_name}] Response status: {response.status_code}")
+    print(f"[{operation_name}] Response body: {response.text}")
+
+    if 200 <= response.status_code < 300:
+        return True
+    elif response.status_code == 404:
+        print(f"[{operation_name}] Object not found (404), treating as success")
+        return True
+    else:
+        print(f"[{operation_name}] Unexpected status code: {response.status_code}")
+        response.raise_for_status()
 
 
 # Provider configuration for supported models, websites, and logo paths
@@ -51,29 +78,39 @@ def check_provider_api_key_exists(session: Session, user_id: int, provider: APIK
     return result is not None
 
 
-async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -> None:
+async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -> Dict[str, str]:
     """
-    Sync shared API key to LiteLLM by creating credential and model
-    
+    Sync shared API key to LiteLLM by creating credential and all supported models
+
     Args:
         user: User object with litellm_user_id
         provider: API key provider
         api_key: Plain text API key
-        
+
+    Returns:
+        Dict mapping model_name to litellm_model_id
+
     Raises:
         Exception: If LiteLLM API calls fail
     """
     # Prepare credential and model data
     credential_name = f"{provider.value}/{user.email}"
     api_base = settings.VENDOR_BASE_URLS.get(provider.value)
-    
+
     if not api_base:
         raise ValueError(f"No API base URL configured for provider: {provider.value}")
-    
+
     # Verify user has LiteLLM user ID
     if not user.litellm_user_id:
         raise ValueError(f"User {user.email} does not have a LiteLLM user ID")
-    
+
+    # Get supported models for this provider
+    supported_models = PROVIDER_INFO[provider]["supported_models"]
+    if not supported_models:
+        raise ValueError(f"No supported models configured for provider: {provider.value}")
+    if not supported_models:
+        raise ValueError(f"No supported models configured for provider: {provider.value}")
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         # Step 1: Check if credential exists, update if exists, create if not
         credential_payload = {
@@ -85,15 +122,14 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
                 "custom_llm_provider": "anthropic"
             }
         }
-        
+
         # Check if credential exists
         credential_check_response = await client.get(
             f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
         )
-        if credential_check_response.status_code == 500:
-            print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
-        
+        _handle_litellm_response(credential_check_response, "CREDENTIAL_CHECK")
+
         if credential_check_response.status_code == 200:
             # Credential exists, update it
             update_payload = {
@@ -105,9 +141,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
                 json=update_payload,
                 headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
             )
-            if credential_response.status_code == 500:
-                print(f"LiteLLM credential update failed with 500: {credential_response.text}")
-            credential_response.raise_for_status()
+            _handle_litellm_response(credential_response, "CREDENTIAL_UPDATE")
         else:
             # Credential doesn't exist, create it
             create_payload = {
@@ -119,34 +153,89 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
                 json=create_payload,
                 headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
             )
-            if credential_response.status_code == 500:
-                print(f"LiteLLM credential creation failed with 500: {credential_response.text}")
-            credential_response.raise_for_status()
-        
-        # Step 2: Create model in LiteLLM
-        model_payload = {
-            "model_name": "glm-4.7",
-            "litellm_params": {
-                "custom_llm_provider": "anthropic",
-                "litellm_credential_name": credential_name,
-                "model": "glm-4.7"
-            },
-            "provider": "anthropic",
-            "litellm_model_name": "glm-4.7",
-        }
+            _handle_litellm_response(credential_response, "CREDENTIAL_CREATE")
 
-        print("Creating model in LiteLLM with payload:", json.dumps(model_payload, indent=2))
-        
-        model_response = await client.post(
-            f"{settings.LITELLM_BASE_URL}/model/new",
-            json=model_payload,
-            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-        )
-        if model_response.status_code == 500:
-            print(f"LiteLLM model creation failed with 500: {model_response.text}")
-        model_response.raise_for_status()
-        
-        return model_response.json()["model_id"]
+        # Step 2: Create all models in LiteLLM
+        model_ids = {}
+        for model_name in supported_models:
+            model_payload = {
+                "model_name": model_name,
+                "litellm_params": {
+                    "custom_llm_provider": "anthropic",
+                    "litellm_credential_name": credential_name,
+                    "model": model_name
+                },
+                "provider": "anthropic",
+                "litellm_model_name": model_name,
+            }
+
+            print(f"[MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
+
+            model_response = await client.post(
+                f"{settings.LITELLM_BASE_URL}/model/new",
+                json=model_payload,
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            _handle_litellm_response(model_response, f"MODEL_CREATE_{model_name}")
+
+            response_data = model_response.json()
+            model_ids[model_name] = response_data["model_id"]
+            print(f"[MODEL_CREATE] Model '{model_name}' created with ID: {model_ids[model_name]}")
+
+        return model_ids
+
+
+async def _create_models_for_credential(
+    user: User,
+    provider: APIKeyProvider,
+    credential_name: str
+) -> Dict[str, str]:
+    """
+    Create all supported models for an existing credential in LiteLLM
+
+    Args:
+        user: User object
+        provider: API key provider
+        credential_name: Name of the existing credential
+
+    Returns:
+        Dict mapping model_name to litellm_model_id
+
+    Raises:
+        Exception: If LiteLLM API calls fail
+    """
+    supported_models = PROVIDER_INFO[provider]["supported_models"]
+    if not supported_models:
+        raise ValueError(f"No supported models configured for provider: {provider.value}")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        model_ids = {}
+        for model_name in supported_models:
+            model_payload = {
+                "model_name": model_name,
+                "litellm_params": {
+                    "custom_llm_provider": "anthropic",
+                    "litellm_credential_name": credential_name,
+                    "model": model_name
+                },
+                "provider": "anthropic",
+                "litellm_model_name": model_name,
+            }
+
+            print(f"[ENABLE_MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
+
+            model_response = await client.post(
+                f"{settings.LITELLM_BASE_URL}/model/new",
+                json=model_payload,
+                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+            )
+            _handle_litellm_response(model_response, f"ENABLE_MODEL_CREATE_{model_name}")
+
+            response_data = model_response.json()
+            model_ids[model_name] = response_data["model_id"]
+            print(f"[ENABLE_MODEL_CREATE] Model '{model_name}' created with ID: {model_ids[model_name]}")
+
+        return model_ids
 
 
 async def create_shared_api_key(
@@ -155,7 +244,7 @@ async def create_shared_api_key(
     provider: APIKeyProvider,
     api_key: str,
     api_key_metadata: Optional[str] = None
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Create a new shared API key with validation
     
@@ -204,13 +293,21 @@ async def create_shared_api_key(
     session.commit()
     session.refresh(shared_api_key)
     
-    # Sync with LiteLLM (create credential and model) - skip in testing
+    # Sync with LiteLLM (create credential and models) - skip in testing
     if not settings.TESTING:
         try:
-            model_id = await _sync_to_litellm(user, provider, api_key)
-            shared_api_key.litellm_model_id = model_id
+            model_ids = await _sync_to_litellm(user, provider, api_key)
+            # Store all model IDs as JSON
+            shared_api_key.litellm_model_ids = json.dumps(model_ids)
+            # Keep first model ID for backward compatibility
+            first_model = list(model_ids.keys())[0]
+            shared_api_key.litellm_model_id = model_ids[first_model]
+            session.add(shared_api_key)
+            session.commit()
+            session.refresh(shared_api_key)
         except Exception as e:
             # Rollback local API key creation if LiteLLM sync fails
+            session.rollback()
             session.delete(shared_api_key)
             session.commit()
             raise HTTPException(
@@ -313,58 +410,52 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
     session.commit()
     session.refresh(api_key)
     
-    # Sync with LiteLLM - delete the model and credential (skip in testing)
+    # Sync with LiteLLM - delete models only, keep credential (skip in testing)
     if not settings.TESTING:
         try:
-            credential_name = f"{api_key.provider.value}/{user.email}"
-            
+            # Parse model IDs from JSON
+            model_ids = {}
+            if api_key.litellm_model_ids:
+                try:
+                    model_ids = json.loads(api_key.litellm_model_ids)
+                except json.JSONDecodeError:
+                    print(f"[DISABLE] Failed to parse litellm_model_ids: {api_key.litellm_model_ids}")
+                    model_ids = {}
+
+            # Delete all models
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # Delete model from LiteLLM if model_id exists
-                if api_key.litellm_model_id:
-                    # Check if model exists before deleting
-                    model_check_response = await client.get(
-                        f"{settings.LITELLM_BASE_URL}/models/{api_key.litellm_model_id}",
+                for model_name, litellm_model_id in model_ids.items():
+                    print(f"[DISABLE] Deleting model '{model_name}' with ID: {litellm_model_id}")
+                    delete_response = await client.post(
+                        f"{settings.LITELLM_BASE_URL}/model/delete",
+                        json={"id": litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    if model_check_response.status_code == 500:
-                        print(f"LiteLLM model check failed with 500: {model_check_response.text}")
-                    
-                    if model_check_response.status_code == 200:
-                        delete_response = await client.post(
-                            f"{settings.LITELLM_BASE_URL}/model/delete",
-                            json={"id": api_key.litellm_model_id},
-                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-                        )
-                        if delete_response.status_code == 500:
-                            print(f"LiteLLM model deletion failed with 500: {delete_response.text}")
-                        delete_response.raise_for_status()
-                    else:
-                        # Model not found, skip deletion
-                        pass
-                
-                # Also delete the credential to prevent accumulation
-                # Check if credential exists before deleting
-                credential_check_response = await client.get(
-                    f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
-                    headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-                )
-                if credential_check_response.status_code == 500:
-                    print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
-                
-                if credential_check_response.status_code == 200:
-                    delete_credential_response = await client.delete(
-                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                    _handle_litellm_response(delete_response, f"DISABLE_MODEL_DELETE_{model_name}")
+
+                # For backward compatibility, also delete the old single model_id if exists
+                if api_key.litellm_model_id and api_key.litellm_model_id not in model_ids.values():
+                    print(f"[DISABLE] Deleting legacy model with ID: {api_key.litellm_model_id}")
+                    delete_response = await client.post(
+                        f"{settings.LITELLM_BASE_URL}/model/delete",
+                        json={"id": api_key.litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    if delete_credential_response.status_code == 500:
-                        print(f"LiteLLM credential deletion failed with 500: {delete_credential_response.text}")
-                    delete_credential_response.raise_for_status()
-                else:
-                    # Credential not found, skip deletion
-                    pass
-                
+                    _handle_litellm_response(delete_response, "DISABLE_LEGACY_MODEL_DELETE")
+
+            # Clear model ID fields
+            api_key.litellm_model_ids = None
+            api_key.litellm_model_id = None
+            session.add(api_key)
+            session.commit()
+            session.refresh(api_key)
+
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
+            print(f"[DISABLE] Exception during LiteLLM sync: {type(e).__name__}: {str(e)}")
+            import traceback
+            print(f"[DISABLE] Traceback: {traceback.format_exc()}")
+            session.rollback()
             api_key.status = original_status
             api_key.updated_at = datetime.utcnow()
             session.add(api_key)
@@ -443,19 +534,29 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
     session.commit()
     session.refresh(api_key)
     
-    # Sync with LiteLLM - recreate the model (skip in testing)
+    # Sync with LiteLLM - recreate all models (skip in testing)
     if not settings.TESTING:
         try:
-            # Decrypt API key to get plain text for LiteLLM
-            plain_api_key = decrypt_token(api_key.encrypted_api_key)
-            model_id = await _sync_to_litellm(user, api_key.provider, plain_api_key)
-            api_key.litellm_model_id = model_id
+            credential_name = f"{api_key.provider.value}/{user.email}"
+            try:
+                model_ids = await _create_models_for_credential(user, api_key.provider, credential_name)
+            except Exception as credential_error:
+                # Credential may have been externally deleted, recreate it with models
+                print(f"[ENABLE] Credential creation failed, attempting full recreate: {credential_error}")
+                plain_api_key = decrypt_token(api_key.encrypted_api_key)
+                model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key)
+            # Store all model IDs as JSON
+            api_key.litellm_model_ids = json.dumps(model_ids)
+            # Keep first model ID for backward compatibility
+            first_model = list(model_ids.keys())[0]
+            api_key.litellm_model_id = model_ids[first_model]
             session.add(api_key)
             session.commit()
             session.refresh(api_key)
-            
+
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
+            session.rollback()
             api_key.status = original_status
             api_key.updated_at = datetime.utcnow()
             session.add(api_key)
@@ -516,61 +617,54 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Sync with LiteLLM - delete model and credential (skip in testing)
+    # Sync with LiteLLM - delete models first, then credential (skip in testing)
+    # NOTE: Delete models FIRST, then credential to avoid orphaned models
     if not settings.TESTING:
         try:
             credential_name = f"{api_key.provider.value}/{user.email}"
-            
+
             async with httpx.AsyncClient(timeout=10.0) as client:
-                # Check if model exists before deleting
-                if api_key.litellm_model_id:
-                    model_check_response = await client.get(
-                        f"{settings.LITELLM_BASE_URL}/models/{api_key.litellm_model_id}",
+                # Step 1: Delete all models FIRST
+                model_ids = {}
+                if api_key.litellm_model_ids:
+                    try:
+                        model_ids = json.loads(api_key.litellm_model_ids)
+                    except json.JSONDecodeError:
+                        print(f"[DELETE] Failed to parse litellm_model_ids: {api_key.litellm_model_ids}")
+                        model_ids = {}
+
+                for model_name, litellm_model_id in model_ids.items():
+                    print(f"[DELETE] Deleting model '{model_name}' with ID: {litellm_model_id}")
+                    delete_response = await client.post(
+                        f"{settings.LITELLM_BASE_URL}/model/delete",
+                        json={"id": litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    if model_check_response.status_code == 500:
-                        print(f"LiteLLM model check failed with 500: {model_check_response.text}")
-                    
-                    if model_check_response.status_code == 200:
-                        # Delete model from LiteLLM
-                        delete_model_response = await client.post(
-                            f"{settings.LITELLM_BASE_URL}/model/delete",
-                            json={"id": api_key.litellm_model_id},
-                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-                        )
-                        if delete_model_response.status_code == 500:
-                            print(f"LiteLLM model deletion failed with 500: {delete_model_response.text}")
-                        delete_model_response.raise_for_status()
-                    else:
-                        # Model not found, skip deletion
-                        pass
-                else:
-                    # No model_id stored, skip model deletion
-                    pass
-                
-                # Check if credential exists before deleting
-                credential_check_response = await client.get(
-                    f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
+                    _handle_litellm_response(delete_response, f"DELETE_MODEL_{model_name}")
+
+                # For backward compatibility, also delete the old single model_id if exists
+                if api_key.litellm_model_id and api_key.litellm_model_id not in model_ids.values():
+                    print(f"[DELETE] Deleting legacy model with ID: {api_key.litellm_model_id}")
+                    delete_response = await client.post(
+                        f"{settings.LITELLM_BASE_URL}/model/delete",
+                        json={"id": api_key.litellm_model_id},
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    _handle_litellm_response(delete_response, "DELETE_LEGACY_MODEL")
+
+                # Step 2: Delete credential SECOND
+                print(f"[DELETE] Deleting credential: {credential_name}")
+                delete_credential_response = await client.delete(
+                    f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
                     headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                 )
-                if credential_check_response.status_code == 500:
-                    print(f"LiteLLM credential check failed with 500: {credential_check_response.text}")
-                
-                if credential_check_response.status_code == 200:
-                    # Delete credential from LiteLLM
-                    delete_credential_response = await client.delete(
-                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
-                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
-                    )
-                    if delete_credential_response.status_code == 500:
-                        print(f"LiteLLM credential deletion failed with 500: {delete_credential_response.text}")
-                    delete_credential_response.raise_for_status()
-                else:
-                    # Credential not found, skip deletion
-                    pass
-                
+                _handle_litellm_response(delete_credential_response, "DELETE_CREDENTIAL")
+
         except Exception as e:
             # Don't delete database record if LiteLLM sync fails
+            print(f"[DELETE] Exception during LiteLLM sync: {type(e).__name__}: {str(e)}")
+            import traceback
+            print(f"[DELETE] Traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to delete from LiteLLM: {str(e)}"
