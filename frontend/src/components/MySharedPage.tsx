@@ -63,24 +63,30 @@ function formatTokens(totalTokens: number): { value: number; unit: string } {
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   if (!data || data.length === 0) return null;
 
-  // Pre-compute chart data and tooltip content (F12: optimize rendering)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  // Pre-compute chart data
   const chartData = data.map(d => d.value);
   const maxValue = Math.max(...chartData, 1);
 
-  // Pre-compute tooltip content for each data point (F12: avoid string parsing in render)
-  const tooltipContent = data.map(d => {
-    const date = new Date(d.date);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hour = date.getHours().toString().padStart(2, '0');
-    return `${month}/${day} ${hour}:00 - ${d.value} tokens`;
-  });
+  // Format tooltip content from date string directly (backend already returns UTC+8)
+  const formatTooltip = (dateStr: string, value: number) => {
+    // Backend returns format: "YYYY-MM-DD HH:00"
+    // Convert to "M/D H:00 - X tokens"
+    const parts = dateStr.split(' ');
+    if (parts.length >= 2) {
+      const [ymd, time] = parts;
+      const [year, month, day] = ymd.split('-');
+      return `${month}/${day} ${time} - ${value} tokens`;
+    }
+    return `${dateStr} - ${value} tokens`;
+  };
 
-  // Memoize label indices calculation (F11: prevent recalculation on every render)
+  // Memoize label indices calculation
   const labelIndices = useMemo(() => {
     const indices: number[] = [];
     data.forEach((_, idx) => {
-      const hour = new Date(data[idx].date).getHours();
+      const hour = parseInt(data[idx].date.split(' ')[1]?.split(':')[0] || '0');
       if (hour === 0 || hour === 12) {
         indices.push(idx);
       }
@@ -88,44 +94,57 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     return indices;
   }, [data]);
 
-  // Memoize label content (F12: pre-compute formatted labels)
+  // Memoize label content
   const labelContent = useMemo(() => {
     const content: { [key: number]: string } = {};
     data.forEach((d, idx) => {
-      const date = new Date(d.date);
-      const hour = date.getHours();
-      if (hour === 0 || hour === 12) {
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        content[idx] = `${month}/${day} ${hour.toString().padStart(2, '0')}:00`;
+      const parts = d.date.split(' ');
+      if (parts.length >= 2) {
+        const [ymd, time] = parts;
+        const [year, month, day] = ymd.split('-');
+        const hour = parseInt(time.split(':')[0]);
+        if (hour === 0 || hour === 12) {
+          content[idx] = `${month}/${day} ${time}`;
+        }
       }
     });
     return content;
   }, [data]);
 
-  // Prevent division by zero (F10: handle edge case where chartData.length is 1)
+  // Prevent division by zero
   const safeLength = Math.max(chartData.length - 1, 1);
 
   return (
     <div className="flex flex-col h-full">
       {/* Chart bars */}
-      <div className="flex items-end flex-1 border-b border-gray-200">
+      <div className="flex items-end flex-1 border-b border-gray-200 relative">
         {chartData.map((value, idx) => (
           <div
             key={idx}
-            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors"
+            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors relative cursor-pointer"
             style={{
               height: `${Math.max((value / maxValue) * 100, 3)}%`,
               marginLeft: idx === 0 ? 0 : '1px'
             }}
-            title={tooltipContent[idx]}
-          />
+            onMouseEnter={() => setHoverIndex(idx)}
+            onMouseLeave={() => setHoverIndex(null)}
+          >
+            {/* Tooltip */}
+            {hoverIndex === idx && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 shadow-lg pointer-events-none">
+                {formatTooltip(data[idx].date, value)}
+                {/* Arrow */}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div className="border-4 border-transparent border-t-gray-800"></div>
+                </div>
+              </div>
+            )}
+          </div>
         ))}
       </div>
       {/* Hour axis */}
       <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5 relative">
         {labelIndices.map((idx) => {
-          // F10: Prevent division by zero with safeLength
           const leftPercent = (idx / safeLength) * 100;
           return (
             <span
