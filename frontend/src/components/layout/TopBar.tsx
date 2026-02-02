@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/lib/store';
+import { authAPI } from '@/lib/services';
+import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
 import type { PageType } from './Sidebar';
 
 interface TopBarProps {
@@ -19,13 +21,33 @@ interface TopBarProps {
 }
 
 export function TopBar({ onPageChange }: TopBarProps) {
-  const { user, logout, setShowLoginDialog } = useAuthStore();
+  const { user, logout, setShowLoginDialog, updateUser, isAuthenticated } = useAuthStore();
   const router = useRouter();
+
+  console.log('[TopBar] Render, isAuthenticated:', isAuthenticated, 'user:', user ? `${user.email} (balance: ${user.token_balance})` : 'null');
 
   const handleLogout = () => {
     logout();
     router.push('/shared');
   };
+
+  // Auto-refresh token balance every minute when page is visible
+  const refreshTokenBalance = async () => {
+    // Get fresh user state from store to avoid closure issues
+    const currentUser = useAuthStore.getState().user;
+    if (!currentUser) return; // Only refresh if user is logged in
+    try {
+      console.log('[TopBar] Refreshing token balance...');
+      const response = await authAPI.getProfile();
+      console.log('[TopBar] Token balance updated:', response.data.token_balance);
+      updateUser(response.data);
+    } catch (error) {
+      console.error('[TopBar] Failed to refresh token balance:', error);
+      // Silently fail - axios interceptor will handle 401 errors
+    }
+  };
+
+  useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">

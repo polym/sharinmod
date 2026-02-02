@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ShareAPIKeyDialog } from '@/components/share-token-dialog';
 import { apiKeyAPI } from '@/lib/services';
 import { SharedAPIKey, SharedAPIKeyMetrics, ChartDataPoint } from '@/types/apiKey';
+import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -206,6 +207,20 @@ export function MySharedPage() {
       console.error(`Failed to load metrics for API key ${apiKeyId}:`, error);
     }
   };
+
+  // Auto-refresh all metrics every minute when page is visible
+  const refreshAllMetrics = async () => {
+    if (sharedAPIKeys.length === 0) return;
+    try {
+      for (const key of sharedAPIKeys) {
+        await loadMetrics(key.id);
+      }
+    } catch (error) {
+      // Silently fail
+    }
+  };
+
+  useIntervalOnVisible(refreshAllMetrics, sharedAPIKeys.length > 0 ? 20000 : null);
 
   const handleDisableAPIKey = async (apiKeyId: number) => {
     try {
