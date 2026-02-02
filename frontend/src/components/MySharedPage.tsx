@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -62,17 +62,50 @@ function formatTokens(totalTokens: number): { value: number; unit: string } {
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   if (!data || data.length === 0) return null;
-  
-  // Generate 48 data points (use existing data or pad with zeros)
-  const chartData = Array.from({ length: 48 }, (_, i) => {
-    if (i < data.length) {
-      return data[i].value;
-    }
-    return Math.floor(Math.random() * 100); // Mock data for demo
-  });
-  
+
+  // Pre-compute chart data and tooltip content (F12: optimize rendering)
+  const chartData = data.map(d => d.value);
   const maxValue = Math.max(...chartData, 1);
-  
+
+  // Pre-compute tooltip content for each data point (F12: avoid string parsing in render)
+  const tooltipContent = data.map(d => {
+    const date = new Date(d.date);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hour = date.getHours().toString().padStart(2, '0');
+    return `${month}/${day} ${hour}:00 - ${d.value} tokens`;
+  });
+
+  // Memoize label indices calculation (F11: prevent recalculation on every render)
+  const labelIndices = useMemo(() => {
+    const indices: number[] = [];
+    data.forEach((_, idx) => {
+      const hour = new Date(data[idx].date).getHours();
+      if (hour === 0 || hour === 12) {
+        indices.push(idx);
+      }
+    });
+    return indices;
+  }, [data]);
+
+  // Memoize label content (F12: pre-compute formatted labels)
+  const labelContent = useMemo(() => {
+    const content: { [key: number]: string } = {};
+    data.forEach((d, idx) => {
+      const date = new Date(d.date);
+      const hour = date.getHours();
+      if (hour === 0 || hour === 12) {
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        content[idx] = `${month}/${day} ${hour.toString().padStart(2, '0')}:00`;
+      }
+    });
+    return content;
+  }, [data]);
+
+  // Prevent division by zero (F10: handle edge case where chartData.length is 1)
+  const safeLength = Math.max(chartData.length - 1, 1);
+
   return (
     <div className="flex flex-col h-full">
       {/* Chart bars */}
@@ -81,21 +114,29 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
           <div
             key={idx}
             className="flex-1 bg-green-400 hover:bg-green-500 transition-colors"
-            style={{ 
+            style={{
               height: `${Math.max((value / maxValue) * 100, 3)}%`,
               marginLeft: idx === 0 ? 0 : '1px'
             }}
-            title={`${48 - idx}小时前: ${value}`}
+            title={tooltipContent[idx]}
           />
         ))}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5">
-        <span>48h</span>
-        <span>36h</span>
-        <span>24h</span>
-        <span>12h</span>
-        <span>0h</span>
+      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5 relative">
+        {labelIndices.map((idx) => {
+          // F10: Prevent division by zero with safeLength
+          const leftPercent = (idx / safeLength) * 100;
+          return (
+            <span
+              key={idx}
+              className="absolute transform -translate-x-1/2"
+              style={{ left: `${leftPercent}%` }}
+            >
+              {labelContent[idx]}
+            </span>
+          );
+        })}
       </div>
     </div>
   );

@@ -8,7 +8,10 @@ Handles:
 """
 import json
 import logging
+import redis
+import threading
 from typing import Dict, Any, Optional
+from datetime import datetime
 
 from sqlmodel import Session, select
 from sqlalchemy import text
@@ -22,6 +25,55 @@ logger = logging.getLogger(__name__)
 
 # Redis queue key
 CALLBACK_QUEUE_KEY = "litellm:callbacks:success"
+
+# Thread-local storage for Redis client
+_redis_local = threading.local()
+_redis_client_lock = threading.Lock()
+
+
+def get_redis_client() -> Optional[redis.Redis]:
+    """
+    Get or create thread-local Redis client with proper locking
+
+    Returns:
+        redis.Redis client or None if connection fails
+    """
+    # Check thread-local storage first
+    if hasattr(_redis_local, 'client') and _redis_local.client is not None:
+        return _redis_local.client
+
+    with _redis_client_lock:
+        # Double-check after acquiring lock
+        if hasattr(_redis_local, 'client') and _redis_local.client is not None:
+            return _redis_local.client
+
+        try:
+            from api.config import settings
+            client = redis.from_url(
+                settings.REDIS_DATABASE,
+                encoding="utf-8",
+                decode_responses=True
+            )
+            client.ping()
+            _redis_local.client = client
+        except Exception as e:
+            logger.error(f"Failed to connect to Redis: {e}")
+            _redis_local.client = None
+    return _redis_local.client
+
+
+def close_redis_client():
+    """
+    Close the Redis client for current thread.
+    Should be called during cleanup/shutdown.
+    """
+    if hasattr(_redis_local, 'client') and _redis_local.client is not None:
+        try:
+            _redis_local.client.close()
+        except Exception as e:
+            logger.error(f"Failed to close Redis client: {e}")
+        finally:
+            _redis_local.client = None
 
 
 def enqueue_callback(redis_client, callback_data: Dict[str, Any]) -> bool:
@@ -204,6 +256,23 @@ def update_token_statistics(
 
         # If subscription exists, update contributor and shared API key stats
         if subscription:
+            # Update Redis Hash for hourly statistics BEFORE database commit
+            # This ensures Redis data is consistent with database state
+            redis_client = get_redis_client()
+            if redis_client:
+                hour_key = datetime.utcnow().strftime("%Y%m%d%H")
+                redis_key = f"sharinmod:subscription:{subscription.id}:hourly_tokens"
+                try:
+                    # Only set TTL if this is a new key (optimization)
+                    is_new_key = not redis_client.exists(redis_key)
+                    redis_client.hincrby(redis_key, hour_key, total_tokens)
+                    if is_new_key:
+                        redis_client.expire(redis_key, 50 * 3600)  # 50 hours TTL
+                    logger.debug(f"Updated Redis Hash: {redis_key}, hour: {hour_key}, tokens: {total_tokens}")
+                except Exception as e:
+                    logger.error(f"Failed to update Redis Hash: {e}")
+                    # Don't fail the entire operation if Redis update fails
+
             # Update shared API key stats atomically
             session.execute(
                 text(f"UPDATE shared_api_keys SET total_requests = total_requests + 1, total_tokens = total_tokens + {total_tokens} WHERE id = {subscription.shared_api_key_id}")

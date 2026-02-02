@@ -38,6 +38,9 @@ class Settings(BaseSettings):
         "z.ai": "https://z.ai/api/anthropic"
     }
 
+    # Redis Configuration
+    REDIS_DATABASE: str = os.getenv("REDIS_DATABASE", "redis://redis:6379/")
+
     # LiteLLM webhook IP whitelist (comma-separated string, will be parsed to list)
     LITELLM_WEBHOOK_IP_WHITELIST_STR: str = ""
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []

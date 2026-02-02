@@ -10,9 +10,14 @@ from api.config import settings
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from fastapi import HTTPException
+from collections import defaultdict
 import httpx
 import json
 import random
+import redis
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _handle_litellm_response(response, operation_name: str) -> bool:
@@ -723,6 +728,82 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
     session.commit()
 
 
+def get_subscription_hourly_tokens(session: Session, shared_api_key_id: int, hours: int = 48) -> List[Dict[str, Any]]:
+    """
+    Get hourly token usage for all subscriptions linked to a shared API key
+
+    Args:
+        session: Database session
+        shared_api_key_id: Shared API key ID
+        hours: Number of hours to look back (default 48, max 168)
+
+    Returns:
+        List of dicts with 'date' and 'value' keys
+    """
+    # Validate hours parameter to prevent performance issues
+    if hours < 1:
+        logger.warning(f"Invalid hours value: {hours}, using minimum of 1")
+        hours = 1
+    elif hours > 168:  # Max 7 days
+        logger.warning(f"Hours value {hours} exceeds maximum of 168, using maximum")
+        hours = 168
+
+    # Get all subscriptions for this shared API key
+    statement = select(Subscription).where(
+        Subscription.shared_api_key_id == shared_api_key_id
+    )
+    subscriptions = session.exec(statement).all()
+
+    if not subscriptions:
+        return []
+
+    # Aggregate hourly data from Redis
+    hourly_totals = defaultdict(int)
+
+    try:
+        redis_client = redis.from_url(
+            settings.REDIS_DATABASE,
+            encoding="utf-8",
+            decode_responses=True
+        )
+
+        now = datetime.utcnow()
+        for i in range(hours):
+            hour_dt = now - timedelta(hours=hours - 1 - i)
+            hour_key = hour_dt.strftime("%Y%m%d%H")
+
+            for subscription in subscriptions:
+                redis_key = f"sharinmod:subscription:{subscription.id}:hourly_tokens"
+                value = redis_client.hget(redis_key, hour_key)
+                if value:
+                    hourly_totals[hour_dt] += int(value)
+
+    except Exception as e:
+        logger.error(f"Failed to get hourly tokens from Redis: {e}")
+        return []
+
+    # Convert to list of dicts
+    chart_data = []
+    for hour_dt in sorted(hourly_totals.keys()):
+        chart_data.append({
+            "date": hour_dt.strftime("%Y-%m-%d %H:00"),
+            "value": hourly_totals[hour_dt]
+        })
+
+    # Fill missing hours with zeros
+    result = []
+    hour_dict = {item["date"]: item["value"] for item in chart_data}
+    for i in range(hours):
+        hour_dt = now - timedelta(hours=hours - 1 - i)
+        date_str = hour_dt.strftime("%Y-%m-%d %H:00")
+        result.append({
+            "date": date_str,
+            "value": hour_dict.get(date_str, 0)
+        })
+
+    return result
+
+
 def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) -> Dict:
     """
     Get metrics for a shared API key using real database data
@@ -755,15 +836,11 @@ def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) 
             detail="API key not found"
         )
 
-    # Calculate duration from creation date
-    total_duration_days = (datetime.now() - api_key.created_at).days
+    # Calculate duration from creation date (use UTC for consistency)
+    total_duration_days = (datetime.utcnow() - api_key.created_at).days
 
-    # Generate mock chart data - 48 hours of random values
-    chart_data = []
-    for i in range(48):
-        hour = (datetime.now() - timedelta(hours=47-i)).strftime("%Y-%m-%d %H:00")
-        value = random.randint(20, 100)
-        chart_data.append({"date": hour, "value": value})
+    # Get real hourly data from Redis
+    chart_data = get_subscription_hourly_tokens(session, api_key.id)
 
     return {
         "total_tokens": api_key.total_tokens,
