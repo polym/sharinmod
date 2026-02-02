@@ -69,31 +69,28 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const chartData = data.map(d => d.value);
   const maxValue = Math.max(...chartData, 1);
 
-  // Convert UTC date string to UTC+8 (Beijing time) and format
-  const convertToBeijingTime = (dateStr: string): Date => {
+  // Parse UTC date string and return components with UTC+8 offset
+  const parseBeijingTime = (dateStr: string) => {
     // Backend returns format: "YYYY-MM-DD HH:00" (UTC)
     const [ymd, time] = dateStr.split(' ');
     const [year, month, day] = ymd.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
-    // Create UTC date with +8 hours for Beijing time
-    return new Date(Date.UTC(year, month - 1, day, hour + 8, minute));
-  };
-
-  // Format tooltip content with UTC+8 conversion
-  const formatTooltip = (dateStr: string, value: number) => {
-    const localDate = convertToBeijingTime(dateStr);
-    const month = localDate.getMonth() + 1;
-    const day = localDate.getDate();
-    const hour = localDate.getHours().toString().padStart(2, '0');
-    return `${month}/${day} ${hour}:00 - ${value} tokens`;
+    // Add 8 hours for Beijing time
+    const beijingHour = (hour + 8) % 24;
+    // Handle date rollover when crossing midnight
+    const date = new Date(Date.UTC(year, month - 1, day, beijingHour, minute));
+    return {
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate(),
+      hour: date.getUTCHours()
+    };
   };
 
   // Memoize label indices calculation (based on UTC+8 hour)
   const labelIndices = useMemo(() => {
     const indices: number[] = [];
     data.forEach((_, idx) => {
-      const localDate = convertToBeijingTime(data[idx].date);
-      const hour = localDate.getHours();
+      const { hour } = parseBeijingTime(data[idx].date);
       if (hour === 0 || hour === 12) {
         indices.push(idx);
       }
@@ -105,11 +102,8 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const labelContent = useMemo(() => {
     const content: { [key: number]: string } = {};
     data.forEach((d, idx) => {
-      const localDate = convertToBeijingTime(d.date);
-      const hour = localDate.getHours();
+      const { month, day, hour } = parseBeijingTime(d.date);
       if (hour === 0 || hour === 12) {
-        const month = localDate.getMonth() + 1;
-        const day = localDate.getDate();
         content[idx] = `${month}/${day} ${hour.toString().padStart(2, '0')}:00`;
       }
     });
@@ -120,35 +114,44 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const safeLength = Math.max(chartData.length - 1, 1);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full py-0.5">
       {/* Chart bars */}
       <div className="flex items-end flex-1 border-b border-gray-200 relative">
         {chartData.map((value, idx) => (
           <div
             key={idx}
-            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors relative cursor-pointer"
+            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors cursor-pointer"
             style={{
               height: `${Math.max((value / maxValue) * 100, 3)}%`,
               marginLeft: idx === 0 ? 0 : '1px'
             }}
             onMouseEnter={() => setHoverIndex(idx)}
             onMouseLeave={() => setHoverIndex(null)}
-          >
-            {/* Tooltip */}
-            {hoverIndex === idx && (
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10 shadow-lg pointer-events-none">
-                {formatTooltip(data[idx].date, value)}
-                {/* Arrow */}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                  <div className="border-4 border-transparent border-t-gray-800"></div>
-                </div>
-              </div>
-            )}
-          </div>
+          />
         ))}
+        {/* Tooltip overlay - outside flex container to prevent layout shift */}
+        {hoverIndex !== null && (
+          <div
+            className="absolute pointer-events-none z-30 flex flex-col items-center gap-0.5"
+            style={{
+              bottom: `${Math.max((chartData[hoverIndex] / maxValue) * 100, 3)}%`,
+              left: `${(hoverIndex / safeLength) * 100}%`,
+              transform: 'translate(-50%, -100%)',
+              marginBottom: '-2px'
+            }}
+          >
+            <div className="bg-gray-900 text-white text-[10px] rounded py-0.5 px-2 whitespace-nowrap shadow-md">
+              <span className="font-semibold">{chartData[hoverIndex]} tokens</span>
+              <br />
+              <span className="text-gray-300 text-[9px]">
+                {parseBeijingTime(data[hoverIndex].date).month}/{parseBeijingTime(data[hoverIndex].date).day} {parseBeijingTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
+              </span>
+            </div>
+          </div>
+        )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-0.5 relative">
+      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-0.5 relative">
         {labelIndices.map((idx) => {
           const leftPercent = (idx / safeLength) * 100;
           return (
