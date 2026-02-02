@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Zap } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { UserAvatar } from "@/components/UserAvatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user, logout, setShowLoginDialog } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -34,8 +35,15 @@ export function Header() {
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
         </Link>
 
-        {/* Account Avatar with Dropdown Menu */}
-        <DropdownMenu>
+        {/* Token余额显示 + Account Avatar */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" className="bg-brand-100 text-amber-700 gap-1.5 h-8 px-3 rounded-full">
+            <Zap className="h-3.5 w-3.5 text-brand-500" />
+            <span className="text-sm font-medium">{user?.token_balance ?? 0}</span>
+          </Button>
+
+          {/* Account Avatar with Dropdown Menu */}
+          <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-full transition-opacity hover:opacity-90"
@@ -67,6 +75,7 @@ export function Header() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   );

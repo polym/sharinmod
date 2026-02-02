@@ -725,16 +725,20 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
 
 def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) -> Dict:
     """
-    Get metrics for a shared API key (currently returns mock data)
-    
+    Get metrics for a shared API key using real database data
+
     Args:
         session: Database session
         api_key_id: API key ID
         user_id: User ID for authorization check
-        
+
     Returns:
-        Dict with metrics data (total_tokens, total_duration_days, total_requests, chart_data)
-        
+        Dict with metrics data:
+            - total_tokens (int): raw token value from database (frontend handles formatting)
+            - total_duration_days (int): days since creation
+            - total_requests (int): total request count from database
+            - chart_data (list): mock 48-hour chart data
+
     Raises:
         HTTPException: If API key not found or user doesn't own it
     """
@@ -744,23 +748,26 @@ def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) 
         SharedAPIKey.user_id == user_id
     )
     api_key = session.exec(statement).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=404,
             detail="API key not found"
         )
-    
+
+    # Calculate duration from creation date
+    total_duration_days = (datetime.now() - api_key.created_at).days
+
     # Generate mock chart data - 48 hours of random values
     chart_data = []
     for i in range(48):
         hour = (datetime.now() - timedelta(hours=47-i)).strftime("%Y-%m-%d %H:00")
         value = random.randint(20, 100)
         chart_data.append({"date": hour, "value": value})
-    
+
     return {
-        "total_tokens": 592.5,
-        "total_duration_days": 2.5,
-        "total_requests": 45,
+        "total_tokens": api_key.total_tokens,
+        "total_duration_days": total_duration_days,
+        "total_requests": api_key.total_requests,
         "chart_data": chart_data
     }

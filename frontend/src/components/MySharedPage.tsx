@@ -50,6 +50,15 @@ function SquareSwitch({
   );
 }
 
+// Token formatting helper - formats raw token value for display
+function formatTokens(totalTokens: number): { value: number; unit: string } {
+  if (totalTokens >= 1_000_000) {
+    return { value: Math.round(totalTokens / 1_000_000 * 10) / 10, unit: '百万' };
+  } else {
+    return { value: Math.round(totalTokens / 10_000 * 10) / 10, unit: '万' };
+  }
+}
+
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   if (!data || data.length === 0) return null;
@@ -294,7 +303,10 @@ export function MySharedPage() {
                         <div className="flex flex-col">
                           <dt className="text-xs text-gray-500">总Token</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_tokens}<span className="text-sm font-normal text-gray-500 ml-1">百万</span>
+                            {(() => {
+                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens);
+                              return <>{value}<span className="text-sm font-normal text-gray-500 ml-1">{unit}</span></>;
+                            })()}
                           </dd>
                         </div>
                         <div className="flex flex-col">
