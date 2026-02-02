@@ -365,8 +365,8 @@ export function MySharedPage() {
                       </dl>
                       
                       {/* 48-hour Bar Chart - 3 parts, fills container */}
-                      <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-32">
-                        <div className="p-2 h-full">
+                      <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-40">
+                        <div className="p-2 pt-2 pb-5 h-full">
                           <UsageBarChart data={metricsMap[apiKey.id].chart_data} />
                         </div>
                       </div>
