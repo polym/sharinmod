@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
+  const router = useRouter();
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -63,6 +65,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       const response = await authAPI.login({ email, password });
       const { access_token, user } = response.data;
       login(user, access_token);
+      router.push('/shared');
       setShowLoginDialog(false);
       onSuccess?.();
     } catch (err) {

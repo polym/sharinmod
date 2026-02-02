@@ -6,7 +6,7 @@ import { useAuthStore } from '@/lib/store';
 
 export default function DashboardPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   // Wait for Zustand hydration
@@ -18,13 +18,13 @@ export default function DashboardPage() {
     if (!isHydrated) return;
     
     if (!isAuthenticated) {
-      router.push('/login');
+      setShowLoginDialog(true);
       return;
     }
     
     // 重定向到 marketplace
     router.push('/marketplace');
-  }, [isAuthenticated, router, isHydrated]);
+  }, [isAuthenticated, setShowLoginDialog, router, isHydrated]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

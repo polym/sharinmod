@@ -7,7 +7,7 @@ import { APIKeyUsage } from '@/components/token-usage';
 
 export default function UsagePage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,10 +18,10 @@ export default function UsagePage() {
     if (!isHydrated) return;
     
     if (!isAuthenticated) {
-      router.push('/login');
+      setShowLoginDialog(true);
       return;
     }
-  }, [isAuthenticated, router, isHydrated]);
+  }, [isAuthenticated, setShowLoginDialog, isHydrated]);
 
   if (!isHydrated || !isAuthenticated) {
     return (

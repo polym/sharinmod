@@ -7,7 +7,7 @@ import { UnifiedAPIKeys } from '@/components/unified-tokens';
 
 export default function ApiKeysPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,10 +18,10 @@ export default function ApiKeysPage() {
     if (!isHydrated) return;
     
     if (!isAuthenticated) {
-      router.push('/login');
+      setShowLoginDialog(true);
       return;
     }
-  }, [isAuthenticated, router, isHydrated]);
+  }, [isAuthenticated, setShowLoginDialog, isHydrated]);
 
   if (!isHydrated || !isAuthenticated) {
     return (

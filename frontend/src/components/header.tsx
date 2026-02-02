@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.push('/shared');
   };
 
   return (

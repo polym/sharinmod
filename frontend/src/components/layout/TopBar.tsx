@@ -19,12 +19,12 @@ interface TopBarProps {
 }
 
 export function TopBar({ onPageChange }: TopBarProps) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    router.push('/shared');
   };
 
   return (

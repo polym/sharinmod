@@ -23,14 +23,14 @@ function ChatPageContent() {
   const [unifiedAPIKeys, setUnifiedAPIKeys] = useState<any[]>([]);
   const [selectedAPIKeyId, setSelectedAPIKeyId] = useState('');
   const [tempToken, setTempToken] = useState<string | null>(null);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/login');
+      setShowLoginDialog(true);
       return;
     }
 

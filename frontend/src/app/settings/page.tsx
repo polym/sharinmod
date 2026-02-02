@@ -7,7 +7,7 @@ import { ProfileSettings } from '@/components/profile-settings';
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,10 +18,10 @@ export default function SettingsPage() {
     if (!isHydrated) return;
     
     if (!isAuthenticated) {
-      router.push('/login');
+      setShowLoginDialog(true);
       return;
     }
-  }, [isAuthenticated, router, isHydrated]);
+  }, [isAuthenticated, setShowLoginDialog, isHydrated]);
 
   if (!isHydrated || !isAuthenticated) {
     return (
