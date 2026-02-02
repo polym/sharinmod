@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { QuickCallDialog } from "@/components/QuickCallDialog";
 
 // Gradient background matching the main app background for visual cohesion
 const SIDEBAR_GRADIENT_BG = "bg-gradient-to-br from-purple-50 via-white to-purple-50";
@@ -62,10 +63,12 @@ export function Sidebar() {
   const SidebarContent = () => (
     <>
       {/* Launch Button */}
-      <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
-        <Sparkles className="w-4 h-4 mr-1" />
-        即刻调用
-      </Button>
+      <QuickCallDialog>
+        <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
+          <Sparkles className="w-4 h-4 mr-1" />
+          即刻调用
+        </Button>
+      </QuickCallDialog>
 
       {/* Main Navigation */}
       <nav className="flex-1 space-y-1">
