@@ -75,11 +75,8 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     const [ymd, time] = dateStr.split(' ');
     const [year, month, day] = ymd.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
-    // Create UTC date
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
-    // Add 8 hours for UTC+8
-    utcDate.setHours(utcDate.getHours() + 8);
-    return utcDate;
+    // Create UTC date with +8 hours for Beijing time
+    return new Date(Date.UTC(year, month - 1, day, hour + 8, minute));
   };
 
   // Format tooltip content with UTC+8 conversion
