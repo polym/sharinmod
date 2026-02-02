@@ -1,6 +1,7 @@
 from sqlmodel import Session, select
 from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.models.user import User
+from api.models.subscription import Subscription
 from api.utils.encryption import encrypt_token, decrypt_token
 from api.services.api_key_validation_service import validate_api_key
 from api.services.api_key_usage_service import log_api_key_usage
@@ -305,6 +306,17 @@ async def create_shared_api_key(
             session.add(shared_api_key)
             session.commit()
             session.refresh(shared_api_key)
+            
+            # Create subscriptions for all models
+            for model_name, model_id in model_ids.items():
+                subscription = Subscription(
+                    model_id=model_id,
+                    shared_api_key_id=shared_api_key.id,
+                    user_id=user.id
+                )
+                session.add(subscription)
+            session.commit()
+            
         except Exception as e:
             # Rollback local API key creation if LiteLLM sync fails
             session.rollback()
@@ -449,6 +461,15 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
             session.add(api_key)
             session.commit()
             session.refresh(api_key)
+            
+            # Delete related subscriptions since models are no longer available
+            subscription_statement = select(Subscription).where(
+                Subscription.shared_api_key_id == api_key_id
+            )
+            subscriptions = session.exec(subscription_statement).all()
+            for subscription in subscriptions:
+                session.delete(subscription)
+            session.commit()
 
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
@@ -553,6 +574,16 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
             session.add(api_key)
             session.commit()
             session.refresh(api_key)
+            
+            # Recreate subscriptions for all models since they are now available again
+            for model_name, model_id in model_ids.items():
+                subscription = Subscription(
+                    model_id=model_id,
+                    shared_api_key_id=api_key.id,
+                    user_id=user.id
+                )
+                session.add(subscription)
+            session.commit()
 
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
@@ -678,6 +709,14 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
         action=APIKeyAction.SHARED,
         details=f"Deleted {api_key.provider.value} API key"
     )
+    
+    # Delete related subscriptions first
+    subscription_statement = select(Subscription).where(
+        Subscription.shared_api_key_id == api_key_id
+    )
+    subscriptions = session.exec(subscription_statement).all()
+    for subscription in subscriptions:
+        session.delete(subscription)
     
     # Delete from database
     session.delete(api_key)

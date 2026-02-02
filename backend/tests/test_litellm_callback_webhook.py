@@ -107,7 +107,7 @@ def test_webhook_invalid_json(client: TestClient):
         json={"invalid": "data"}  # Missing required fields
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert "Invalid callback data" in response.json()["detail"]
 
 
@@ -124,7 +124,7 @@ def test_webhook_missing_required_field(client: TestClient):
         json=incomplete_data
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 # Test 5: Webhook callback when Redis is unavailable
@@ -132,12 +132,13 @@ def test_webhook_missing_required_field(client: TestClient):
 def test_webhook_redis_unavailable(mock_redis_from_url, client: TestClient, valid_callback_data):
     """Test webhook callback when Redis connection fails"""
     # Mock Redis connection error
-    mock_redis = AsyncMock()
-    mock_redis.from_url.return_value = mock_redis
-    mock_redis.close = AsyncMock()
+    mock_redis = Mock()
+    mock_redis_from_url.return_value = mock_redis
+    mock_redis.close = Mock()
 
-    # Make enqueue_callback fail
-    mock_redis.lpush = Mock(side_effect=Exception("Redis connection failed"))
+    # Make enqueue_callback fail with ConnectionError
+    import redis
+    mock_redis.lpush = Mock(side_effect=redis.ConnectionError("Redis connection failed"))
 
     response = client.post(
         "/api/v1/webhooks/litellm/success",
@@ -151,9 +152,8 @@ def test_webhook_redis_unavailable(mock_redis_from_url, client: TestClient, vali
 @patch("api.routers.webhooks.redis.from_url")
 def test_webhook_data_queued(mock_redis_from_url, client: TestClient, valid_callback_data):
     """Test that callback data is properly queued to Redis"""
-    mock_redis_client = AsyncMock()
+    mock_redis_client = Mock()
     mock_redis_client.lpush = Mock(return_value=True)
-    mock_redis_client.close = AsyncMock()
     mock_redis_from_url.return_value = mock_redis_client
 
     response = client.post(
@@ -163,7 +163,7 @@ def test_webhook_data_queued(mock_redis_from_url, client: TestClient, valid_call
 
     assert response.status_code == 200
     # Verify lpush was called
-    assert mock_redis_client.lpress.called
+    assert mock_redis_client.lpush.called
 
 
 # Test 7: IP whitelist - non-whitelisted IP rejected

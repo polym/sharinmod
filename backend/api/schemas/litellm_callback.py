@@ -73,7 +73,7 @@ class LiteLLMCallbackRequest(BaseModel):
     # Provider info
     custom_llm_provider: str = Field(..., description="LLM provider (openai, anthropic, etc)")
 
-    # Timing
+    # Timing - Support both snake_case (actual LiteLLM format) and camelCase
     start_time: float = Field(..., alias="startTime", description="Request start timestamp (Unix)")
     end_time: float = Field(..., alias="endTime", description="Request end timestamp (Unix)")
     completion_start_time: Optional[float] = Field(None, alias="completionStartTime", description="Completion start timestamp")
@@ -106,8 +106,10 @@ class LiteLLMCallbackRequest(BaseModel):
     # Response object
     response: Optional[Dict[str, Any]] = Field(None, description="Full response from LLM")
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "populate_by_name": True,
+        "extra": "allow",
+        "json_schema_extra": {
             "example": {
                 "id": "chatcmpl-bf686de4af7d3a5a",
                 "trace_id": "7fdc164c-3d33-4dee-a474-e1b643cb060d",
@@ -116,8 +118,8 @@ class LiteLLMCallbackRequest(BaseModel):
                 "stream": True,
                 "status": "success",
                 "custom_llm_provider": "openai",
-                "startTime": 1768809251.711881,
-                "endTime": 1768809253.019879,
+                "start_time": 1768809251.711881,
+                "end_time": 1768809253.019879,
                 "response_time": 0.19952106475830078,
                 "model": "openai/Qwen/Qwen2.5-3B-Instruct",
                 "model_id": "2c1f19ddf8b4ba01be63d045954aaeb5146de38cad44bb08391069bfc32b4108",
@@ -130,6 +132,7 @@ class LiteLLMCallbackRequest(BaseModel):
                 }
             }
         }
+    }
 
 
 class WebhookResponse(BaseModel):
@@ -137,10 +140,11 @@ class WebhookResponse(BaseModel):
     success: bool = True
     message: str = "Callback received"
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "success": True,
                 "message": "Callback received"
             }
         }
+    }
