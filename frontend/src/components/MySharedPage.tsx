@@ -69,24 +69,34 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const chartData = data.map(d => d.value);
   const maxValue = Math.max(...chartData, 1);
 
-  // Format tooltip content from date string directly (backend already returns UTC+8)
-  const formatTooltip = (dateStr: string, value: number) => {
-    // Backend returns format: "YYYY-MM-DD HH:00"
-    // Convert to "M/D H:00 - X tokens"
-    const parts = dateStr.split(' ');
-    if (parts.length >= 2) {
-      const [ymd, time] = parts;
-      const [year, month, day] = ymd.split('-');
-      return `${month}/${day} ${time} - ${value} tokens`;
-    }
-    return `${dateStr} - ${value} tokens`;
+  // Convert UTC date string to UTC+8 (Beijing time) and format
+  const convertToBeijingTime = (dateStr: string): Date => {
+    // Backend returns format: "YYYY-MM-DD HH:00" (UTC)
+    const [ymd, time] = dateStr.split(' ');
+    const [year, month, day] = ymd.split('-').map(Number);
+    const [hour, minute] = time.split(':').map(Number);
+    // Create UTC date
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+    // Add 8 hours for UTC+8
+    utcDate.setHours(utcDate.getHours() + 8);
+    return utcDate;
   };
 
-  // Memoize label indices calculation
+  // Format tooltip content with UTC+8 conversion
+  const formatTooltip = (dateStr: string, value: number) => {
+    const localDate = convertToBeijingTime(dateStr);
+    const month = localDate.getMonth() + 1;
+    const day = localDate.getDate();
+    const hour = localDate.getHours().toString().padStart(2, '0');
+    return `${month}/${day} ${hour}:00 - ${value} tokens`;
+  };
+
+  // Memoize label indices calculation (based on UTC+8 hour)
   const labelIndices = useMemo(() => {
     const indices: number[] = [];
     data.forEach((_, idx) => {
-      const hour = parseInt(data[idx].date.split(' ')[1]?.split(':')[0] || '0');
+      const localDate = convertToBeijingTime(data[idx].date);
+      const hour = localDate.getHours();
       if (hour === 0 || hour === 12) {
         indices.push(idx);
       }
@@ -94,18 +104,16 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     return indices;
   }, [data]);
 
-  // Memoize label content
+  // Memoize label content (formatted in UTC+8)
   const labelContent = useMemo(() => {
     const content: { [key: number]: string } = {};
     data.forEach((d, idx) => {
-      const parts = d.date.split(' ');
-      if (parts.length >= 2) {
-        const [ymd, time] = parts;
-        const [year, month, day] = ymd.split('-');
-        const hour = parseInt(time.split(':')[0]);
-        if (hour === 0 || hour === 12) {
-          content[idx] = `${month}/${day} ${time}`;
-        }
+      const localDate = convertToBeijingTime(d.date);
+      const hour = localDate.getHours();
+      if (hour === 0 || hour === 12) {
+        const month = localDate.getMonth() + 1;
+        const day = localDate.getDate();
+        content[idx] = `${month}/${day} ${hour.toString().padStart(2, '0')}:00`;
       }
     });
     return content;
