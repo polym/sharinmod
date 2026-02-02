@@ -83,20 +83,21 @@ async def test_create_unified_api_key_with_litellm_key(
     # Mock LiteLLM API response
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"key": "sk-litellm-test-key-12345"}
-    mock_response.raise_for_status = AsyncMock()
-    
+    # Use a regular callable for json() instead of AsyncMock
+    mock_response.json = lambda: {"key": "sk-litellm-test-key-12345"}
+    mock_response.raise_for_status = lambda: None
+
     mock_client_instance = AsyncMock()
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
-    
+
     # Create unified API key
     response = client.post(
         "/api/api-keys/unified",
         json={"api_key_name": "Test API Key"},
         headers=auth_headers
     )
-    
+
     assert response.status_code == 201
     data = response.json()
     assert "litellm_key" in data
@@ -124,24 +125,24 @@ async def test_block_unified_api_key(
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
-    
+
     # Mock LiteLLM API response
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.raise_for_status = AsyncMock()
-    
+    mock_response.raise_for_status = lambda: None
+
     mock_client_instance = AsyncMock()
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
-    
+
     # Block the API key
     response = client.put(
         f"/api/api-keys/unified/{api_key.id}/block",
         headers=auth_headers
     )
-    
+
     assert response.status_code == 204
-    
+
     # Verify API key is revoked in database
     session.refresh(api_key)
     assert api_key.status == UnifiedAPIKeyStatus.REVOKED
@@ -171,24 +172,24 @@ async def test_delete_unified_api_key(
     session.commit()
     session.refresh(api_key)
     api_key_id = api_key.id
-    
+
     # Mock LiteLLM API response
     mock_response = AsyncMock()
     mock_response.status_code = 200
-    mock_response.raise_for_status = AsyncMock()
-    
+    mock_response.raise_for_status = lambda: None
+
     mock_client_instance = AsyncMock()
     mock_client_instance.post = AsyncMock(return_value=mock_response)
     mock_client.return_value.__aenter__.return_value = mock_client_instance
-    
+
     # Delete the API key
     response = client.delete(
         f"/api/api-keys/unified/{api_key_id}",
         headers=auth_headers
     )
-    
+
     assert response.status_code == 204
-    
+
     # Verify API key is deleted from database
     statement = select(UnifiedAPIKey).where(UnifiedAPIKey.id == api_key_id)
     result = session.exec(statement).first()
@@ -216,27 +217,28 @@ async def test_regenerate_unified_api_key(
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
-    
+
     # Mock LiteLLM API responses (delete old + generate new)
     mock_delete_response = AsyncMock()
     mock_delete_response.status_code = 200
-    mock_delete_response.raise_for_status = AsyncMock()
-    
+    mock_delete_response.raise_for_status = lambda: None
+
     mock_generate_response = AsyncMock()
     mock_generate_response.status_code = 200
-    mock_generate_response.json.return_value = {"key": "sk-litellm-new-key-22222"}
-    mock_generate_response.raise_for_status = AsyncMock()
-    
+    # Use a regular callable for json() instead of AsyncMock
+    mock_generate_response.json = lambda: {"key": "sk-litellm-new-key-22222"}
+    mock_generate_response.raise_for_status = lambda: None
+
     mock_client_instance = AsyncMock()
     mock_client_instance.post = AsyncMock(side_effect=[mock_delete_response, mock_generate_response])
     mock_client.return_value.__aenter__.return_value = mock_client_instance
-    
+
     # Regenerate the key
     response = client.post(
         f"/api/api-keys/unified/{api_key.id}/regenerate",
         headers=auth_headers
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["litellm_key"] == "sk-litellm-new-key-22222"

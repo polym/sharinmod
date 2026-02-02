@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_pagination import Page, paginate
 from fastapi_pagination.utils import disable_installed_extensions_check
-from sqlalchemy.orm import Session
+from sqlmodel import Session
 from starlette.responses import JSONResponse
 
 from api.database import get_db
@@ -51,9 +51,9 @@ def get_single_town(town_id: int, db: Session = Depends(get_db)):
     return town
 
 
-@router.get("/", response_model=Page[TownRead])
+@router.get("/", response_model=List[TownRead])
 def get_all_towns(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return paginate(get_towns(db, skip=skip, limit=limit))
+    return get_towns(db, skip=skip, limit=limit)
 
 
 @router.put("/{town_id}", response_model=TownRead)
