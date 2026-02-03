@@ -471,11 +471,11 @@ export function MySharedPage() {
                     </div>
                   </div>
 
-                  {/* Stats and Chart Section - 2:3 ratio */}
+                  {/* Stats and Chart Section - ~25%:75% ratio (excluding gap) */}
                   {metricsMap[apiKey.id] && (
                     <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                      {/* Statistics - 2 parts */}
-                      <dl className="sm:flex-[2] flex flex-row gap-4 sm:gap-6 items-center">
+                      {/* Statistics - 1 part */}
+                      <dl className="sm:flex-[1] flex flex-row gap-4 sm:gap-6 items-center">
                         <div className="flex flex-col">
                           <dt className="text-xs text-gray-500">总Token</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
@@ -499,7 +499,7 @@ export function MySharedPage() {
                         </div>
                       </dl>
                       
-                      {/* 48-hour Bar Chart - 3 parts, fills container */}
+                      {/* 48-hour Bar Chart - 75% width (sm:flex-[3] of 4 total) */}
                       <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-40">
                         <div className="p-2 pt-2 pb-5 h-full">
                           <UsageBarChart data={metricsMap[apiKey.id].chart_data} />
