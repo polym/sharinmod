@@ -63,8 +63,8 @@ class LiteLLMCallbackRequest(BaseModel):
     call_type: str = Field(default="acompletion", description="Type of call (acompletion, etc)")
 
     # Request flags
-    cache_hit: bool = Field(default=False, description="Whether cache was hit")
-    stream: bool = Field(default=False, description="Whether request was streamed")
+    cache_hit: Optional[bool] = Field(default=False, description="Whether cache was hit")
+    stream: Optional[bool] = Field(default=False, description="Whether request was streamed")
 
     # Status
     status: str = Field(default="success", description="Request status")
