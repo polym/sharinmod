@@ -1,11 +1,11 @@
 'use client';
 
-import { APIKeyDiscovery } from '@/components/token-discovery';
+import { ModelDiscoveryPage } from '@/components/ModelDiscoveryPage';
 
 export function MarketplacePage() {
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <APIKeyDiscovery />
+      <ModelDiscoveryPage />
     </div>
   );
 }

@@ -111,3 +111,8 @@ export const usageAPI = {
     return api.get('/api/usage/logs', { params: paramsWithTimezone });
   },
 };
+
+// Model API
+export const modelAPI = {
+  getModels: () => api.get('/api/models'),
+};

@@ -50,7 +50,7 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const mainNavItems = [
-    { icon: <Store className="w-4 h-4" />, label: "广场", href: "/marketplace" },
+    { icon: <Store className="w-4 h-4" />, label: "发现", href: "/marketplace" },
     { icon: <Users className="w-4 h-4" />, label: "共享订阅", href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: "API Keys", href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: "使用情况", href: "/usage" },

@@ -53,13 +53,59 @@ PROVIDER_INFO = {
         "name": "智谱 AI Coding Plan",
         "website": "https://bigmodel.cn",
         "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
-        "logo_path": "/providers/bigmodel-logo.png"
+        "logo_path": "/providers/bigmodel-logo.png",
+        "models": {
+            "glm-4.7": {
+                "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            },
+            "glm-4.6": {
+                "description": "智谱 AI 高性能模型，平衡速度与质量",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            },
+            "glm-4.5-air": {
+                "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            }
+        }
     },
     APIKeyProvider.ZAI: {
         "name": "Z.AI Coding Plan",
         "website": "https://z.ai",
         "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
-        "logo_path": "/providers/zai-logo.png"
+        "logo_path": "/providers/zai-logo.png",
+        "models": {
+            "glm-4.7": {
+                "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            },
+            "glm-4.6": {
+                "description": "智谱 AI 高性能模型，平衡速度与质量",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            },
+            "glm-4.5-air": {
+                "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text"
+            }
+        }
     }
 }
 
