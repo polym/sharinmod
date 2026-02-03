@@ -4,25 +4,22 @@ import * as React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Store, 
-  Users, 
-  Key, 
-  BarChart3, 
-  Grid, 
-  Sparkles, 
-  Radio, 
-  User, 
-  Menu, 
+import {
+  Store,
+  Users,
+  Key,
+  BarChart3,
+  Grid,
+  Sparkles,
+  Radio,
+  User,
+  Menu,
   X,
   Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickCallDialog } from "@/components/QuickCallDialog";
-
-// Gradient background matching the main app background for visual cohesion
-const SIDEBAR_GRADIENT_BG = "bg-gradient-to-br from-purple-50 via-white to-purple-50";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -37,8 +34,8 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
       href={href}
       className={cn(
         "w-full px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-3 transition-all",
-        active 
-          ? "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700" 
+        active
+          ? "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700"
           : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
       )}
     >
@@ -61,7 +58,7 @@ export function Sidebar() {
   ];
 
   const SidebarContent = () => (
-    <>
+    <div className="flex flex-col h-full p-4">
       {/* Launch Button */}
       <QuickCallDialog>
         <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
@@ -82,14 +79,19 @@ export function Sidebar() {
           />
         ))}
       </nav>
-    </>
+    </div>
   );
 
   return (
     <>
+      {/* Desktop Sidebar Content - positioned by layout.tsx */}
+      <div className="hidden lg:block h-full">
+        <SidebarContent />
+      </div>
+
       {/* Mobile Menu Button */}
-      <button 
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-purple-100"
+      <button
+        className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-purple-100"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -97,22 +99,16 @@ export function Sidebar() {
 
       {/* Mobile Overlay */}
       {isMobileOpen && (
-        <div 
+        <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Desktop Sidebar */}
-      <aside className={cn("hidden lg:flex w-56 flex-col p-4 min-h-screen", SIDEBAR_GRADIENT_BG)}>
-        <SidebarContent />
-      </aside>
-
       {/* Mobile Sidebar */}
-      <aside 
+      <aside
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-56 flex flex-col p-4 transform transition-transform duration-200 ease-in-out",
-          SIDEBAR_GRADIENT_BG,
+          "lg:hidden fixed top-16 left-0 bottom-0 z-50 w-56 flex flex-col bg-gradient-to-br from-purple-50 via-white to-purple-50 border-r border-purple-100/50 transform transition-transform duration-200 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >

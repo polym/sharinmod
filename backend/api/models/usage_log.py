@@ -33,6 +33,7 @@ class UsageLog(SQLModel, table=True):
         model_name: Model name used
         status: Status of the call (success/failure)
         kind: Who provided the API key (own/shared/direct)
+        client: Client identifier (e.g., "Zed", "Claude-Code", "Chrome")
         total_duration: Total response time in seconds (nullable)
         ttft: Time to first token in seconds (nullable)
         input_tokens: Number of input/prompt tokens
@@ -51,6 +52,7 @@ class UsageLog(SQLModel, table=True):
     model_name: str = Field(max_length=255)
     status: UsageLogStatus = Field(index=True)
     kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, index=True)
+    client: Optional[str] = Field(default=None, max_length=255)
     total_duration: Optional[float] = Field(default=None)
     ttft: Optional[float] = Field(default=None)
     input_tokens: int = Field(default=0)

@@ -17,6 +17,7 @@ class UsageLogResponse(BaseModel):
     model_name: str
     status: str
     kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, description="Who provided the API key (own/shared/direct)")
+    client: Optional[str] = None
     total_duration: Optional[float] = None
     ttft: Optional[float] = None
     subscription_id: Optional[int] = None
@@ -49,6 +50,7 @@ class UsageLogResponse(BaseModel):
                 "model_name": "openai/gpt-4",
                 "status": "success",
                 "kind": "direct",
+                "client": "Chrome",
                 "total_duration": 0.5,
                 "ttft": 0.3,
                 "subscription_id": 1,

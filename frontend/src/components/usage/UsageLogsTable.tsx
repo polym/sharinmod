@@ -2,6 +2,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { ClientName } from './ClientName';
 
 interface UsageLog {
   id: number;
@@ -10,6 +11,7 @@ interface UsageLog {
   status: string;
   kind: string;
   unified_api_key_name: string | null;
+  client: string | null;
   total_tokens: number;
   input_tokens: number;
   output_tokens: number;
@@ -62,12 +64,28 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
   };
 
   const formatTokens = (total: number, input: number, output: number) => {
-    return `${total} (${input} + ${output})`;
+    return (
+      <div>
+        <div>{total.toLocaleString()}</div>
+        <div className="text-xs text-gray-500">
+          {input.toLocaleString()} + {output.toLocaleString()}
+        </div>
+      </div>
+    );
   };
 
-  const formatDuration = (value: number | null) => {
-    if (value === null || value === undefined) return '-';
-    return `${value.toFixed(3)} s`;
+  const formatDuration = (total: number | null, ttft: number | null) => {
+    if (total === null || total === undefined) return '-';
+    return (
+      <div>
+        <div>{total.toFixed(2)}s</div>
+        {ttft !== null && ttft !== undefined && (
+          <div className="text-xs text-gray-500">
+            TTFT: {ttft.toFixed(2)}s
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -77,12 +95,12 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
           <TableHeader>
             <TableRow>
               <TableHead>时间</TableHead>
+              <TableHead className="text-center">客户端</TableHead>
               <TableHead>模型</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>API Key</TableHead>
               <TableHead>类型</TableHead>
               <TableHead>Tokens</TableHead>
-              <TableHead>TTFT</TableHead>
               <TableHead>总时长</TableHead>
             </TableRow>
           </TableHeader>
@@ -90,6 +108,9 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
             {logs.map((log) => (
               <TableRow key={log.id}>
                 <TableCell className="text-sm">{formatTime(log.request_time)}</TableCell>
+                <TableCell className="text-center">
+                  <ClientName client={log.client} />
+                </TableCell>
                 <TableCell className="text-sm">{log.model_name}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-sm ${
@@ -112,10 +133,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                   {formatTokens(log.total_tokens, log.input_tokens, log.output_tokens)}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {formatDuration(log.ttft)}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {formatDuration(log.total_duration)}
+                  {formatDuration(log.total_duration, log.ttft)}
                 </TableCell>
               </TableRow>
             ))}

@@ -10,7 +10,7 @@ import json
 import logging
 import redis
 import threading
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from sqlmodel import Session, select
@@ -176,6 +176,48 @@ def extract_model_id(callback: LiteLLMCallbackRequest) -> Optional[str]:
     return None
 
 
+def extract_client_from_request_tags(request_tags: Optional[List[str]]) -> Optional[str]:
+    """
+    Extract client name from request_tags by parsing User-Agent strings
+
+    The request_tags array contains User-Agent strings like:
+    ["User-Agent: Mozilla", "User-Agent: Mozilla/5.0 (Macintosh...)"]
+
+    Args:
+        request_tags: Array of tag strings from LiteLLM callback
+
+    Returns:
+        Client name (Zed, Claude-Code, Chrome, Safari, Firefox) or None
+    """
+    if not request_tags:
+        return None
+
+    # Find the longest User-Agent string (contains the full browser info)
+    user_agent = None
+    for tag in request_tags:
+        if tag and "User-Agent:" in tag:
+            # Use the longer string which contains the full User-Agent
+            if user_agent is None or len(tag) > len(user_agent):
+                user_agent = tag.lower()
+
+    if not user_agent:
+        return None
+
+    # Parse User-Agent to identify client
+    if "zed" in user_agent:
+        return "Zed"
+    elif "claude" in user_agent:
+        return "Claude-Code"
+    elif "chrome" in user_agent and "edg" not in user_agent:
+        return "Chrome"
+    elif "safari" in user_agent and "chrome" not in user_agent:
+        return "Safari"
+    elif "firefox" in user_agent:
+        return "Firefox"
+
+    return None
+
+
 def find_user_by_api_key_hash(session: Session, api_key_hash: str) -> Optional[User]:
     """
     Find user by their unified API key hash (token_id from LiteLLM)
@@ -328,6 +370,10 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         if not model_id:
             logger.warning(f"No model_id found in callback for model={callback.model}")
 
+        # Extract client from request_tags (User-Agent)
+        request_tags = callback_data.get('request_tags')
+        client = extract_client_from_request_tags(request_tags)
+
         # Find consumer by api_key_hash
         consumer = None
         if api_key_hash:
@@ -352,7 +398,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             if stats_updated:
                 try:
                     from api.services.usage_log_service import create_usage_log
-                    create_usage_log(session, consumer.id, callback, subscription)
+                    create_usage_log(session, consumer.id, callback, subscription, client)
                 except Exception as e:
                     logger.error(f"Failed to create usage log (non-critical): {e}")
 

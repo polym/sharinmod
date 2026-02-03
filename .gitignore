@@ -178,3 +178,4 @@ template/
 _bmad-output/
 
 **:memory:**
+.claude/worktrees/

@@ -77,7 +77,8 @@ def create_usage_log(
     db: Session,
     user_id: int,
     callback_data: LiteLLMCallbackRequest,
-    subscription: Optional[Subscription] = None
+    subscription: Optional[Subscription] = None,
+    client: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a usage log entry from LiteLLM callback data
@@ -87,6 +88,7 @@ def create_usage_log(
         user_id: User ID who made the API call
         callback_data: Parsed LiteLLM callback data
         subscription: Subscription linking to contributor (optional, not stored but used for stats)
+        client: Client identifier (e.g., "Zed", "Claude-Code", "Chrome")
 
     Returns:
         Created UsageLog record or None if creation fails
@@ -134,6 +136,7 @@ def create_usage_log(
             model_name=callback_data.model,
             status=UsageLogStatus.SUCCESS,
             kind=kind,
+            client=client,
             total_duration=callback_data.response_time,
             ttft=ttft,
             input_tokens=callback_data.prompt_tokens,

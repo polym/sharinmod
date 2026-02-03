@@ -33,6 +33,7 @@ interface UsageLog {
   status: string;
   kind: string;
   unified_api_key_name: string | null;
+  client: string | null;
   total_tokens: number;
   input_tokens: number;
   output_tokens: number;
