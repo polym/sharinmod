@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { apiKeyAPI } from '@/lib/services';
+import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
+import Image from 'next/image';
 
 interface ShareAPIKeyDialogProps {
   onAPIKeyShared: () => void;
@@ -80,11 +82,24 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
               </Label>
               <Select value={provider} onValueChange={setProvider}>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="选择平台" />
+                  {provider ? (
+                    <div className="flex items-center gap-2">
+                      <Image src={getProviderLogo(provider)} alt={getProviderBrandName(provider)} width={20} height={20} />
+                      <span>{getProviderBrandName(provider)}</span>
+                    </div>
+                  ) : (
+                    <SelectValue placeholder="选择平台" />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bigmodel">bigmodel</SelectItem>
-                  <SelectItem value="z.ai">z.ai</SelectItem>
+                  {PROVIDER_LIST.map((p) => (
+                    <SelectItem key={p.code} value={p.code} className="pl-2">
+                      <div className="flex items-center gap-2">
+                        <Image src={p.logoPath} alt={p.brandName} width={20} height={20} />
+                        <span>{p.brandName}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

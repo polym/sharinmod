@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { apiKeyAPI } from '@/lib/services';
+import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
+import Image from 'next/image';
 
 interface DiscoveredAPIKey {
   id: number;
@@ -84,12 +86,25 @@ export function APIKeyDiscovery() {
             </div>
             <Select value={providerFilter} onValueChange={handleProviderFilter}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="选择供应商" />
+                {providerFilter === 'all' ? (
+                  <SelectValue placeholder="选择供应商" />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Image src={getProviderLogo(providerFilter)} alt={getProviderBrandName(providerFilter)} width={20} height={20} />
+                    <span>{getProviderBrandName(providerFilter)}</span>
+                  </div>
+                )}
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="bigmodel">bigmodel</SelectItem>
-                <SelectItem value="z.ai">z.ai</SelectItem>
+                <SelectItem value="all" className="pl-2">全部</SelectItem>
+                {PROVIDER_LIST.map((p) => (
+                  <SelectItem key={p.code} value={p.code} className="pl-2">
+                    <div className="flex items-center gap-2">
+                      <Image src={p.logoPath} alt={p.brandName} width={20} height={20} />
+                      <span>{p.brandName}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -109,7 +124,10 @@ export function APIKeyDiscovery() {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <div className="font-medium">{apiKey.provider}</div>
+                        <div className="flex items-center gap-2">
+                          <Image src={getProviderLogo(apiKey.provider)} alt={getProviderBrandName(apiKey.provider)} width={24} height={24} />
+                          <div className="font-medium">{getProviderBrandName(apiKey.provider)}</div>
+                        </div>
                         <div className="text-sm text-gray-500">
                           提供者: {apiKey.provider_username}
                         </div>

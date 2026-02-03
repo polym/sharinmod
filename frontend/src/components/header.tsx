@@ -4,7 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Settings, LogOut, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/store";
+import { authAPI } from "@/lib/services";
+import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,13 +19,27 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function Header() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
     router.push('/shared');
   };
+
+  // Auto-refresh token balance every 20 seconds when page is visible
+  const refreshTokenBalance = async () => {
+    const currentUser = useAuthStore.getState().user;
+    if (!currentUser) return;
+    try {
+      const response = await authAPI.getProfile();
+      updateUser(response.data);
+    } catch (error) {
+      console.error('[Header] Failed to refresh token balance:', error);
+    }
+  };
+
+  useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
 
   return (
     <header className="bg-white border-b border-purple-100 px-8 py-4">
@@ -37,9 +54,14 @@ export function Header() {
 
         {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="bg-brand-100 text-amber-700 gap-1.5 h-8 px-3 rounded-full">
+          <Button variant="ghost" className="bg-brand-100 gap-1.5 h-8 px-3 rounded-full">
             <Zap className="h-3.5 w-3.5 text-brand-500" />
-            <span className="text-sm font-medium">{user?.token_balance ?? 0}</span>
+            <span className={cn(
+              "text-sm font-medium",
+              (user?.token_balance ?? 0) > 0 ? "text-brand-500" : "text-red-600"
+            )}>
+              {user?.token_balance ?? 0}
+            </span>
           </Button>
 
           {/* Account Avatar with Dropdown Menu */}

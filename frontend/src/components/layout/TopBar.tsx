@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/lib/store';
+import { cn } from '@/lib/utils';
 import { authAPI } from '@/lib/services';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
 import type { PageType } from './Sidebar';
@@ -56,9 +57,14 @@ export function TopBar({ onPageChange }: TopBarProps) {
 
       {/* Right side - User menu */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" className="bg-brand-100 text-amber-700 gap-1.5">
+        <Button variant="ghost" className="bg-brand-100 gap-1.5">
           <Zap className="h-4 w-4 text-brand-500" />
-          <span className="text-sm font-medium">{user?.token_balance ?? 0}</span>
+          <span className={cn(
+            "text-sm font-medium",
+            (user?.token_balance ?? 0) > 0 ? "text-brand-500" : "text-red-600"
+          )}>
+            {user?.token_balance ?? 0}
+          </span>
         </Button>
         <span className="text-sm text-gray-600 hidden sm:block">
           {user?.email}
