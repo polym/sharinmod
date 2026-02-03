@@ -371,11 +371,11 @@ def get_user_usage_overview(
     total_tokens = result[2] or 0
 
     # Get 24-hour distribution
-    # Calculate timezone offset in hours for SQLite date conversion
+    # Calculate timezone offset in hours for PostgreSQL date conversion
     tz_offset_hours = int(tz_offset.total_seconds() / 3600)
 
     hourly_query = text("""
-        SELECT CAST(strftime('%H', datetime(request_time, '+' || :offset || ' hours')) AS INTEGER) as hour,
+        SELECT CAST(EXTRACT(HOUR FROM request_time AT TIME ZONE 'UTC' + (INTERVAL '1 hour' * :offset)) AS INTEGER) AS hour,
                SUM(total_tokens) as tokens
         FROM usage_logs
         WHERE user_id = :user_id
@@ -389,14 +389,13 @@ def get_user_usage_overview(
     hourly_distribution = [HourlyTokenData(hour=h, tokens=0) for h in range(24)]
 
     # Execute query and update distribution
-    # Convert datetime objects to ISO format strings for SQLite
     try:
-        results = db.exec(
+        results = db.execute(
             hourly_query,
             {
                 "user_id": user_id,
-                "utc_start": utc_start.isoformat(),
-                "utc_end": utc_end.isoformat(),
+                "utc_start": utc_start,
+                "utc_end": utc_end,
                 "offset": tz_offset_hours
             }
         ).fetchall()

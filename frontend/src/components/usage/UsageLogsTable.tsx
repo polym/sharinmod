@@ -27,12 +27,24 @@ interface UsageLogsTableProps {
 
 // Map kind enum to Chinese display (support both lowercase and uppercase)
 const kindLabelMap: Record<string, string> = {
-  'own': '自用',
-  'OWN': '自用',
-  'shared': '共享',
-  'SHARED': '共享',
+  'own': '自有',
+  'OWN': '自有',
+  'shared': '外援',
+  'SHARED': '外援',
   'direct': '直连',
   'DIRECT': '直连',
+};
+
+// Get label style based on kind
+const getKindLabelStyle = (kind: string): string => {
+  const normalizedKind = kind.toLowerCase();
+  if (normalizedKind === 'shared') {
+    return 'px-2 py-1 rounded text-sm bg-purple-100 text-purple-800';
+  } else if (normalizedKind === 'own') {
+    return 'px-2 py-1 rounded text-sm bg-gray-100 text-gray-800';
+  }
+  // direct - no background style
+  return '';
 };
 
 export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezone }: UsageLogsTableProps) {
@@ -92,7 +104,9 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                   {log.unified_api_key_name || '-'}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {kindLabelMap[log.kind] || log.kind}
+                  <span className={getKindLabelStyle(log.kind)}>
+                    {kindLabelMap[log.kind] || log.kind}
+                  </span>
                 </TableCell>
                 <TableCell className="text-sm">
                   {formatTokens(log.total_tokens, log.input_tokens, log.output_tokens)}

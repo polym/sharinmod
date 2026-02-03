@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -82,6 +82,31 @@ export function UsagePage() {
 
   const PAGE_SIZE = 20;
 
+  // Generate last 7 days options
+  const dateOptions = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date;
+    });
+  }, []);
+
+  // Format date label as "YYYY/MM/DD"
+  const formatDateLabel = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}/${month}/${day}`;
+  };
+
+  // Format date as YYYY-MM-DD for value
+  const formatDateValue = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Load API Keys
   const loadAPIKeys = useCallback(async () => {
     try {
@@ -162,8 +187,8 @@ export function UsagePage() {
     loadLogsData(logsPage + 1, false);
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedDate(e.target.value);
+  const handleDateChange = (value: string) => {
+    setSelectedDate(value);
   };
 
   const handleApiKeyChange = (value: string) => {
@@ -199,16 +224,21 @@ export function UsagePage() {
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               {/* Date Filter */}
               <div className="flex items-center gap-2">
-                <label htmlFor="date-filter" className="text-sm text-gray-600 whitespace-nowrap">
+                <label className="text-sm text-gray-600 whitespace-nowrap">
                   选择日期:
                 </label>
-                <input
-                  id="date-filter"
-                  type="date"
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                  className="px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
+                <Select value={selectedDate} onValueChange={handleDateChange}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="选择日期" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dateOptions.map((date) => (
+                      <SelectItem key={formatDateValue(date)} value={formatDateValue(date)}>
+                        {formatDateLabel(date)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* API Key Filter */}
@@ -250,33 +280,28 @@ export function UsagePage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <UsageStatsCard
+              title="总 Token 数"
+              value={overviewData.total_tokens.toLocaleString()}
+            />
+            <UsageStatsCard
+              title="输入 Token 数"
+              value={overviewData.input_tokens.toLocaleString()}
+            />
+            <UsageStatsCard
+              title="输出 Token 数"
+              value={overviewData.output_tokens.toLocaleString()}
+            />
+            <UsageStatsCard
               title="总请求数"
               value={`${overviewData.successful_requests + overviewData.failed_requests}`}
-              subtitle="成功 + 失败"
-            />
-            <UsageStatsCard
-              title="总 Token 数"
-              value={formatTokenValue(
-                overviewData.total_tokens,
-                overviewData.input_tokens,
-                overviewData.output_tokens
-              )}
-              subtitle="输入 + 输出"
-            />
-            <UsageStatsCard
-              title="成功请求数"
-              value={overviewData.successful_requests}
-            />
-            <UsageStatsCard
-              title="失败请求数"
-              value={overviewData.failed_requests}
+              subtitle={`${overviewData.successful_requests} 成功 + ${overviewData.failed_requests} 失败`}
             />
           </div>
 
           {/* Hourly Distribution Chart */}
           <Card className="border-purple-100">
             <CardHeader className="p-6">
-              <h4 className="text-lg font-semibold">24 小时 Token 消耗分布</h4>
+              <h4 className="text-lg font-semibold">Token 消耗分布</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
               <div className="border border-gray-200 rounded overflow-hidden h-40">
