@@ -23,6 +23,7 @@ from api.services.litellm_callback_service import (
 )
 from api.services.usage_log_service import create_failure_usage_log
 from api.models.unified_api_key import UnifiedAPIKey
+from api.models.usage_log import UsageLogKind
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ async def litellm_failure_callback(
         user = None
         unified_api_key_id = None
         unified_api_key_name = None
-        subscription_id = None
+        subscription = None
 
         if api_key_hash:
             user = find_user_by_api_key_hash(db, api_key_hash)
@@ -211,10 +212,17 @@ async def litellm_failure_callback(
                     unified_api_key_id = unified_key.id
                     unified_api_key_name = unified_key.api_key_name
 
+        # Find subscription by model_id to determine kind
         if model_id:
             subscription = find_subscription_by_model_id(db, model_id)
-            if subscription:
-                subscription_id = subscription.id
+
+        # Determine kind: own (contributor), shared (consumer), or direct (no subscription)
+        kind = UsageLogKind.DIRECT
+        if subscription and user:
+            if subscription.user_id == user.id:
+                kind = UsageLogKind.OWN  # User is the contributor
+            else:
+                kind = UsageLogKind.SHARED  # User is consuming someone else's API key
 
         # Create failure usage log
         if user:
@@ -226,9 +234,9 @@ async def litellm_failure_callback(
                 model_id=model_id,
                 unified_api_key_id=unified_api_key_id,
                 unified_api_key_name=unified_api_key_name,
-                subscription_id=subscription_id
+                kind=kind
             )
-            logger.info(f"[WEBHOOK] Created failure usage log for user {user.id}")
+            logger.info(f"[WEBHOOK] Created failure usage log for user {user.id}, kind={kind}")
         else:
             logger.warning("[WEBHOOK] No user found, skipping failure log creation")
 

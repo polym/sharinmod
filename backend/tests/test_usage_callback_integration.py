@@ -173,7 +173,8 @@ def test_full_callback_flow_creates_usage_log(session: Session, full_setup):
     assert log.total_duration == 2.0
     # TTFT = completion_start_time - start_time = 0.5 seconds
     assert log.ttft == 0.5
-    assert log.subscription_id == full_setup["subscription_id"]
+    # Verify model_id is set (used to find subscription later if needed)
+    assert log.model_id == full_setup["model_id"]
 
 
 def test_token_stats_sync_with_usage_log(session: Session, full_setup):
@@ -368,14 +369,12 @@ def test_failure_callback_integration(session: Session, full_setup):
         error_message="Rate limit exceeded",
         model_id=full_setup["model_id"],
         unified_api_key_id=full_setup["unified_key_id"],
-        unified_api_key_name="consumer-api-key",
-        subscription_id=full_setup["subscription_id"]
+        unified_api_key_name="consumer-api-key"
     )
 
     assert failure_log is not None
     assert failure_log.status == UsageLogStatus.FAILURE
     assert failure_log.model_id == full_setup["model_id"]
-    assert failure_log.subscription_id == full_setup["subscription_id"]
     assert failure_log.input_tokens == 0
     assert failure_log.output_tokens == 0
     assert failure_log.total_tokens == 0
@@ -448,5 +447,5 @@ def test_subscription_id_correctly_linked(session: Session, full_setup):
     ).all()
     log = logs[-1]
 
-    # Verify subscription was linked correctly
-    assert log.subscription_id == full_setup["subscription_id"]
+    # Verify model_id was captured (used to find subscription later if needed)
+    assert log.model_id == full_setup["model_id"]

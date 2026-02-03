@@ -8,7 +8,7 @@ from typing import Optional
 from sqlmodel import Session, select, func, desc
 from sqlalchemy import text
 
-from api.models.usage_log import UsageLog, UsageLogStatus
+from api.models.usage_log import UsageLog, UsageLogStatus, UsageLogKind
 from api.models.unified_api_key import UnifiedAPIKey
 from api.models.subscription import Subscription
 from api.schemas.usage_log import (
@@ -38,7 +38,7 @@ def create_usage_log(
         db: Database session
         user_id: User ID who made the API call
         callback_data: Parsed LiteLLM callback data
-        subscription: Subscription linking to contributor (optional)
+        subscription: Subscription linking to contributor (optional, not stored but used for stats)
 
     Returns:
         Created UsageLog record or None if creation fails
@@ -69,6 +69,14 @@ def create_usage_log(
                 unified_api_key_id = unified_key.id
                 unified_api_key_name = unified_key.api_key_name
 
+        # Determine kind: own (contributor), shared (consumer), or direct (no subscription)
+        kind = UsageLogKind.DIRECT
+        if subscription:
+            if subscription.user_id == user_id:
+                kind = UsageLogKind.OWN  # User is the contributor
+            else:
+                kind = UsageLogKind.SHARED  # User is consuming someone else's API key
+
         # Create usage log
         usage_log = UsageLog(
             user_id=user_id,
@@ -77,9 +85,9 @@ def create_usage_log(
             model_id=model_id,
             model_name=callback_data.model,
             status=UsageLogStatus.SUCCESS,
+            kind=kind,
             total_duration=callback_data.response_time,
             ttft=ttft,
-            subscription_id=subscription.id if subscription else None,
             input_tokens=callback_data.prompt_tokens,
             output_tokens=callback_data.completion_tokens,
             total_tokens=callback_data.total_tokens,
@@ -107,7 +115,7 @@ def create_failure_usage_log(
     model_id: Optional[str] = None,
     unified_api_key_id: Optional[int] = None,
     unified_api_key_name: Optional[str] = None,
-    subscription_id: Optional[int] = None
+    kind: UsageLogKind = UsageLogKind.DIRECT
 ) -> Optional[UsageLog]:
     """
     Create a failure usage log entry
@@ -120,7 +128,7 @@ def create_failure_usage_log(
         model_id: Model identifier (optional)
         unified_api_key_id: Unified API key ID (optional)
         unified_api_key_name: Unified API key name (optional)
-        subscription_id: Subscription ID (optional)
+        kind: Who provided the API key (default: direct)
 
     Returns:
         Created UsageLog record or None if creation fails
@@ -133,9 +141,9 @@ def create_failure_usage_log(
             model_id=model_id,
             model_name=model or "unknown",
             status=UsageLogStatus.FAILURE,
+            kind=kind,
             total_duration=None,
             ttft=None,
-            subscription_id=subscription_id,
             input_tokens=0,
             output_tokens=0,
             total_tokens=0,

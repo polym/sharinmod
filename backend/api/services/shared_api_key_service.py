@@ -324,6 +324,19 @@ async def create_shared_api_key(
             
         except Exception as e:
             # Rollback local API key creation if LiteLLM sync fails
+            # First, delete any subscriptions that were created
+            try:
+                subscription_statement = select(Subscription).where(
+                    Subscription.shared_api_key_id == shared_api_key.id
+                )
+                subscriptions = session.exec(subscription_statement).all()
+                for subscription in subscriptions:
+                    session.delete(subscription)
+                session.commit()
+            except Exception:
+                session.rollback()
+
+            # Then delete the API key itself
             session.rollback()
             session.delete(shared_api_key)
             session.commit()

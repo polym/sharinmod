@@ -13,6 +13,13 @@ class UsageLogStatus(str, Enum):
     FAILURE = "failure"
 
 
+class UsageLogKind(str, Enum):
+    """Enum for usage log kind - distinguishes who provided the API key"""
+    OWN = "own"           # User used their own shared API key (contributor)
+    SHARED = "shared"     # User used someone else's shared API key (consumer)
+    DIRECT = "direct"     # User used their own direct API key (not shared)
+
+
 class UsageLog(SQLModel, table=True):
     """
     Usage log for tracking API call usage details
@@ -25,9 +32,9 @@ class UsageLog(SQLModel, table=True):
         model_id: Model identifier from LiteLLM (nullable)
         model_name: Model name used
         status: Status of the call (success/failure)
+        kind: Who provided the API key (own/shared/direct)
         total_duration: Total response time in seconds (nullable)
         ttft: Time to first token in seconds (nullable)
-        subscription_id: Foreign key to subscriptions table (nullable)
         input_tokens: Number of input/prompt tokens
         output_tokens: Number of output/completion tokens
         total_tokens: Total tokens consumed
@@ -43,9 +50,9 @@ class UsageLog(SQLModel, table=True):
     model_id: Optional[str] = Field(default=None, max_length=255)
     model_name: str = Field(max_length=255)
     status: UsageLogStatus = Field(index=True)
+    kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, index=True)
     total_duration: Optional[float] = Field(default=None)
     ttft: Optional[float] = Field(default=None)
-    subscription_id: Optional[int] = Field(default=None, foreign_key="subscriptions.id")
     input_tokens: int = Field(default=0)
     output_tokens: int = Field(default=0)
     total_tokens: int = Field(default=0)
