@@ -24,9 +24,10 @@ UTC8_OFFSET = timedelta(hours=8)
 def get_my_usage_logs(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    start_date: Optional[date] = Query(None, description="Filter start date (UTC+8)"),
-    end_date: Optional[date] = Query(None, description="Filter end date (UTC+8)"),
+    start_date: Optional[date] = Query(None, description="Filter start date (user timezone)"),
+    end_date: Optional[date] = Query(None, description="Filter end date (user timezone)"),
     status: Optional[UsageLogStatus] = Query(None, description="Filter by status (success/failure)"),
+    timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -34,8 +35,9 @@ def get_my_usage_logs(
     Get current user's API usage logs with pagination
 
     Requires JWT authentication
-    Supports optional date range filtering (UTC+8)
+    Supports optional date range filtering (user timezone)
     Supports optional status filtering
+    Supports dynamic timezone specification
     """
     return get_user_usage_logs(
         db=db,
@@ -44,13 +46,15 @@ def get_my_usage_logs(
         page_size=page_size,
         start_date=start_date,
         end_date=end_date,
-        status=status
+        status=status,
+        timezone_str=timezone
     )
 
 
 @router.get("/overview", response_model=UsageOverviewResponse)
 def get_my_usage_overview(
-    target_date: Optional[date] = Query(None, description="Target date (UTC+8), defaults to today"),
+    target_date: Optional[date] = Query(None, description="Target date (user timezone), defaults to today"),
+    timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -63,14 +67,12 @@ def get_my_usage_overview(
     - Total/input/output tokens
     - 24-hour token distribution
 
-    Default date is today (UTC+8)
+    Default date is today (user timezone)
+    Supports dynamic timezone specification
     """
-    # Default to today in UTC+8
-    if target_date is None:
-        target_date = (datetime.now(timezone.utc) + UTC8_OFFSET).date()
-
     return get_user_usage_overview(
         db=db,
         user_id=current_user.id,
-        target_date=target_date
+        target_date=target_date,
+        timezone_str=timezone
     )

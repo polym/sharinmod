@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { APIKeyUsage } from '@/components/token-usage';
+import { UsagePage } from '@/components/usage/UsagePage';
 
-export default function UsagePage() {
+export default function UsagePageRoute() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAuthenticated, setShowLoginDialog } = useAuthStore();
-  const router = useRouter();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -16,7 +14,7 @@ export default function UsagePage() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    
+
     if (!isAuthenticated) {
       setShowLoginDialog(true);
       return;
@@ -33,7 +31,7 @@ export default function UsagePage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <APIKeyUsage />
+      <UsagePage />
     </div>
   );
 }

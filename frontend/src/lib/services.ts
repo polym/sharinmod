@@ -1,5 +1,10 @@
 import api from './api';
 
+// Helper function to get user's timezone
+export const getUserTimezone = (): string => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai';
+};
+
 // Auth API
 export const authAPI = {
   register: (data: { email: string; password: string }) =>
@@ -79,4 +84,30 @@ export const apiKeyAPI = {
         Authorization: `Bearer ${unifiedAPIKey}`,
       },
     }),
+};
+
+// Usage API
+export const usageAPI = {
+  getOverview: (params?: { target_date?: string; timezone?: string }) => {
+    const paramsWithTimezone = {
+      ...params,
+      timezone: params?.timezone || getUserTimezone(),
+    };
+    return api.get('/api/usage/overview', { params: paramsWithTimezone });
+  },
+
+  getLogs: (params?: {
+    page?: number;
+    page_size?: number;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    timezone?: string;
+  }) => {
+    const paramsWithTimezone = {
+      ...params,
+      timezone: params?.timezone || getUserTimezone(),
+    };
+    return api.get('/api/usage/logs', { params: paramsWithTimezone });
+  },
 };

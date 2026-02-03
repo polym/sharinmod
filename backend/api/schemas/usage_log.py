@@ -1,9 +1,10 @@
 """
 Usage log schemas for API responses
 """
-from pydantic import BaseModel, Field
-from datetime import datetime, date
+from pydantic import BaseModel, Field, field_serializer
+from datetime import datetime, date, timezone
 from typing import Optional, List
+from api.models.usage_log import UsageLogKind
 
 
 class UsageLogResponse(BaseModel):
@@ -15,6 +16,7 @@ class UsageLogResponse(BaseModel):
     model_id: Optional[str] = None
     model_name: str
     status: str
+    kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, description="Who provided the API key (own/shared/direct)")
     total_duration: Optional[float] = None
     ttft: Optional[float] = None
     subscription_id: Optional[int] = None
@@ -23,6 +25,17 @@ class UsageLogResponse(BaseModel):
     total_tokens: int
     request_time: datetime
     created_at: datetime
+
+    @field_serializer('request_time', 'created_at')
+    def datetime_to_rfc3339(self, dt: datetime) -> str:
+        """Serialize datetime to RFC3339 format with timezone suffix"""
+        if dt.tzinfo is None:
+            # If datetime is naive, assume UTC
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            # If datetime has timezone, convert to UTC for consistency
+            dt = dt.astimezone(timezone.utc)
+        return dt.isoformat()
 
     model_config = {
         "from_attributes": True,
@@ -35,14 +48,15 @@ class UsageLogResponse(BaseModel):
                 "model_id": "model_123",
                 "model_name": "openai/gpt-4",
                 "status": "success",
+                "kind": "direct",
                 "total_duration": 0.5,
                 "ttft": 0.3,
                 "subscription_id": 1,
                 "input_tokens": 33,
                 "output_tokens": 140,
                 "total_tokens": 173,
-                "request_time": "2026-02-02T10:30:00",
-                "created_at": "2026-02-02T10:30:00"
+                "request_time": "2026-02-02T10:30:00+00:00",
+                "created_at": "2026-02-02T10:30:00+00:00"
             }
         }
     }
@@ -54,6 +68,7 @@ class UsageLogList(BaseModel):
     page: int
     page_size: int
     items: List[UsageLogResponse]
+    timezone: str = Field(default="Asia/Shanghai", description="Timezone used for date filtering")
 
 
 class HourlyTokenData(BaseModel):
@@ -72,6 +87,7 @@ class UsageOverviewResponse(BaseModel):
     input_tokens: int = Field(description="Total input/prompt tokens")
     output_tokens: int = Field(description="Total output/completion tokens")
     hourly_distribution: List[HourlyTokenData] = Field(description="24-hour token distribution (hours 0-23)")
+    timezone: str = Field(default="Asia/Shanghai", description="Timezone used for date filtering")
 
     model_config = {
         "json_schema_extra": {

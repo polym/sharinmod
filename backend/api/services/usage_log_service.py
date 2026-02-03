@@ -4,6 +4,7 @@ Service layer for usage log tracking and querying
 import logging
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select, func, desc
 from sqlalchemy import text
@@ -21,8 +22,55 @@ from api.schemas.litellm_callback import LiteLLMCallbackRequest
 
 logger = logging.getLogger(__name__)
 
-# UTC+8 offset in hours
+# Default timezone
+DEFAULT_TIMEZONE = "Asia/Shanghai"
+
+# Legacy UTC+8 offset (kept for compatibility with existing logs)
 UTC8_OFFSET = timedelta(hours=8)
+
+
+def _get_timezone_offset(tz_str: Optional[str]) -> timedelta:
+    """
+    Get timezone offset for a given timezone string
+
+    Args:
+        tz_str: Timezone string (e.g., "Asia/Shanghai", "UTC")
+
+    Returns:
+        Timedelta offset from UTC
+    """
+    if not tz_str:
+        tz_str = DEFAULT_TIMEZONE
+
+    try:
+        tz = ZoneInfo(tz_str)
+        # Get current offset for this timezone
+        now = datetime.now(tz)
+        return now.utcoffset() or timedelta(hours=8)  # Default to UTC+8 if no offset
+    except Exception as e:
+        logger.warning(f"Failed to get timezone for {tz_str}, using UTC+8: {e}")
+        return UTC8_OFFSET
+
+
+def _get_now_in_timezone(tz_str: Optional[str]) -> date:
+    """
+    Get current date in the specified timezone
+
+    Args:
+        tz_str: Timezone string (e.g., "Asia/Shanghai", "UTC")
+
+    Returns:
+        Current date in the specified timezone
+    """
+    if not tz_str:
+        tz_str = DEFAULT_TIMEZONE
+
+    try:
+        tz = ZoneInfo(tz_str)
+        return datetime.now(tz).date()
+    except Exception as e:
+        logger.warning(f"Failed to get current date for {tz_str}, using UTC+8: {e}")
+        return (datetime.now(timezone.utc) + UTC8_OFFSET).date()
 
 
 def create_usage_log(
@@ -170,7 +218,8 @@ def get_user_usage_logs(
     page_size: int = 20,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-    status: Optional[UsageLogStatus] = None
+    status: Optional[UsageLogStatus] = None,
+    timezone_str: Optional[str] = None
 ) -> UsageLogList:
     """
     Get paginated usage logs for a user
@@ -180,22 +229,26 @@ def get_user_usage_logs(
         user_id: User ID to query
         page: Page number (1-indexed)
         page_size: Number of items per page
-        start_date: Optional start date filter (UTC+8)
-        end_date: Optional end date filter (UTC+8)
+        start_date: Optional start date filter (user timezone)
+        end_date: Optional end date filter (user timezone)
         status: Optional status filter (success/failure)
+        timezone_str: Optional timezone string (e.g., "Asia/Shanghai", "UTC")
 
     Returns:
         UsageLogList with paginated results
     """
+    # Normalize timezone string
+    tz_str = timezone_str or DEFAULT_TIMEZONE
+
     # Build base query with user filter
     query = select(UsageLog).where(UsageLog.user_id == user_id)
 
     # Apply filters using helper function to avoid duplication
-    query = _apply_date_and_status_filters(query, start_date, end_date, status)
+    query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str)
 
     # Get total count using the same filters
     count_query = select(func.count()).select_from(UsageLog).where(UsageLog.user_id == user_id)
-    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status)
+    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str)
     total = db.exec(count_query).one()
 
     # Order by most recent first and paginate
@@ -210,32 +263,37 @@ def get_user_usage_logs(
         total=total,
         page=page,
         page_size=page_size,
-        items=[UsageLogResponse.model_validate(item) for item in results]
+        items=[UsageLogResponse.model_validate(item) for item in results],
+        timezone=tz_str
     )
 
 
-def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus]):
+def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus], timezone_str: Optional[str] = None):
     """
     Apply date and status filters to a query (shared between count and main query)
 
     Args:
         query: SQLModel query to apply filters to
-        start_date: Optional start date filter (UTC+8)
-        end_date: Optional end date filter (UTC+8)
+        start_date: Optional start date filter (user timezone)
+        end_date: Optional end date filter (user timezone)
         status: Optional status filter
+        timezone_str: Optional timezone string for date conversion
 
     Returns:
         Query with filters applied
     """
-    # Apply date filters if provided (convert UTC+8 date to UTC range)
+    # Get timezone offset
+    tz_offset = _get_timezone_offset(timezone_str)
+
+    # Apply date filters if provided (convert user timezone date to UTC range)
     if start_date:
-        # start_date in UTC+8, convert to UTC start (00:00:00 UTC+8 = 16:00:00 previous day UTC)
-        utc_start = datetime.combine(start_date, datetime.min.time()) - UTC8_OFFSET
+        # start_date in user timezone, convert to UTC start
+        utc_start = datetime.combine(start_date, datetime.min.time()) - tz_offset
         query = query.where(UsageLog.request_time >= utc_start)
 
     if end_date:
-        # end_date in UTC+8, convert to UTC end (23:59:59 UTC+8 = 15:59:59 next day UTC)
-        utc_end = datetime.combine(end_date, datetime.max.time()) - UTC8_OFFSET
+        # end_date in user timezone, convert to UTC end
+        utc_end = datetime.combine(end_date, datetime.max.time()) - tz_offset
         query = query.where(UsageLog.request_time <= utc_end)
 
     # Apply status filter
@@ -248,24 +306,34 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
 def get_user_usage_overview(
     db: Session,
     user_id: int,
-    target_date: date
+    target_date: Optional[date] = None,
+    timezone_str: Optional[str] = None
 ) -> UsageOverviewResponse:
     """
-    Get usage overview for a user on a specific date (UTC+8)
+    Get usage overview for a user on a specific date (user timezone)
 
     Args:
         db: Database session
         user_id: User ID to query
-        target_date: Date to query (UTC+8)
+        target_date: Date to query (user timezone), defaults to today
+        timezone_str: Optional timezone string for date conversion
 
     Returns:
         UsageOverviewResponse with aggregated data
     """
-    # Convert target_date (UTC+8) to UTC range
-    # 00:00:00 UTC+8 = 16:00:00 previous day UTC
-    # 23:59:59 UTC+8 = 15:59:59 next day UTC
-    utc_start = datetime.combine(target_date, datetime.min.time()) - UTC8_OFFSET
-    utc_end = datetime.combine(target_date, datetime.max.time()) - UTC8_OFFSET
+    # Normalize timezone string
+    tz_str = timezone_str or DEFAULT_TIMEZONE
+
+    # Default to today in the specified timezone
+    if target_date is None:
+        target_date = _get_now_in_timezone(tz_str)
+
+    # Get timezone offset
+    tz_offset = _get_timezone_offset(tz_str)
+
+    # Convert target_date (user timezone) to UTC range
+    utc_start = datetime.combine(target_date, datetime.min.time()) - tz_offset
+    utc_end = datetime.combine(target_date, datetime.max.time()) - tz_offset
 
     # Get total requests
     total_query = select(func.count()).select_from(UsageLog).where(
@@ -303,9 +371,11 @@ def get_user_usage_overview(
     total_tokens = result[2] or 0
 
     # Get 24-hour distribution
-    # Convert request_time to UTC+8 hour and group by hour
+    # Calculate timezone offset in hours for SQLite date conversion
+    tz_offset_hours = int(tz_offset.total_seconds() / 3600)
+
     hourly_query = text("""
-        SELECT CAST(strftime('%H', datetime(request_time, '+8 hours')) AS INTEGER) as hour,
+        SELECT CAST(strftime('%H', datetime(request_time, '+' || :offset || ' hours')) AS INTEGER) as hour,
                SUM(total_tokens) as tokens
         FROM usage_logs
         WHERE user_id = :user_id
@@ -326,7 +396,8 @@ def get_user_usage_overview(
             {
                 "user_id": user_id,
                 "utc_start": utc_start.isoformat(),
-                "utc_end": utc_end.isoformat()
+                "utc_end": utc_end.isoformat(),
+                "offset": tz_offset_hours
             }
         ).fetchall()
     except Exception as e:
@@ -346,5 +417,6 @@ def get_user_usage_overview(
         total_tokens=total_tokens,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        hourly_distribution=hourly_distribution
+        hourly_distribution=hourly_distribution,
+        timezone=tz_str
     )

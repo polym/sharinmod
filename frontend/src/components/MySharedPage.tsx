@@ -62,13 +62,11 @@ function formatTokens(totalTokens: number): { value: number; unit: string } {
 
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
-  if (!data || data.length === 0) return null;
-
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   // Pre-compute chart data
-  const chartData = data.map(d => d.value);
-  const maxValue = Math.max(...chartData, 1);
+  const chartData = data ? data.map(d => d.value) : [];
+  const maxValue = chartData.length > 0 ? Math.max(...chartData, 1) : 1;
 
   // Parse UTC date string and return components with UTC+8 offset
   const parseBeijingTime = (dateStr: string) => {
@@ -90,6 +88,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   // Memoize label indices calculation (based on UTC+8 hour)
   const labelIndices = useMemo(() => {
     const indices: number[] = [];
+    if (!data) return indices;
     data.forEach((_, idx) => {
       const { hour } = parseBeijingTime(data[idx].date);
       if (hour === 0 || hour === 12) {
@@ -102,6 +101,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   // Memoize label content (formatted in UTC+8)
   const labelContent = useMemo(() => {
     const content: { [key: number]: string } = {};
+    if (!data) return content;
     data.forEach((d, idx) => {
       const { month, day, hour } = parseBeijingTime(d.date);
       if (hour === 0 || hour === 12) {
@@ -110,6 +110,9 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     });
     return content;
   }, [data]);
+
+  // Early return after all hooks
+  if (!data || data.length === 0) return null;
 
   // Prevent division by zero
   const safeLength = Math.max(chartData.length - 1, 1);
