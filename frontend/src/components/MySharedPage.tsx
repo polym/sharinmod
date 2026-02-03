@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -60,9 +60,84 @@ function formatTokens(totalTokens: number): { value: number; unit: string } {
   }
 }
 
+// Tooltip padding constant for boundary detection
+const TOOLTIP_PADDING = 12;
+
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipFlip, setTooltipFlip] = useState<'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none'>('none');
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Tooltip transform helper - memoized with useCallback
+  const getTooltipTransform = useCallback((flip: 'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none') => {
+    switch (flip) {
+      case 'left':
+        // Near left boundary - show to the right of mouse, above
+        return 'translate(0, -100%)';
+      case 'right':
+        // Near right boundary - show to the left of mouse, above
+        return 'translate(-100%, -100%)';
+      case 'top':
+        // Near top boundary - show below mouse, centered horizontally
+        return 'translate(-50%, 0)';
+      case 'top-left':
+        // Near top and left boundary - show to the right and below
+        return 'translate(0, 0)';
+      case 'top-right':
+        // Near top and right boundary - show to the left and below
+        return 'translate(-100%, 0)';
+      default:
+        // Default - show above mouse, centered horizontally
+        return 'translate(-50%, -100%)';
+    }
+  }, []);
+
+  // Boundary detection for tooltip flip
+  useEffect(() => {
+    if (!mousePosition || !containerRef.current || !tooltipRef.current) {
+      setTooltipFlip('none');
+      return;
+    }
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+
+    let nearLeft = false;
+    let nearRight = false;
+    let nearTop = false;
+
+    // Left boundary detection - tooltip would overflow on the left
+    if (mousePosition.x < tooltipRect.width / 2 + TOOLTIP_PADDING) {
+      nearLeft = true;
+    }
+    // Right boundary detection - tooltip would overflow on the right
+    if (mousePosition.x > containerRect.width - tooltipRect.width / 2 - TOOLTIP_PADDING) {
+      nearRight = true;
+    }
+    // Top boundary detection - tooltip would overflow on the top
+    if (mousePosition.y < tooltipRect.height + TOOLTIP_PADDING) {
+      nearTop = true;
+    }
+
+    let flip: 'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none' = 'none';
+    if (nearTop && nearLeft) {
+      flip = 'top-left';
+    } else if (nearTop && nearRight) {
+      flip = 'top-right';
+    } else if (nearLeft) {
+      flip = 'left';
+    } else if (nearRight) {
+      flip = 'right';
+    } else if (nearTop) {
+      flip = 'top';
+    }
+
+    setTooltipFlip(flip);
+  }, [mousePosition]);
 
   // Pre-compute chart data
   const chartData = data ? data.map(d => d.value) : [];
@@ -120,28 +195,43 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   return (
     <div className="flex flex-col h-full py-0.5">
       {/* Chart bars */}
-      <div className="flex items-end flex-1 border-b border-gray-200 relative">
-        {chartData.map((value, idx) => (
+      <div ref={containerRef} className="flex items-end flex-1 border-b border-gray-200 relative px-3 justify-between gap-px">
+        {chartData.map((value, idx) => {
+          const timeInfo = parseBeijingTime(data[idx].date);
+          return (
+            <div
+              key={idx}
+              className="w-3 bg-green-400 hover:bg-green-500 transition-colors cursor-pointer shrink-0"
+              style={{
+                height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
+              }}
+              onMouseMove={(e) => {
+                if (!containerRef.current) return;
+                const rect = containerRef.current.getBoundingClientRect();
+                setMousePosition({
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top
+                });
+              }}
+              onMouseEnter={() => setHoverIndex(idx)}
+              onMouseLeave={() => {
+                setHoverIndex(null);
+                setMousePosition(null);
+              }}
+              role="graphics-symbol"
+              aria-label={`${timeInfo.month}/${timeInfo.day} ${timeInfo.hour.toString().padStart(2, '0')}:00 - ${chartData[idx]} tokens`}
+            />
+          );
+        })}
+        {/* Tooltip overlay */}
+        {hoverIndex !== null && mousePosition && (
           <div
-            key={idx}
-            className="flex-1 bg-green-400 hover:bg-green-500 transition-colors cursor-pointer"
+            ref={tooltipRef}
+            className="absolute pointer-events-none z-30 tooltip-transition"
             style={{
-              height: `${Math.max((value / maxValue) * 100, 3)}%`,
-              marginLeft: idx === 0 ? 0 : '1px'
-            }}
-            onMouseEnter={() => setHoverIndex(idx)}
-            onMouseLeave={() => setHoverIndex(null)}
-          />
-        ))}
-        {/* Tooltip overlay - outside flex container to prevent layout shift */}
-        {hoverIndex !== null && (
-          <div
-            className="absolute pointer-events-none z-30 flex flex-col items-center gap-0.5"
-            style={{
-              bottom: `${Math.max((chartData[hoverIndex] / maxValue) * 100, 3)}%`,
-              left: `${(hoverIndex / safeLength) * 100}%`,
-              transform: 'translate(-50%, -100%)',
-              marginBottom: '-2px'
+              left: mousePosition.x,
+              top: mousePosition.y,
+              transform: getTooltipTransform(tooltipFlip)
             }}
           >
             <div className="bg-gray-900 text-white text-[10px] rounded py-0.5 px-2 whitespace-nowrap shadow-md">
@@ -155,7 +245,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
         )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-0.5 relative">
+      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-3 relative">
         {labelIndices.map((idx) => {
           const leftPercent = (idx / safeLength) * 100;
           return (

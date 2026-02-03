@@ -64,3 +64,8 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+/* Tooltip transition animation for bar charts */
+.tooltip-transition {
+  transition: transform 0.1s ease-out;
+}
