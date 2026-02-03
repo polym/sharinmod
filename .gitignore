@@ -176,3 +176,5 @@ template/
 
 # BMAD output (generated files)
 _bmad-output/
+
+**:memory:**

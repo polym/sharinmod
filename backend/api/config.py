@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     # JWT Configuration
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days (7 * 24 * 60)
     
     # LiteLLM Configuration
     LITELLM_BASE_URL: str = os.getenv("LITELLM_BASE_URL", "http://10.0.5.176:4000")

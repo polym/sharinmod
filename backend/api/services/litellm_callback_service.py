@@ -249,9 +249,10 @@ def update_token_statistics(
         total_tokens = callback.total_tokens
 
         # Use atomic UPDATE operations to prevent race conditions
-        # Update consumer's consumed_tokens atomically
+        # Update consumer's consumed_tokens atomically (using bind params to prevent SQL injection)
         session.execute(
-            text(f"UPDATE users SET consumed_tokens = consumed_tokens + {total_tokens} WHERE id = {consumer_user.id}")
+            text("UPDATE users SET consumed_tokens = consumed_tokens + :tokens WHERE id = :user_id"),
+            {"tokens": total_tokens, "user_id": consumer_user.id}
         )
 
         # If subscription exists, update contributor and shared API key stats
@@ -273,14 +274,16 @@ def update_token_statistics(
                     logger.error(f"Failed to update Redis Hash: {e}")
                     # Don't fail the entire operation if Redis update fails
 
-            # Update shared API key stats atomically
+            # Update shared API key stats atomically (using bind params to prevent SQL injection)
             session.execute(
-                text(f"UPDATE shared_api_keys SET total_requests = total_requests + 1, total_tokens = total_tokens + {total_tokens} WHERE id = {subscription.shared_api_key_id}")
+                text("UPDATE shared_api_keys SET total_requests = total_requests + 1, total_tokens = total_tokens + :tokens WHERE id = :key_id"),
+                {"tokens": total_tokens, "key_id": subscription.shared_api_key_id}
             )
 
-            # Update contributor's contributed_tokens atomically
+            # Update contributor's contributed_tokens atomically (using bind params to prevent SQL injection)
             session.execute(
-                text(f"UPDATE users SET contributed_tokens = contributed_tokens + {total_tokens} WHERE id = {subscription.user_id}")
+                text("UPDATE users SET contributed_tokens = contributed_tokens + :tokens WHERE id = :user_id"),
+                {"tokens": total_tokens, "user_id": subscription.user_id}
             )
 
         session.commit()
@@ -343,7 +346,17 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
         # Update statistics
         if consumer:
-            return update_token_statistics(session, callback, consumer, subscription)
+            stats_updated = update_token_statistics(session, callback, consumer, subscription)
+
+            # Create usage log (don't fail if this errors)
+            if stats_updated:
+                try:
+                    from api.services.usage_log_service import create_usage_log
+                    create_usage_log(session, consumer.id, callback, subscription)
+                except Exception as e:
+                    logger.error(f"Failed to create usage log (non-critical): {e}")
+
+            return stats_updated
         else:
             # No consumer found, can't update stats
             return True

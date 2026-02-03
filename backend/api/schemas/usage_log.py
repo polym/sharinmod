@@ -1,0 +1,94 @@
+"""
+Usage log schemas for API responses
+"""
+from pydantic import BaseModel, Field
+from datetime import datetime, date
+from typing import Optional, List
+
+
+class UsageLogResponse(BaseModel):
+    """Single usage log record response"""
+    id: int
+    user_id: int
+    unified_api_key_id: Optional[int] = None
+    unified_api_key_name: Optional[str] = None
+    model_id: Optional[str] = None
+    model_name: str
+    status: str
+    total_duration: Optional[float] = None
+    ttft: Optional[float] = None
+    subscription_id: Optional[int] = None
+    input_tokens: int
+    output_tokens: int
+    total_tokens: int
+    request_time: datetime
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True,
+        "json_schema_extra": {
+            "example": {
+                "id": 1,
+                "user_id": 1,
+                "unified_api_key_id": 1,
+                "unified_api_key_name": "my-api-key",
+                "model_id": "model_123",
+                "model_name": "openai/gpt-4",
+                "status": "success",
+                "total_duration": 0.5,
+                "ttft": 0.3,
+                "subscription_id": 1,
+                "input_tokens": 33,
+                "output_tokens": 140,
+                "total_tokens": 173,
+                "request_time": "2026-02-02T10:30:00",
+                "created_at": "2026-02-02T10:30:00"
+            }
+        }
+    }
+
+
+class UsageLogList(BaseModel):
+    """Paginated list of usage logs"""
+    total: int
+    page: int
+    page_size: int
+    items: List[UsageLogResponse]
+
+
+class HourlyTokenData(BaseModel):
+    """Hourly token distribution data"""
+    hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
+    tokens: int = Field(..., ge=0, description="Total tokens for this hour")
+
+
+class UsageOverviewResponse(BaseModel):
+    """Usage overview statistics for a specific date"""
+    date: date
+    total_requests: int = Field(description="Total number of requests")
+    successful_requests: int = Field(description="Number of successful requests")
+    failed_requests: int = Field(description="Number of failed requests")
+    total_tokens: int = Field(description="Total tokens consumed")
+    input_tokens: int = Field(description="Total input/prompt tokens")
+    output_tokens: int = Field(description="Total output/completion tokens")
+    hourly_distribution: List[HourlyTokenData] = Field(description="24-hour token distribution (hours 0-23)")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "date": "2026-02-02",
+                "total_requests": 42,
+                "successful_requests": 40,
+                "failed_requests": 2,
+                "total_tokens": 7266,
+                "input_tokens": 1386,
+                "output_tokens": 5880,
+                "hourly_distribution": [
+                    {"hour": 0, "tokens": 120},
+                    {"hour": 1, "tokens": 0},
+                    {"hour": 10, "tokens": 3500},
+                    {"hour": 23, "tokens": 200}
+                ]
+            }
+        }
+    }

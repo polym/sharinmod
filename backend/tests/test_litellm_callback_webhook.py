@@ -96,7 +96,7 @@ def test_webhook_success_with_valid_data(
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert data["message"] == "Callback received and queued"
+    assert data["message"] == "Successfully received and queued 1 callback(s)"
 
 
 # Test 3: Webhook callback with invalid data

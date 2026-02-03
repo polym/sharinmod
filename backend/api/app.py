@@ -15,6 +15,7 @@ from api.routers.shared_api_key import router as shared_api_key_router
 from api.routers.unified_api_key import router as unified_api_key_router
 from api.routers.api_key_discovery import router as api_key_discovery_router
 from api.routers.webhooks import router as webhooks_router
+from api.routers.usage import router as usage_router
 from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -75,6 +76,7 @@ def create_app(settings: Settings):
     app.include_router(unified_api_key_router)
     app.include_router(api_key_discovery_router)
     app.include_router(webhooks_router)
+    app.include_router(usage_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app

@@ -148,3 +148,64 @@ class WebhookResponse(BaseModel):
             }
         }
     }
+
+
+class LiteLLMFailureCallbackRequest(BaseModel):
+    """
+    Schema for LiteLLM failure callback webhook
+
+    Failure callbacks may have missing token data and different structure
+    than success callbacks. Most fields are optional.
+    """
+    # Core identification
+    id: Optional[str] = Field(None, description="Chat completion ID (may be None)")
+    trace_id: Optional[str] = Field(None, description="Trace ID for request tracking")
+
+    # Status
+    status: str = Field(default="failure", description="Request status")
+    error_message: Optional[str] = Field(None, description="Error message if available")
+
+    # Provider info
+    custom_llm_provider: Optional[str] = Field(None, description="LLM provider (openai, anthropic, etc)")
+
+    # Timing
+    start_time: Optional[float] = Field(None, alias="startTime", description="Request start timestamp (Unix)")
+    end_time: Optional[float] = Field(None, alias="endTime", description="Request end timestamp (Unix)")
+    response_time: Optional[float] = Field(None, description="Response time in seconds")
+
+    # Model info
+    model: Optional[str] = Field(None, description="Model name used")
+    model_id: Optional[str] = Field(None, description="Model ID (may be in hidden_params)")
+    hidden_params: Optional[LiteLLMHiddenParams] = Field(None, alias="hidden_params", description="Hidden parameters")
+
+    # Token usage (may be 0 or missing for failures)
+    total_tokens: Optional[int] = Field(None, ge=0, description="Total tokens consumed (may be 0)")
+    prompt_tokens: Optional[int] = Field(None, ge=0, description="Prompt tokens used (may be 0)")
+    completion_tokens: Optional[int] = Field(None, ge=0, description="Completion tokens generated (may be 0)")
+
+    # Metadata (contains user_api_key_hash)
+    metadata: Optional[LiteLLMMetadata] = Field(None, description="Request metadata including API key info")
+
+    # Additional error details
+    exception: Optional[str] = Field(None, description="Exception type")
+    error_code: Optional[str] = Field(None, description="Error code")
+
+    model_config = {
+        "populate_by_name": True,
+        "extra": "allow",
+        "json_schema_extra": {
+            "example": {
+                "id": "chatcmpl-xyz",
+                "trace_id": "7fdc164c-3d33-4dee-a474-e1b643cb060d",
+                "status": "failure",
+                "error_message": "Rate limit exceeded",
+                "custom_llm_provider": "openai",
+                "model": "openai/Qwen/Qwen2.5-3B-Instruct",
+                "model_id": "2c1f19ddf8b4ba01be63d045954aaeb5146de38cad44bb08391069bfc32b4108",
+                "total_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "error_code": "rate_limit_exceeded"
+            }
+        }
+    }

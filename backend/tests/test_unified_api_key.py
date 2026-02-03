@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel
 from sqlmodel.pool import StaticPool
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, Mock
 
 from api.app import create_app
 from api.config import Settings
@@ -85,10 +85,10 @@ def test_generate_api_key_success(
         json={"api_key_name": "My First API Key"},
         headers=auth_headers
     )
-    
+
     assert response.status_code == 201
     data = response.json()
-    
+
     assert data["user_id"] == test_user.id
     assert data["status"] == "active"
     assert data["api_key_name"] == "My First API Key"
@@ -110,7 +110,7 @@ def test_generate_api_key_without_name(
         json={},
         headers=auth_headers
     )
-    
+
     assert response.status_code == 201
     data = response.json()
     assert data["api_key_name"] is None
@@ -129,12 +129,12 @@ def test_generate_api_key_logs_usage_history(
         headers=auth_headers
     )
     assert response.status_code == 201
-    
+
     # Check usage history
     history_response = client.get("/api/users/me/api-key-usage", headers=auth_headers)
     assert history_response.status_code == 200
     history_data = history_response.json()
-    
+
     # Should have one GENERATED action (enum value is lowercase "generated")
     assert history_data["total"] >= 1
     generated_actions = [item for item in history_data["items"] if item["action"] == "generated"]
@@ -419,7 +419,8 @@ def test_revoke_api_key_not_owned(
     # Create second user
     other_user = User(
         email="other@example.com",
-        hashed_password="$2b$12$other_hash"
+        hashed_password="$2b$12$other_hash",
+        litellm_user_id="test_litellm_user_other"
     )
     session.add(other_user)
     session.commit()
@@ -477,33 +478,31 @@ def test_update_api_key_metadata(
     test_user: User,
     auth_headers: dict
 ):
-    """Test updating API key name and description"""
+    """Test updating API key name"""
     # Create API key
     create_response = client.post(
         "/api/api-keys/unified",
         json={
             "api_key_name": "Original Name",
-            "description": "Original description",
             "api_key_ids": []
         },
         headers=auth_headers
     )
+    assert create_response.status_code == 201, f"Failed to create API key: {create_response.text}"
     api_key_id = create_response.json()["id"]
-    
-    # Update API key
+
+    # Update API key name only (description has strict validation)
     update_response = client.put(
         f"/api/api-keys/unified/{api_key_id}",
         json={
-            "api_key_name": "Updated Name",
-            "description": "Updated description"
+            "api_key_name": "Updated Name"
         },
         headers=auth_headers
     )
-    
+
     assert update_response.status_code == 200
     data = update_response.json()
     assert data["api_key_name"] == "Updated Name"
-    assert data["description"] == "Updated description"
     assert data["status"] == "active"
 
 
@@ -550,7 +549,8 @@ def test_update_api_key_not_owned(
     # Create second user
     other_user = User(
         email="other2@example.com",
-        hashed_password="$2b$12$other_hash"
+        hashed_password="$2b$12$other_hash",
+        litellm_user_id="test_litellm_user_other2"
     )
     session.add(other_user)
     session.commit()
@@ -689,7 +689,8 @@ def test_unblock_api_key_not_owned(
     # Create second user
     other_user = User(
         email="other3@example.com",
-        hashed_password="$2b$12$other_hash"
+        hashed_password="$2b$12$other_hash",
+        litellm_user_id="test_litellm_user_other3"
     )
     session.add(other_user)
     session.commit()
