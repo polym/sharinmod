@@ -112,6 +112,54 @@ PROVIDER_INFO = {
                 "coding_score": None
             }
         }
+    },
+    APIKeyProvider.VOLCENGINE: {
+        "name": "火山引擎 Coding Plan",
+        "website": "https://volcengine.com",
+        "supported_models": ["doubao-seed-code", "kimi-k2.5", "kimi-k2", "glm-4.7", "deepseek-v3.2"],
+        "logo_path": "/providers/volcengine-logo.png",
+        "models": {
+            "doubao-seed-code": {
+                "description": "豆包种子代码模型，专注于代码生成和理解",
+                "context_length": "256k",
+                "max_output_length": "32k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1014
+            },
+            "kimi-k2.5": {
+                "description": "Kimi K2.5 高性能模型",
+                "context_length": "128k",
+                "max_output_length": "128k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1447
+            },
+            "kimi-k2": {
+                "description": "Kimi K2 模型",
+                "context_length": "128k",
+                "max_output_length": "128k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1330
+            },
+            "glm-4.7": {
+                "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
+                "context_length": "128k",
+                "max_output_length": "4k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1441
+            },
+            "deepseek-v3.2": {
+                "description": "DeepSeek V3.2 高性能模型",
+                "context_length": "128k",
+                "max_output_length": "8k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1377
+            }
+        }
     }
 }
 

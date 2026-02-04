@@ -50,6 +50,7 @@ const TYPE_LABELS: Record<string, string> = {
 const PROVIDER_NAMES: Record<string, string> = {
   'bigmodel': '智谱',
   'z.ai': 'Z.AI',
+  'volcengine': '火山引擎',
 };
 
 export function ModelCard({ model }: ModelCardProps) {

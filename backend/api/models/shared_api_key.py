@@ -8,6 +8,7 @@ class APIKeyProvider(str, Enum):
     """Supported API key providers"""
     BIGMODEL = "bigmodel"      # 智谱AI - https://open.bigmodel.cn
     ZAI = "z.ai"               # Z.AI - https://z.ai
+    VOLCENGINE = "volcengine"  # 火山引擎 - https://volcengine.com
 
 
 class APIKeyStatus(str, Enum):

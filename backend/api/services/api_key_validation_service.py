@@ -16,6 +16,12 @@ PROVIDER_CONFIGS = {
         "test_endpoint": "/models",
         "header_name": "Authorization",
         "test_model": "gpt-4"
+    },
+    APIKeyProvider.VOLCENGINE: {
+        "base_url": "https://ark.cn-beijing.volces.com/api/coding",
+        "test_endpoint": "/v1/models",
+        "header_name": "Authorization",
+        "test_model": "doubao-seed-code"
     }
 }
 

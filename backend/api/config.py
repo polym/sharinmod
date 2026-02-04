@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     # Vendor API Base URLs
     VENDOR_BASE_URLS: dict = {
         "bigmodel": "https://open.bigmodel.cn/api/anthropic",
-        "z.ai": "https://z.ai/api/anthropic"
+        "z.ai": "https://z.ai/api/anthropic",
+        "volcengine": "https://ark.cn-beijing.volces.com/api/coding"
     }
 
     # Redis Configuration
