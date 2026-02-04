@@ -43,10 +43,19 @@ async def generate_litellm_key(
             detail="User does not have a LiteLLM user ID. Please contact support."
         )
 
+    if not user.email:
+        raise HTTPException(
+            status_code=400,
+            detail="User email is required for LiteLLM key generation"
+        )
+
+    # Use lowercase email to avoid duplicates and ensure uniqueness
+    # Format: {user_email}/{key_name} to avoid naming conflicts across users
+    email_prefix = user.email.lower()
     async with httpx.AsyncClient(timeout=10.0) as client:
         payload = {
             "user_id": user.litellm_user_id,
-            "key_alias": api_key_name or f"unified_api_key_{datetime.utcnow().isoformat()}",
+            "key_alias": f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.utcnow().isoformat()}'}",
         }
 
         # Add models if api_key_ids provided (would need to map api_key_ids to model names)
