@@ -15,15 +15,23 @@ const clientNameMap: Record<string, string> = {
   'firefox': 'Firefox',
 };
 
-// Clients with PNG icons (prefer PNG over SVG)
+// Supported clients with PNG icons (prefer PNG over SVG)
 const clientsWithPng = ['zed', 'claude-code', 'chrome', 'firefox'];
 
+// All known clients (used to determine if we should show unknown icon)
+const knownClients = ['zed', 'claude-code', 'chrome', 'safari', 'firefox'];
+
 export function ClientName({ client }: ClientNameProps) {
-  const clientKey = client?.toLowerCase() || 'unknown';
+  const clientKey = client?.toLowerCase() || '';
+  const isKnownClient = knownClients.includes(clientKey);
+
+  // Use 'unknown' for unknown clients, otherwise use the client key
+  const iconKey = isKnownClient ? clientKey : 'unknown';
   const displayName = clientNameMap[clientKey] || client || 'Unknown';
+
   // Use PNG if available, otherwise fall back to SVG
-  const hasPng = clientsWithPng.includes(clientKey);
-  const logoPath = `/icons/clients/${clientKey}.${hasPng ? 'png' : 'svg'}`;
+  const hasPng = clientsWithPng.includes(iconKey);
+  const logoPath = `/icons/clients/${iconKey}.${hasPng ? 'png' : 'svg'}`;
 
   return (
     <span className="inline-flex items-center">

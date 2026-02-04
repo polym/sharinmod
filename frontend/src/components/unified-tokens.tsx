@@ -22,6 +22,7 @@ interface UnifiedAPIKey {
   litellm_key?: string;
   created_at: string;
   revoked_at?: string;
+  last_used_at?: string;
 }
 
 export function UnifiedAPIKeys() {
@@ -348,6 +349,7 @@ export function UnifiedAPIKeys() {
                   <TableHead>API Key</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
+                  <TableHead>最近使用时间</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -421,6 +423,19 @@ export function UnifiedAPIKeys() {
                         second: '2-digit',
                         hour12: false
                       })}
+                    </TableCell>
+                    <TableCell>
+                      {apiKey.last_used_at
+                        ? new Date(apiKey.last_used_at).toLocaleString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          })
+                        : '-'}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">

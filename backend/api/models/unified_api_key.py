@@ -34,6 +34,7 @@ class UnifiedAPIKey(SQLModel, table=True):
     api_key_hash: Optional[str] = Field(default=None, max_length=255, index=True)  # Token ID from LiteLLM for callback matching
     created_at: datetime = Field(default_factory=datetime.utcnow)
     revoked_at: Optional[datetime] = Field(default=None)
+    last_used_at: Optional[datetime] = Field(default=None)
     
     # Index for user + status queries (enforcing 5-key limit)
     __table_args__ = (

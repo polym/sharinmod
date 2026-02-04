@@ -30,6 +30,7 @@ class UnifiedAPIKeyResponse(BaseModel):
     litellm_key: Optional[str]
     created_at: datetime
     revoked_at: Optional[datetime]
+    last_used_at: Optional[datetime]
     
     class Config:
         from_attributes = True

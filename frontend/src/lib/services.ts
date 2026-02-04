@@ -103,6 +103,7 @@ export const usageAPI = {
     end_date?: string;
     status?: string;
     timezone?: string;
+    unified_api_key_id?: number;
   }) => {
     const paramsWithTimezone = {
       ...params,

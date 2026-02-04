@@ -149,6 +149,14 @@ def create_usage_log(
         db.commit()
         db.refresh(usage_log)
 
+        # Update last_used_at for the unified API key
+        if unified_api_key_id:
+            db.execute(
+                text("UPDATE unified_api_keys SET last_used_at = :timestamp WHERE id = :key_id"),
+                {"timestamp": datetime.now(timezone.utc), "key_id": unified_api_key_id}
+            )
+            db.commit()
+
         logger.info(f"Created usage log: user_id={user_id}, model={callback_data.model}, tokens={callback_data.total_tokens}")
         return usage_log
 
@@ -222,7 +230,8 @@ def get_user_usage_logs(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     status: Optional[UsageLogStatus] = None,
-    timezone_str: Optional[str] = None
+    timezone_str: Optional[str] = None,
+    unified_api_key_id: Optional[int] = None
 ) -> UsageLogList:
     """
     Get paginated usage logs for a user
@@ -236,10 +245,14 @@ def get_user_usage_logs(
         end_date: Optional end date filter (user timezone)
         status: Optional status filter (success/failure)
         timezone_str: Optional timezone string (e.g., "Asia/Shanghai", "UTC")
+        unified_api_key_id: Optional filter by unified API key ID
 
     Returns:
         UsageLogList with paginated results
     """
+    # Debug log
+    logger.info(f"get_user_usage_logs called: user_id={user_id}, unified_api_key_id={unified_api_key_id}, start_date={start_date}, end_date={end_date}")
+
     # Normalize timezone string
     tz_str = timezone_str or DEFAULT_TIMEZONE
 
@@ -247,11 +260,11 @@ def get_user_usage_logs(
     query = select(UsageLog).where(UsageLog.user_id == user_id)
 
     # Apply filters using helper function to avoid duplication
-    query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str)
+    query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str, unified_api_key_id)
 
     # Get total count using the same filters
     count_query = select(func.count()).select_from(UsageLog).where(UsageLog.user_id == user_id)
-    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str)
+    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str, unified_api_key_id)
     total = db.exec(count_query).one()
 
     # Order by most recent first and paginate
@@ -271,7 +284,7 @@ def get_user_usage_logs(
     )
 
 
-def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus], timezone_str: Optional[str] = None):
+def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus], timezone_str: Optional[str] = None, unified_api_key_id: Optional[int] = None):
     """
     Apply date and status filters to a query (shared between count and main query)
 
@@ -281,6 +294,7 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
         end_date: Optional end date filter (user timezone)
         status: Optional status filter
         timezone_str: Optional timezone string for date conversion
+        unified_api_key_id: Optional filter by unified API key ID
 
     Returns:
         Query with filters applied
@@ -302,6 +316,11 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
     # Apply status filter
     if status:
         query = query.where(UsageLog.status == status)
+
+    # Apply unified API key filter
+    if unified_api_key_id is not None:
+        logger.info(f"Applying unified_api_key_id filter: {unified_api_key_id}")
+        query = query.where(UsageLog.unified_api_key_id == unified_api_key_id)
 
     return query
 

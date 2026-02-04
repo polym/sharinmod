@@ -1,0 +1,212 @@
+# Sharinmod - AI 开发指南
+
+本文档记录了 Sharinmod 项目中 AI 助手需要了解的项目特定信息和开发指南。
+
+## 项目架构
+
+- **后端**: FastAPI (Python) + PostgreSQL
+- **前端**: Next.js (TypeScript) + Tailwind CSS
+- **基础设施**: Docker Compose (db, redis, backend, frontend, nginx)
+- **数据库迁移**: Alembic
+
+## Docker 容器化环境
+
+**重要**: 项目使用 Docker Compose 管理所有服务，数据库运行在容器内。
+
+### 服务说明
+
+- `db`: PostgreSQL 15 数据库容器 (容器名: `db`)
+- `redis`: Redis 缓存容器
+- `backend`: FastAPI 后端服务
+- `frontend`: Next.js 前端服务
+- `litellm-callback-consumer`: LiteLLM 回调消费者
+- `nginx`: 反向代理
+
+### 数据库连接
+
+- 容器内: `postgresql://postgres:postgres@db:5432/sharinmod`
+- 外部访问: `postgresql://postgres:postgres@localhost:5454/sharinmod` (端口 5454)
+
+## 数据库迁移
+
+**必须在容器内执行数据库迁移命令**:
+
+```bash
+# 方式 1: 通过 docker exec 在 backend 容器中执行
+docker exec -it sharinmod-backend-1 alembic upgrade head
+
+# 方式 2: 进入 backend 容器后执行
+docker exec -it sharinmod-backend-1 bash
+alembic upgrade head
+
+# 方式 3: 如果容器名不同，先查找容器名
+docker ps | grep backend
+docker exec -it <容器名> alembic upgrade head
+```
+
+**不要**在宿主机直接运行 `alembic upgrade head`，因为宿主机无法连接到容器内的数据库。
+
+## Alembic 迁移规范
+
+### 创建新迁移
+
+迁移文件命名格式: `YYYYMMDD_description.py`
+
+```python
+"""Add column to table
+
+Revision ID: YYYYMMDD_description
+Revises: <上一迁移的 revision>
+Create Date: YYYY-MM-DD
+
+"""
+from typing import Sequence, Union
+from alembic import op
+import sqlalchemy as sa
+
+revision: str = 'YYYYMMDD_description'
+down_revision: Union[str, None] = '<上一迁移的 revision>'
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
+
+def upgrade() -> None:
+    # 添加列、表等的操作
+    op.add_column('table_name', sa.Column('column_name', sa.Type(), nullable=True))
+
+def downgrade() -> None:
+    # 回滚操作
+    op.drop_column('table_name', 'column_name')
+```
+
+### 查找最新迁移 revision
+
+```bash
+# 查看最新迁移文件的 down_revision
+ls -lt backend/api/alembic/versions/ | head -5
+```
+
+## 代码结构
+
+### 后端目录结构
+
+```
+backend/api/
+├── alembic/              # 数据库迁移
+│   └── versions/         # 迁移脚本
+├── models/               # SQLModel 数据模型
+├── schemas/              # Pydantic 请求/响应模式
+├── routers/              # FastAPI 路由
+├── services/             # 业务逻辑层
+├── consumers/            # 后台消费者 (Redis 队列)
+├── dependencies/         # 依赖注入 (auth 等)
+└── database.py           # 数据库连接
+```
+
+### 前端目录结构
+
+```
+frontend/src/
+├── components/           # React 组件
+│   ├── ui/              # shadcn/ui 基础组件
+│   ├── usage/           # 使用情况页面组件
+│   └── *.tsx            # 其他页面组件
+├── lib/                  # 工具库
+│   ├── services.ts      # API 调用封装
+│   └── api.ts           # Axios 配置
+└── app/                  # Next.js App Router
+```
+
+## 开发规范
+
+### 后端规范
+
+1. **查询过滤**: 使用辅助函数避免重复代码
+   ```python
+   def _apply_filters(query, param1, param2):
+       if param1:
+           query = query.where(Model.field == param1)
+       if param2:
+           query = query.where(Model.field2 == param2)
+       return query
+   ```
+
+2. **时间处理**: 使用 `datetime.now(timezone.utc)` 存储时间
+   ```python
+   from datetime import datetime, timezone
+   now = datetime.now(timezone.utc)
+   ```
+
+3. **可选字段**: 使用 `Optional[datetime] = Field(default=None)`
+
+### 前端规范
+
+1. **API 调用**: 通过 `services.ts` 封装
+   ```typescript
+   export const usageAPI = {
+     getLogs: (params?: { page?: number; unified_api_key_id?: number }) =>
+       api.get('/api/usage/logs', { params })
+   };
+   ```
+
+2. **条件参数展开**:
+   ```typescript
+   const response = await usageAPI.getLogs({
+     page,
+     ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) })
+   });
+   ```
+
+3. **日期格式化**:
+   ```typescript
+   new Date(dateString).toLocaleString('zh-CN', {
+     year: 'numeric',
+     month: '2-digit',
+     day: '2-digit',
+     hour: '2-digit',
+     minute: '2-digit',
+     second: '2-digit',
+     hour12: false
+   })
+   ```
+
+## 常用命令
+
+### 容器管理
+
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 停止所有服务
+docker-compose down
+
+# 查看服务状态
+docker-compose ps
+
+# 查看 backend 日志
+docker-compose logs -f backend
+
+# 进入 backend 容器
+docker exec -it sharinmod-backend-1 bash
+```
+
+### 数据库操作
+
+```bash
+# 在容器中运行迁移
+docker exec -it sharinmod-backend-1 alembic upgrade head
+
+# 在容器中回滚迁移
+docker exec -it sharinmod-backend-1 alembic downgrade -1
+
+# 在容器中查看迁移历史
+docker exec -it sharinmod-backend-1 alembic history
+
+# 连接到数据库容器
+docker exec -it db psql -U postgres -d sharinmod
+```
+
+## 当前已知问题
+
+1. **数据库迁移**: 必须在 backend 容器内执行，不能在宿主机直接运行
+2. **时间格式**: 前端使用中文格式化 `zh-CN`，保持 UI 一致性

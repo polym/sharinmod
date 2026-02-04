@@ -203,19 +203,21 @@ def extract_client_from_request_tags(request_tags: Optional[List[str]]) -> Optio
     if not user_agent:
         return None
 
+    user_agent = user_agent.split("/")[0].replace("user-agent: ", "")
+
     # Parse User-Agent to identify client
     if "zed" in user_agent:
         return "Zed"
     elif "claude" in user_agent:
         return "Claude-Code"
-    elif "chrome" in user_agent and "edg" not in user_agent:
+    elif ("chrome" in user_agent or "mozilla" in user_agent) and "edg" not in user_agent:
         return "Chrome"
     elif "safari" in user_agent and "chrome" not in user_agent:
         return "Safari"
     elif "firefox" in user_agent:
         return "Firefox"
 
-    return None
+    return user_agent
 
 
 def find_user_by_api_key_hash(session: Session, api_key_hash: str) -> Optional[User]:

@@ -75,7 +75,6 @@ export function UsagePage() {
 
   // Logs data state
   const [logsData, setLogsData] = useState<UsageLog[]>([]);
-  const [allLogsData, setAllLogsData] = useState<UsageLog[]>([]); // For frontend filtering
   const [logsPage, setLogsPage] = useState(1);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -144,15 +143,16 @@ export function UsagePage() {
         page_size: PAGE_SIZE,
         start_date: selectedDate,
         end_date: selectedDate,
+        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) })
       });
 
       const data = response.data as UsageLogsResponse;
 
       if (reset) {
-        setAllLogsData(data.items);
+        setLogsData(data.items);
         setLogsPage(1);
       } else {
-        setAllLogsData(prev => [...prev, ...data.items]);
+        setLogsData(prev => [...prev, ...data.items]);
         setLogsPage(page);
       }
 
@@ -161,12 +161,12 @@ export function UsagePage() {
     } catch (error) {
       console.error('Failed to load logs data:', error);
       if (reset) {
-        setAllLogsData([]);
+        setLogsData([]);
       }
     } finally {
       setLogsLoading(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedApiKey]);
 
   // Load API Keys on mount
   useEffect(() => {
@@ -178,11 +178,11 @@ export function UsagePage() {
     loadOverviewData();
   }, [loadOverviewData]);
 
-  // Load logs data when date changes
+  // Load logs data when date or API key filter changes
   useEffect(() => {
     loadLogsData(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  }, [selectedDate, selectedApiKey]);
 
   const handleLoadMore = () => {
     loadLogsData(logsPage + 1, false);
@@ -195,17 +195,6 @@ export function UsagePage() {
   const handleApiKeyChange = (value: string) => {
     setSelectedApiKey(value);
   };
-
-  // Filter logs by API Key (frontend filtering)
-  const filteredLogs = selectedApiKey === 'all'
-    ? allLogsData
-    : allLogsData.filter(log => {
-        // Note: Backend doesn't return unified_api_key_id in the response,
-        // so we can't filter by it. We'll need to rely on the unified_api_key_name
-        // or skip filtering if the data is not available.
-        // For now, we'll skip filtering and show all data.
-        return true;
-      });
 
   // Token formatting helper
   const formatTokenValue = (total: number, input: number, output: number) => {
@@ -319,13 +308,13 @@ export function UsagePage() {
               <h4 className="text-lg font-semibold">详细使用记录</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
-              {allLogsData.length === 0 && !logsLoading ? (
+              {logsData.length === 0 && !logsLoading ? (
                 <div className="text-center py-8 text-gray-500">
                   暂无使用记录
                 </div>
               ) : (
                 <UsageLogsTable
-                  logs={filteredLogs}
+                  logs={logsData}
                   hasMore={hasMoreLogs}
                   onLoadMore={handleLoadMore}
                   loading={logsLoading}
