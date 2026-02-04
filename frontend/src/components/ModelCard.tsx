@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Type, Image as ImageIcon, Video, Mic } from 'lucide-react';
+import { Copy, Check, Type, Image as ImageIcon, Video, Mic, Code2 } from 'lucide-react';
 import Image from 'next/image';
 import { getModelLogo } from '@/lib/providers';
 import type { SharedBy } from '@/types/model';
@@ -28,6 +28,7 @@ interface ModelCardProps {
     providers?: Array<{ code: string; logo_path: string }>;
     subscription_platform_count?: number;
   };
+  onQuickCall?: (modelName: string) => void;
 }
 
 // 输入/输出类型图标映射
@@ -53,7 +54,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   'volcengine': '火山引擎',
 };
 
-export function ModelCard({ model }: ModelCardProps) {
+export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const [copied, setCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -119,7 +120,19 @@ export function ModelCard({ model }: ModelCardProps) {
   const extraProvidersCount = Math.max(0, providers.length - 3);
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="group hover:shadow-md transition-shadow relative">
+      {/* API 调用按钮 - 右上角悬浮显示 */}
+      {onQuickCall && (
+        <Button
+          onClick={() => onQuickCall(model.model_name)}
+          className="absolute top-4 right-4 h-8 w-8 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+          aria-label="API 调用"
+          type="button"
+        >
+          <Code2 className="w-4 h-4" />
+        </Button>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">

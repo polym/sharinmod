@@ -14,24 +14,51 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
+import { modelAPI } from "@/lib/services";
+import type { ModelInfo } from "@/types/model";
 
 // Constants
 const COPY_FEEDBACK_DURATION = 1500; // ms
 const FALLBACK_TEXTAREA_POSITION = "-999999px";
 const DIALOG_MAX_HEIGHT = "85vh";
 const BASE_URL_PLACEHOLDER = "https://your-domain.com";
+const LOCAL_STORAGE_KEY = "sharinmod-last-selected-model";
 
 interface QuickCallDialogProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialModelName?: string;
 }
 
-export function QuickCallDialog({ children }: QuickCallDialogProps) {
-  const [open, setOpen] = useState(false);
+export function QuickCallDialog({
+  children,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  initialModelName,
+}: QuickCallDialogProps) {
+  // 受控/非受控模式
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
+
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState(BASE_URL_PLACEHOLDER);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [loadingModels, setLoadingModels] = useState(true);
+  const [selectedModel, setSelectedModel] = useState<ModelInfo | null>(null);
+
   const router = useRouter();
   const { toast } = useToast();
 
@@ -41,6 +68,56 @@ export function QuickCallDialog({ children }: QuickCallDialogProps) {
       setBaseUrl(window.location.origin);
     }
   }, []);
+
+  // 加载模型列表并初始化选中模型
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        const response = await modelAPI.getModels();
+        const modelList = response.data.items;
+        setModels(modelList);
+
+        if (modelList.length > 0) {
+          let targetModel: ModelInfo | undefined;
+
+          // 优先级: initialModelName > localStorage > 第一个模型
+          if (initialModelName) {
+            targetModel = modelList.find((model: ModelInfo) => model.model_name === initialModelName);
+          }
+
+          if (!targetModel && typeof window !== "undefined") {
+            try {
+              const lastModelName = localStorage.getItem(LOCAL_STORAGE_KEY);
+              if (lastModelName) {
+                targetModel = modelList.find((model: ModelInfo) => model.model_name === lastModelName);
+              }
+            } catch (e) {
+              console.warn("localStorage access failed:", e);
+            }
+          }
+
+          if (!targetModel) {
+            targetModel = modelList[0];
+          }
+
+          setSelectedModel(targetModel ?? null);
+        }
+      } catch (error) {
+        console.error("Failed to load models:", error);
+        toast({
+          title: "加载模型失败",
+          description: "无法获取模型列表，将使用默认模型",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    if (open) {
+      loadModels();
+    }
+  }, [open, initialModelName, toast]);
 
   const resetCopyState = (): void => {
     setTimeout(() => setCopiedTab(null), COPY_FEEDBACK_DURATION);
@@ -85,20 +162,40 @@ export function QuickCallDialog({ children }: QuickCallDialogProps) {
     }
   };
 
-  // F3: Memoize code examples to prevent recreation on every render
-  const claudeCodeExample = useMemo(() => `{
+  const handleModelChange = (model_name: string): void => {
+    const model = models.find((m) => m.model_name === model_name);
+    if (model) {
+      setSelectedModel(model);
+      // 保存到 localStorage
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, model_name);
+      } catch (e) {
+        console.warn("localStorage access failed:", e);
+      }
+    }
+  };
+
+  // 获取当前选中的模型名称，降级到默认值
+  const currentModelName = selectedModel?.model_name || "gpt-4";
+
+  // Memoize code examples to prevent recreation on every render
+  const claudeCodeExample = useMemo(
+    () => `{
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "<API_KEY>",
     "ANTHROPIC_BASE_URL": "${baseUrl}/api/anthropic",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.7",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "${currentModelName}",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "${currentModelName}",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "${currentModelName}"
   }
-}`, [baseUrl]);
+}`,
+    [baseUrl, currentModelName]
+  );
 
-  const openaiPythonExample = useMemo(() => `from openai import OpenAI
+  const openaiPythonExample = useMemo(
+    () => `from openai import OpenAI
 
 # 初始化客户端
 client = OpenAI(
@@ -108,28 +205,34 @@ client = OpenAI(
 
 # 调用聊天接口
 response = client.chat.completions.create(
-    model="gpt-4",
+    model="${currentModelName}",
     messages=[
         {"role": "user", "content": "Hello!"}
     ]
 )
 
-print(response.choices[0].message.content)`, [baseUrl]);
+print(response.choices[0].message.content)`,
+    [baseUrl, currentModelName]
+  );
 
-  const openaiCurlExample = useMemo(() => `curl ${baseUrl}/api/openai/v1/chat/completions \\
+  const openaiCurlExample = useMemo(
+    () => `curl ${baseUrl}/api/openai/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer <API_KEY>" \\
   -d '{
-    "model": "gpt-4",
+    "model": "${currentModelName}",
     "messages": [
       {
         "role": "user",
         "content": "Hello!"
       }
     ]
-  }'`, [baseUrl]);
+  }'`,
+    [baseUrl, currentModelName]
+  );
 
-  const anthropicPythonExample = useMemo(() => `from anthropic import Anthropic
+  const anthropicPythonExample = useMemo(
+    () => `from anthropic import Anthropic
 
 # 初始化客户端
 client = Anthropic(
@@ -139,21 +242,24 @@ client = Anthropic(
 
 # 调用消息接口
 message = client.messages.create(
-    model="claude-3-5-sonnet-20241022",
+    model="${currentModelName}",
     max_tokens=1024,
     messages=[
         {"role": "user", "content": "Hello!"}
     ]
 )
 
-print(message.content[0].text)`, [baseUrl]);
+print(message.content[0].text)`,
+    [baseUrl, currentModelName]
+  );
 
-  const anthropicCurlExample = useMemo(() => `curl ${baseUrl}/api/anthropic/v1/messages \\
+  const anthropicCurlExample = useMemo(
+    () => `curl ${baseUrl}/api/anthropic/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: <API_KEY>" \\
   -H "anthropic-version: 2023-06-01" \\
   -d '{
-    "model": "claude-3-5-sonnet-20241022",
+    "model": "${currentModelName}",
     "max_tokens": 1024,
     "messages": [
       {
@@ -161,9 +267,19 @@ print(message.content[0].text)`, [baseUrl]);
         "content": "Hello!"
       }
     ]
-  }'`, [baseUrl]);
+  }'`,
+    [baseUrl, currentModelName]
+  );
 
-  const CodeBlock = ({ code, tabId, title }: { code: string; tabId: string; title?: string }): JSX.Element => (
+  const CodeBlock = ({
+    code,
+    tabId,
+    title,
+  }: {
+    code: string;
+    tabId: string;
+    title?: string;
+  }): JSX.Element => (
     <div className="relative">
       {title && (
         <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -191,15 +307,40 @@ print(message.content[0].text)`, [baseUrl]);
     </div>
   );
 
+  // 如果是受控模式，children 为可选
+  const dialogTrigger = isControlled ? undefined : children ? <DialogTrigger asChild>{children}</DialogTrigger> : undefined;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {dialogTrigger}
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto top-[15%] translate-y-0">
         <DialogHeader>
-          <DialogTitle>快速接入 API</DialogTitle>
-          <DialogDescription>
-            选择您偏好的工具和语言，复制示例代码即可开始调用 AI 模型
-          </DialogDescription>
+          <div className="flex items-center justify-between pr-8">
+            <div className="flex flex-col">
+              <DialogTitle>快速接入 API</DialogTitle>
+              <DialogDescription>
+                选择您偏好的工具和语言，复制示例代码即可开始调用 AI 模型
+              </DialogDescription>
+            </div>
+            {/* 模型选择器 - 放在标题行最右侧 */}
+            {!loadingModels && models.length > 0 && (
+              <Select
+                value={selectedModel?.model_name || ""}
+                onValueChange={handleModelChange}
+              >
+                <SelectTrigger className="w-48 h-8 text-sm">
+                  <SelectValue placeholder="选择模型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((model) => (
+                    <SelectItem key={model.model_name} value={model.model_name}>
+                      {model.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="claude-code" className="w-full">
