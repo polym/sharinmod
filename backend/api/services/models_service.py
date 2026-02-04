@@ -129,8 +129,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         models_config = provider_config.get("models", {}) if provider_config else {}
         model_config = models_config.get(model_name, {})
 
-        # 构建 display_name: 只显示模型名大写
-        display_name = model_name.upper()
+        # 构建 display_name: 优先使用配置的 display_name，否则使用 model_name.upper()
+        display_name = model_config.get("display_name", model_name.upper())
 
         # 构建提供商列表
         provider_infos = []
