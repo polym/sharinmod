@@ -60,3 +60,18 @@ export function getProviderLogo(code: string): string {
 export function getModelLogo(modelName: string): string {
   return `/models/${modelName}.png`;
 }
+
+/**
+ * Provider info with supported models
+ */
+export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }> = {
+  bigmodel: {
+    supported_models: ['glm-4.7', 'glm-4.6', 'glm-4.5-air'],
+  },
+  'z.ai': {
+    supported_models: ['glm-4.7', 'glm-4.6', 'glm-4.5-air'],
+  },
+  volcengine: {
+    supported_models: ['doubao-seed-code', 'kimi-k2.5', 'kimi-k2', 'glm-4.7', 'deepseek-v3.2'],
+  },
+};

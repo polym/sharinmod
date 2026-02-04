@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
+import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
-import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
+import { PROVIDER_LIST, getProviderLogo, getProviderBrandName, PROVIDER_INFO } from '@/lib/providers';
 import Image from 'next/image';
 
 interface ShareAPIKeyDialogProps {
@@ -20,26 +21,43 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState('');
   const [apiKey, setAPIKey] = useState('');
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [modelError, setModelError] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Reset models when provider changes
+  const handleProviderChange = (newProvider: string) => {
+    setProvider(newProvider);
+    setSelectedModels([]);
+    setModelError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!provider || !apiKey) {
       toast({
         title: '错误',
-        description: '请选择供应商并输入API Key',
+        description: '请选择平台并输入 API Key',
         variant: 'destructive',
       });
       return;
     }
 
+    if (selectedModels.length === 0) {
+      setModelError('请至少选择一个模型');
+      return;
+    }
+
     setLoading(true);
+    setModelError('');
     try {
       await apiKeyAPI.shareAPIKey({
         provider,
         api_key: apiKey,
         api_key_metadata: JSON.stringify({ source: 'user_input' }),
+        selected_models: selectedModels,
       });
 
       toast({
@@ -50,6 +68,8 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       setOpen(false);
       setProvider('');
       setAPIKey('');
+      setSelectedModels([]);
+      setModelError('');
       onAPIKeyShared();
     } catch (error: any) {
       toast({
@@ -75,13 +95,13 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="provider" className="text-right">
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="provider">
                 订阅平台
               </Label>
-              <Select value={provider} onValueChange={setProvider}>
-                <SelectTrigger className="col-span-3">
+              <Select value={provider} onValueChange={handleProviderChange}>
+                <SelectTrigger>
                   {provider ? (
                     <div className="flex items-center gap-2">
                       <Image src={getProviderLogo(provider)} alt={getProviderBrandName(provider)} width={20} height={20} />
@@ -103,8 +123,8 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="token" className="text-right">
+            <div className="space-y-2">
+              <Label htmlFor="token">
                 API Key
               </Label>
               <Input
@@ -113,9 +133,16 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                 placeholder="输入您的 API Key"
                 value={apiKey}
                 onChange={(e) => setAPIKey(e.target.value)}
-                className="col-span-3"
               />
             </div>
+            {provider && (
+              <ModelSelector
+                provider={provider}
+                selectedModels={selectedModels}
+                onChange={setSelectedModels}
+                error={modelError}
+              />
+            )}
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>

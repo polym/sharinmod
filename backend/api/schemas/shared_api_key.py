@@ -9,13 +9,29 @@ class SharedAPIKeyCreate(BaseModel):
     provider: APIKeyProvider = Field(..., description="API key provider (bigmodel or z.ai)")
     api_key: str = Field(..., description="Plain text API key to share")
     api_key_metadata: Optional[str] = Field(None, max_length=1000, description="Optional metadata as JSON string")
-    
+    selected_models: Optional[List[str]] = Field(None, description="List of models to bind (if None, bind all supported models)")
+
     class Config:
         schema_extra = {
             "example": {
                 "provider": "bigmodel",
                 "api_key": "your-api-key-here",
-                "api_key_metadata": '{"name": "My BigModel API Key", "purpose": "Sharing"}'
+                "api_key_metadata": '{"name": "My BigModel API Key", "purpose": "Sharing"}',
+                "selected_models": ["glm-4.7", "glm-4.6"]
+            }
+        }
+
+
+class SharedAPIKeyUpdate(BaseModel):
+    """Schema for updating a shared API key"""
+    api_key: Optional[str] = Field(None, description="New API key to replace the existing one")
+    selected_models: List[str] = Field(..., description="List of models to bind")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "api_key": "new-api-key-here",
+                "selected_models": ["glm-4.7", "glm-4.5-air"]
             }
         }
 

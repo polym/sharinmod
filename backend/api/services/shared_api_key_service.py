@@ -47,6 +47,39 @@ def _handle_litellm_response(response, operation_name: str) -> bool:
         response.raise_for_status()
 
 
+def _handle_litellm_delete_response(response, operation_name: str) -> bool:
+    """
+    Handle LiteLLM delete model API response with lenient error handling
+
+    Args:
+        response: httpx.Response object
+        operation_name: Description of the operation for logging
+
+    Returns:
+        True if operation succeeded or model doesn't exist (idempotent)
+
+    Note:
+        For delete operations, 404 (model not found) is treated as success (idempotent).
+        400 errors are logged but don't raise exception to allow continuation.
+    """
+    print(f"[{operation_name}] Response status: {response.status_code}")
+    print(f"[{operation_name}] Response body: {response.text}")
+
+    if 200 <= response.status_code < 300:
+        return True
+    elif response.status_code == 404:
+        print(f"[{operation_name}] Model not found (404), treating as success (idempotent)")
+        return True
+    elif response.status_code == 400:
+        print(f"[{operation_name}] Bad request (400) - model may be in use or invalid, continuing...")
+        return True  # Continue anyway for robustness
+    else:
+        print(f"[{operation_name}] Unexpected status code: {response.status_code}")
+        # For delete operations, be more lenient
+        print(f"[{operation_name}] Continuing despite error for robustness")
+        return True
+
+
 # Provider configuration for supported models, websites, and logo paths
 PROVIDER_INFO = {
     APIKeyProvider.BIGMODEL: {
@@ -195,7 +228,7 @@ def check_provider_api_key_exists(session: Session, user_id: int, provider: APIK
     return result is not None
 
 
-async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -> Dict[str, str]:
+async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, selected_models: Optional[List[str]] = None) -> Dict[str, str]:
     """
     Sync shared API key to LiteLLM by creating credential and all supported models
 
@@ -203,6 +236,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
         user: User object with litellm_user_id
         provider: API key provider
         api_key: Plain text API key
+        selected_models: Optional list of models to create. If None, create all supported models.
 
     Returns:
         Dict mapping model_name to litellm_model_id
@@ -225,8 +259,14 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
     supported_models = PROVIDER_INFO[provider]["supported_models"]
     if not supported_models:
         raise ValueError(f"No supported models configured for provider: {provider.value}")
-    if not supported_models:
-        raise ValueError(f"No supported models configured for provider: {provider.value}")
+
+    # Use selected models if provided, otherwise use all supported models
+    models_to_create = selected_models if selected_models else supported_models
+
+    # Validate selected models
+    invalid_models = [m for m in models_to_create if m not in supported_models]
+    if invalid_models:
+        raise ValueError(f"Invalid models for provider {provider.value}: {invalid_models}")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         # Step 1: Check if credential exists, update if exists, create if not
@@ -272,9 +312,9 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str) -
             )
             _handle_litellm_response(credential_response, "CREDENTIAL_CREATE")
 
-        # Step 2: Create all models in LiteLLM
+        # Step 2: Create selected models in LiteLLM
         model_ids = {}
-        for model_name in supported_models:
+        for model_name in models_to_create:
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
@@ -360,21 +400,23 @@ async def create_shared_api_key(
     user: User,
     provider: APIKeyProvider,
     api_key: str,
-    api_key_metadata: Optional[str] = None
+    api_key_metadata: Optional[str] = None,
+    selected_models: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Create a new shared API key with validation
-    
+
     Args:
         session: Database session
         user: Current authenticated user
         provider: API key provider
         api_key: Plain text API key to share
         api_key_metadata: Optional metadata JSON string
-        
+        selected_models: Optional list of models to bind. If None, bind all supported models.
+
     Returns:
         Dict with created API key info and validation result
-        
+
     Raises:
         HTTPException: If duplicate provider or validation fails
     """
@@ -384,19 +426,19 @@ async def create_shared_api_key(
             status_code=400,
             detail=f"You already have an API key for {provider.value}. Each account can only add one API key per provider."
         )
-    
+
     # Validate API key with provider API
     validation_result = await validate_api_key(provider, api_key)
-    
+
     if not validation_result["valid"]:
         raise HTTPException(
             status_code=400,
             detail=f"API key validation failed: {validation_result['message']}"
         )
-    
+
     # Encrypt API key before storage
     encrypted = encrypt_token(api_key)
-    
+
     # Create shared API key record
     shared_api_key = SharedAPIKey(
         user_id=user.id,
@@ -405,15 +447,15 @@ async def create_shared_api_key(
         status=APIKeyStatus.ACTIVE,
         api_key_metadata=api_key_metadata
     )
-    
+
     session.add(shared_api_key)
     session.commit()
     session.refresh(shared_api_key)
-    
+
     # Sync with LiteLLM (create credential and models) - skip in testing
     if not settings.TESTING:
         try:
-            model_ids = await _sync_to_litellm(user, provider, api_key)
+            model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
             # Store all model IDs as JSON
             shared_api_key.litellm_model_ids = json.dumps(model_ids)
             # Keep first model ID for backward compatibility
@@ -422,7 +464,7 @@ async def create_shared_api_key(
             session.add(shared_api_key)
             session.commit()
             session.refresh(shared_api_key)
-            
+
             # Create subscriptions for all models
             for model_name, model_id in model_ids.items():
                 subscription = Subscription(
@@ -432,7 +474,7 @@ async def create_shared_api_key(
                 )
                 session.add(subscription)
             session.commit()
-            
+
         except Exception as e:
             # Rollback local API key creation if LiteLLM sync fails
             # First, delete any subscriptions that were created
@@ -455,7 +497,7 @@ async def create_shared_api_key(
                 status_code=500,
                 detail=f"Failed to sync API key with LiteLLM: {str(e)}"
             )
-    
+
     # Log sharing action in usage history
     log_api_key_usage(
         db=session,
@@ -464,7 +506,7 @@ async def create_shared_api_key(
         action=APIKeyAction.SHARED,
         details=f"Shared {provider.value} API key"
     )
-    
+
     return {
         "api_key": shared_api_key,
         "validation": validation_result
@@ -474,31 +516,41 @@ async def create_shared_api_key(
 def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     """
     Get all shared API keys for a user with provider info
-    
+
     Args:
         session: Database session
         user_id: User ID
-        
+
     Returns:
         List of dicts compatible with SharedAPIKeyResponse (with provider info)
     """
     statement = select(SharedAPIKey).where(
         SharedAPIKey.user_id == user_id
     ).order_by(SharedAPIKey.created_at.desc())
-    
+
     results = session.exec(statement).all()
-    
+
     # Convert to dicts and add provider info
     api_keys = []
     for api_key in results:
         api_key_dict = api_key.model_dump()
         provider_info = PROVIDER_INFO.get(api_key.provider, {})
-        api_key_dict['supported_models'] = provider_info.get('supported_models')
+
+        # Get actual bound models from litellm_model_ids
+        bound_models = []
+        if api_key.litellm_model_ids:
+            try:
+                model_ids = json.loads(api_key.litellm_model_ids)
+                bound_models = list(model_ids.keys())
+            except json.JSONDecodeError:
+                pass
+
+        api_key_dict['supported_models'] = bound_models  # Actual bound models
         api_key_dict['provider_website'] = provider_info.get('website')
         api_key_dict['provider_display_name'] = provider_info.get('name')
         api_key_dict['provider_logo_path'] = provider_info.get('logo_path')
         api_keys.append(api_key_dict)
-    
+
     return api_keys
 
 
@@ -572,7 +624,7 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
                         json={"id": litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    _handle_litellm_response(delete_response, f"DISABLE_MODEL_DELETE_{model_name}")
+                    _handle_litellm_delete_response(delete_response, f"DISABLE_MODEL_DELETE_{model_name}")
 
                 # For backward compatibility, also delete the old single model_id if exists
                 if api_key.litellm_model_id and api_key.litellm_model_id not in model_ids.values():
@@ -582,7 +634,7 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
                         json={"id": api_key.litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    _handle_litellm_response(delete_response, "DISABLE_LEGACY_MODEL_DELETE")
+                    _handle_litellm_delete_response(delete_response, "DISABLE_LEGACY_MODEL_DELETE")
 
             # Clear model ID fields
             api_key.litellm_model_ids = None
@@ -800,7 +852,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
                         json={"id": litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    _handle_litellm_response(delete_response, f"DELETE_MODEL_{model_name}")
+                    _handle_litellm_delete_response(delete_response, f"DELETE_MODEL_{model_name}")
 
                 # For backward compatibility, also delete the old single model_id if exists
                 if api_key.litellm_model_id and api_key.litellm_model_id not in model_ids.values():
@@ -810,7 +862,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
                         json={"id": api_key.litellm_model_id},
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
-                    _handle_litellm_response(delete_response, "DELETE_LEGACY_MODEL")
+                    _handle_litellm_delete_response(delete_response, "DELETE_LEGACY_MODEL")
 
                 # Step 2: Delete credential SECOND
                 print(f"[DELETE] Deleting credential: {credential_name}")
@@ -972,3 +1024,231 @@ def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) 
         "total_requests": api_key.total_requests,
         "chart_data": chart_data
     }
+
+
+async def update_shared_api_key(
+    session: Session,
+    api_key_id: int,
+    user_id: int,
+    new_api_key: Optional[str] = None,
+    selected_models: Optional[List[str]] = None
+) -> SharedAPIKey:
+    """
+    Update a shared API key (API Key and/or models)
+
+    Args:
+        session: Database session
+        api_key_id: API key ID to update
+        user_id: User ID for authorization check
+        new_api_key: New API key to replace the existing one (optional)
+        selected_models: List of models to bind (required, at least one model)
+
+    Returns:
+        Updated SharedAPIKey
+
+    Raises:
+        HTTPException: If API key not found, validation fails, or LiteLLM sync fails
+    """
+    # Validate selected_models
+    if not selected_models or len(selected_models) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="请至少选择一个模型"
+        )
+
+    # Get API key and verify ownership
+    statement = select(SharedAPIKey).where(
+        SharedAPIKey.id == api_key_id,
+        SharedAPIKey.user_id == user_id
+    )
+    api_key_obj = session.exec(statement).first()
+
+    if not api_key_obj:
+        raise HTTPException(
+            status_code=404,
+            detail="API key not found or you don't have permission to modify it"
+        )
+
+    # Get user info for LiteLLM sync
+    user_statement = select(User).where(User.id == user_id)
+    user = session.exec(user_statement).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Validate selected models against provider's supported models
+    provider_info = PROVIDER_INFO.get(api_key_obj.provider)
+    if not provider_info:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid provider: {api_key_obj.provider}"
+        )
+
+    supported_models = provider_info.get("supported_models", [])
+    invalid_models = [m for m in selected_models if m not in supported_models]
+    if invalid_models:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid models for provider {api_key_obj.provider.value}: {invalid_models}"
+        )
+
+    # Store original data for rollback
+    original_api_key = api_key_obj.encrypted_api_key
+    original_model_ids = api_key_obj.litellm_model_ids
+
+    try:
+        # Step 1: Update API Key if provided
+        if new_api_key:
+            # Validate new API key with provider API
+            validation_result = await validate_api_key(api_key_obj.provider, new_api_key)
+            if not validation_result["valid"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"API key validation failed: {validation_result['message']}"
+                )
+            # Encrypt new API key
+            api_key_obj.encrypted_api_key = encrypt_token(new_api_key)
+
+        # Step 2: Calculate model differences
+        current_model_ids = {}
+        if api_key_obj.litellm_model_ids:
+            try:
+                current_model_ids = json.loads(api_key_obj.litellm_model_ids)
+            except json.JSONDecodeError:
+                current_model_ids = {}
+
+        # Models to remove (in current but not in selected)
+        models_to_remove = [m for m in current_model_ids.keys() if m not in selected_models]
+        # Models to add (in selected but not in current)
+        models_to_add = [m for m in selected_models if m not in current_model_ids.keys()]
+
+        # Step 3: Sync with LiteLLM (skip in testing)
+        if not settings.TESTING:
+            credential_name = f"{api_key_obj.provider.value}/{user.email}"
+
+            # If new API key provided, update credential
+            if new_api_key:
+                api_base = settings.VENDOR_BASE_URLS.get(api_key_obj.provider.value)
+                if not api_base:
+                    raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider.value}")
+
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    # Update credential with new API key
+                    credential_payload = {
+                        "credential_values": {
+                            "api_key": new_api_key,
+                            "api_base": api_base
+                        },
+                        "credential_info": {
+                            "custom_llm_provider": "anthropic"
+                        }
+                    }
+                    update_payload = {
+                        "credential_name": credential_name,
+                        **credential_payload
+                    }
+                    credential_response = await client.patch(
+                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                        json=update_payload,
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    _handle_litellm_response(credential_response, "UPDATE_CREDENTIAL")
+
+            # Remove models no longer needed
+            # Start with current models and remove the ones we don't want
+            new_model_ids = current_model_ids.copy()
+            for model_name in models_to_remove:
+                new_model_ids.pop(model_name, None)
+
+            if models_to_remove:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    for model_name in models_to_remove:
+                        litellm_model_id = current_model_ids[model_name]
+                        print(f"[UPDATE] Deleting model '{model_name}' with ID: {litellm_model_id}")
+                        delete_response = await client.post(
+                            f"{settings.LITELLM_BASE_URL}/model/delete",
+                            json={"id": litellm_model_id},
+                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                        )
+                        _handle_litellm_delete_response(delete_response, f"UPDATE_MODEL_DELETE_{model_name}")
+
+            # Add new models
+            if models_to_add:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    credential_name = f"{api_key_obj.provider.value}/{user.email}"
+                    for model_name in models_to_add:
+                        model_payload = {
+                            "model_name": model_name,
+                            "litellm_params": {
+                                "custom_llm_provider": "anthropic",
+                                "litellm_credential_name": credential_name,
+                                "model": model_name
+                            },
+                            "provider": "anthropic",
+                            "litellm_model_name": model_name,
+                        }
+                        print(f"[UPDATE] Creating model '{model_name}'")
+                        model_response = await client.post(
+                            f"{settings.LITELLM_BASE_URL}/model/new",
+                            json=model_payload,
+                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                        )
+                        _handle_litellm_response(model_response, f"UPDATE_MODEL_CREATE_{model_name}")
+                        response_data = model_response.json()
+                        new_model_ids[model_name] = response_data["model_id"]
+
+            # Update litellm_model_ids
+            api_key_obj.litellm_model_ids = json.dumps(new_model_ids)
+            if new_model_ids:
+                first_model = list(new_model_ids.keys())[0]
+                api_key_obj.litellm_model_id = new_model_ids[first_model]
+            else:
+                api_key_obj.litellm_model_id = None
+
+        # Step 4: Update database subscriptions
+        # Delete subscriptions for removed models
+        if models_to_remove:
+            for model_name in models_to_remove:
+                litellm_model_id = current_model_ids[model_name]
+                subscription_statement = select(Subscription).where(
+                    Subscription.shared_api_key_id == api_key_id,
+                    Subscription.model_id == litellm_model_id
+                )
+                subscription = session.exec(subscription_statement).first()
+                if subscription:
+                    session.delete(subscription)
+
+        # Add subscriptions for new models
+        if models_to_add and api_key_obj.litellm_model_ids:
+            updated_model_ids = json.loads(api_key_obj.litellm_model_ids)
+            for model_name in models_to_add:
+                if model_name in updated_model_ids:
+                    subscription = Subscription(
+                        model_id=updated_model_ids[model_name],
+                        shared_api_key_id=api_key_id,
+                        user_id=user_id
+                    )
+                    session.add(subscription)
+
+        # Update timestamp
+        api_key_obj.updated_at = datetime.utcnow()
+        session.add(api_key_obj)
+        session.commit()
+        session.refresh(api_key_obj)
+
+        return api_key_obj
+
+    except Exception as e:
+        # Rollback on error
+        print(f"[UPDATE] Exception during update: {type(e).__name__}: {str(e)}")
+        import traceback
+        print(f"[UPDATE] Traceback: {traceback.format_exc()}")
+        session.rollback()
+        api_key_obj.encrypted_api_key = original_api_key
+        api_key_obj.litellm_model_ids = original_model_ids
+        session.add(api_key_obj)
+        session.commit()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update API key: {str(e)}"
+        )

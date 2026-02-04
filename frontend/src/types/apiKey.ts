@@ -23,3 +23,8 @@ export interface SharedAPIKeyMetrics {
   total_requests: number;
   chart_data: ChartDataPoint[];
 }
+
+export interface UpdateSharedAPIKeyRequest {
+  api_key?: string;
+  selected_models: string[];
+}

@@ -3,14 +3,15 @@ from sqlmodel import Session
 from api.database import get_db
 from api.models.user import User
 from api.dependencies.auth import get_current_user
-from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyResponse, SharedAPIKeyList, SharedAPIKeyMetrics
+from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyUpdate, SharedAPIKeyResponse, SharedAPIKeyList, SharedAPIKeyMetrics
 from api.services.shared_api_key_service import (
-    create_shared_api_key, 
+    create_shared_api_key,
     get_user_shared_api_keys,
     disable_shared_api_key,
     enable_shared_api_key,
     delete_shared_api_key,
-    get_shared_api_key_metrics
+    get_shared_api_key_metrics,
+    update_shared_api_key
 )
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
@@ -24,7 +25,7 @@ async def share_api_key(
 ):
     """
     Share an existing provider API key
-    
+
     Validates API key with provider API and stores encrypted
     Each user can only share one API key per provider
     """
@@ -33,9 +34,10 @@ async def share_api_key(
         user=current_user,
         provider=api_key_data.provider,
         api_key=api_key_data.api_key,
-        api_key_metadata=api_key_data.api_key_metadata
+        api_key_metadata=api_key_data.api_key_metadata,
+        selected_models=api_key_data.selected_models
     )
-    
+
     return result["api_key"]
 
 
@@ -93,11 +95,33 @@ async def delete_api_key(
 ):
     """
     Delete a shared API key
-    
+
     Removes from database and deletes model and credential from LiteLLM
     """
     await delete_shared_api_key(session, api_key_id, current_user.id)
     return None
+
+
+@router.put("/shared/{api_key_id}", response_model=SharedAPIKeyResponse)
+async def update_api_key(
+    api_key_id: int,
+    update_data: SharedAPIKeyUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Update a shared API key
+
+    Supports updating API Key and/or model list
+    """
+    api_key = await update_shared_api_key(
+        session=session,
+        api_key_id=api_key_id,
+        user_id=current_user.id,
+        new_api_key=update_data.api_key,
+        selected_models=update_data.selected_models
+    )
+    return api_key
 
 
 @router.get("/shared/{api_key_id}/metrics", response_model=SharedAPIKeyMetrics)
@@ -108,8 +132,45 @@ async def get_api_key_metrics(
 ):
     """
     Get usage metrics for a shared API key
-    
+
     Returns mock data for total tokens, duration, requests, and 14-day chart
     """
     metrics = get_shared_api_key_metrics(session, api_key_id, current_user.id)
     return metrics
+
+
+@router.get("/providers/{provider}/models")
+async def get_provider_models(
+    provider: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get supported models for a provider
+
+    Returns the list of supported models for the given provider from PROVIDER_INFO
+    """
+    from api.services.shared_api_key_service import PROVIDER_INFO
+    from api.models.shared_api_key import APIKeyProvider
+
+    # Validate provider
+    try:
+        provider_enum = APIKeyProvider(provider)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid provider: {provider}"
+        )
+
+    # Get provider info
+    provider_info = PROVIDER_INFO.get(provider_enum)
+    if not provider_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Provider not found: {provider}"
+        )
+
+    # Return supported models
+    return {
+        "provider": provider,
+        "supported_models": provider_info.get("supported_models", [])
+    }

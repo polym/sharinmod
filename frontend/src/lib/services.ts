@@ -42,6 +42,12 @@ export const apiKeyAPI = {
   getSharedAPIKeyMetrics: (apiKeyId: number) =>
     api.get(`/api/api-keys/shared/${apiKeyId}/metrics`),
 
+  getProviderModels: (provider: string) =>
+    api.get(`/api/api-keys/providers/${provider}/models`),
+
+  updateSharedAPIKey: (apiKeyId: number, data: { api_key?: string; selected_models: string[] }) =>
+    api.put(`/api/api-keys/shared/${apiKeyId}`, data),
+
   // Unified API Keys
   createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }) =>
     api.post('/api/api-keys/unified', data),

@@ -5,6 +5,7 @@ import { MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ShareAPIKeyDialog } from '@/components/share-token-dialog';
+import { EditSubscriptionDialog } from '@/components/edit-subscription-dialog';
 import { apiKeyAPI } from '@/lib/services';
 import { SharedAPIKey, SharedAPIKeyMetrics, ChartDataPoint } from '@/types/apiKey';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
@@ -267,6 +268,7 @@ export function MySharedPage() {
   const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
   const [metricsMap, setMetricsMap] = useState<{[key: number]: SharedAPIKeyMetrics}>({});
   const [loading, setLoading] = useState(true);
+  const [editingApiKey, setEditingApiKey] = useState<SharedAPIKey | null>(null);
 
   useEffect(() => {
     loadSharedAPIKeys();
@@ -461,6 +463,12 @@ export function MySharedPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
+                            className="cursor-pointer"
+                            onClick={() => setEditingApiKey(apiKey)}
+                          >
+                            修改
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="text-red-600 cursor-pointer focus:text-red-600"
                             onClick={() => handleDeleteAPIKey(apiKey.id)}
                           >
@@ -513,6 +521,16 @@ export function MySharedPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Subscription Dialog */}
+      {editingApiKey && (
+        <EditSubscriptionDialog
+          apiKey={editingApiKey}
+          onUpdated={loadSharedAPIKeys}
+          open={editingApiKey !== null}
+          onOpenChange={(open) => !open && setEditingApiKey(null)}
+        />
+      )}
     </div>
   );
 }
