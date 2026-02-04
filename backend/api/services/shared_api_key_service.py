@@ -60,21 +60,24 @@ PROVIDER_INFO = {
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": 1441
             },
             "glm-4.6": {
                 "description": "智谱 AI 高性能模型，平衡速度与质量",
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": 1356
             },
             "glm-4.5-air": {
                 "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": None
             }
         }
     },
@@ -89,21 +92,24 @@ PROVIDER_INFO = {
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": 1441
             },
             "glm-4.6": {
                 "description": "智谱 AI 高性能模型，平衡速度与质量",
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": 1356
             },
             "glm-4.5-air": {
                 "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "input_type": "Text",
-                "output_type": "Text"
+                "output_type": "Text",
+                "coding_score": None
             }
         }
     }

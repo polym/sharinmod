@@ -19,6 +19,21 @@ class SharedBy(BaseModel):
     avatar_url: Optional[str] = Field(default=None, description="共享者头像 URL")
 
 
+class ProviderInfo(BaseModel):
+    """提供商信息"""
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "code": "bigmodel",
+                "logo_path": "/providers/bigmodel-logo.png"
+            }
+        }
+    )
+    code: str = Field(description="提供商代码，如 'bigmodel'")
+    logo_path: str = Field(description="提供商 Logo 路径")
+
+
 class ModelInfo(BaseModel):
     """模型元数据"""
     model_config = ConfigDict(
@@ -40,11 +55,24 @@ class ModelInfo(BaseModel):
                         "name": "user@example.com",
                         "avatar_url": "https://example.com/avatar.jpg"
                     }
-                ]
+                ],
+                "used_tokens": 1234567,
+                "coding_score": 1441,
+                "providers": [
+                    {
+                        "code": "bigmodel",
+                        "logo_path": "/providers/bigmodel-logo.png"
+                    },
+                    {
+                        "code": "zai",
+                        "logo_path": "/providers/zai-logo.png"
+                    }
+                ],
+                "subscription_platform_count": 2
             }
         }
     )
-    display_name: str = Field(description="显示名称，如 'BigModel: GLM-4.7'")
+    display_name: str = Field(description="显示名称，如 'GLM-4.7'")
     model_name: str = Field(description="原始模型名称（模型 ID），如 'glm-4.7'")
     provider: str = Field(description="API 提供商标识，如 'bigmodel'")
     description: str = Field(description="模型描述")
@@ -54,6 +82,10 @@ class ModelInfo(BaseModel):
     max_output_length: str = Field(description="最大输出长度，如 '4k'")
     available_subscriptions: int = Field(description="可用订阅数量")
     shared_by: List[SharedBy] = Field(description="共享者列表")
+    used_tokens: Optional[int] = Field(default=None, description="已使用 Token 总量")
+    coding_score: Optional[int] = Field(default=None, description="Coding 评分")
+    providers: List[ProviderInfo] = Field(default_factory=list, description="可用提供商列表（code 和 logo_path）")
+    subscription_platform_count: int = Field(default=0, description="订阅平台数量")
 
 
 class ModelDiscoveryList(BaseModel):

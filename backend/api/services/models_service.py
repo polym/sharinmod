@@ -1,11 +1,12 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from sqlalchemy.exc import SQLAlchemyError
 from api.models.subscription import Subscription
 from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.services.shared_api_key_service import PROVIDER_INFO
 from api.models.user import User
-from api.schemas.models import ModelInfo, SharedBy
-from typing import List, Dict
+from api.models.usage_log import UsageLog
+from api.schemas.models import ModelInfo, SharedBy, ProviderInfo
+from typing import List, Dict, Optional
 from collections import defaultdict
 import json
 import logging
@@ -43,9 +44,9 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     1. 从 Subscription 表获取所有记录
     2. JOIN SharedAPIKey 获取 provider 信息（只包含 ACTIVE 状态）
     3. JOIN User 获取共享者信息
-    4. 按 model_id 分组，收集共享者列表
+    4. 按 model_name 分组（不按 provider），收集所有提供商和共享者列表
     5. 从 PROVIDER_INFO 获取模型元数据
-    6. 通过 Subscription.model_id（UUID）反向查找原始 model_name
+    6. 从 usage_logs 表统计已使用 Token 总量
 
     Args:
         db: Database session
@@ -73,9 +74,24 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             detail="Failed to retrieve models. Please try again later."
         )
 
-    # 按 model_name 分组，收集共享者列表
-    # key: (provider, model_name), value: {"shared_by": [...], "model_id": ...}
-    models_dict: Dict[tuple, Dict] = {}
+    # 查询每个模型的总 Token 使用量
+    try:
+        token_stats = (
+            db.exec(
+                select(UsageLog.model_name, func.sum(UsageLog.total_tokens).label("total_tokens"))
+                .group_by(UsageLog.model_name)
+            )
+            .all()
+        )
+        # 转换为字典: {model_name: total_tokens}
+        tokens_dict = {row.model_name: int(row.total_tokens) for row in token_stats}
+    except SQLAlchemyError as e:
+        logger.warning(f"Failed to fetch token statistics: {e}")
+        tokens_dict = {}
+
+    # 按 model_name 分组，收集提供商和共享者列表
+    # key: model_name, value: {"providers": set(), "shared_by": [...]}
+    models_dict: Dict[str, Dict] = defaultdict(lambda: {"providers": set(), "shared_by": []})
 
     for subscription, shared_api_key, user in results:
         # 从 litellm_model_ids JSON 中反向查找原始 model_name
@@ -84,14 +100,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             subscription.model_id
         )
 
-        # 构建分组键
-        key = (shared_api_key.provider, model_name)
-
-        if key not in models_dict:
-            models_dict[key] = {
-                "shared_by": [],
-                "litellm_model_ids": shared_api_key.litellm_model_ids or "{}"
-            }
+        # 收集提供商
+        models_dict[model_name]["providers"].add(shared_api_key.provider)
 
         # 添加共享者信息（去重）
         # 只暴露邮箱前缀以保护用户隐私
@@ -102,40 +112,69 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             avatar_url=user.avatar_url
         )
         # 检查是否已存在（同一用户可能共享了相同的模型）
-        if not any(sb.user_id == user.id for sb in models_dict[key]["shared_by"]):
-            models_dict[key]["shared_by"].append(shared_by_entry)
+        if not any(sb.user_id == user.id for sb in models_dict[model_name]["shared_by"]):
+            models_dict[model_name]["shared_by"].append(shared_by_entry)
 
     # 构建返回的 ModelInfo 列表
     model_info_list = []
 
-    for (provider, model_name), data in models_dict.items():
+    for model_name, data in models_dict.items():
+        # 获取该模型的第一个提供商（用于获取模型配置）
+        # 优先使用 bigmodel，否则使用第一个提供商
+        providers_list = list(data["providers"])
+        first_provider = next((p for p in providers_list if p.value == "bigmodel"), providers_list[0])
+
         # 从 PROVIDER_INFO 获取模型元数据
-        provider_config = PROVIDER_INFO.get(provider)
+        provider_config = PROVIDER_INFO.get(first_provider)
         models_config = provider_config.get("models", {}) if provider_config else {}
         model_config = models_config.get(model_name, {})
 
-        # 构建 display_name: provider 首字母大写 + ": " + 模型名大写
-        display_name = f"{provider.value.title()}: {model_name.upper()}"
+        # 构建 display_name: 只显示模型名大写
+        display_name = model_name.upper()
+
+        # 构建提供商列表
+        provider_infos = []
+        for provider in providers_list:
+            p_config = PROVIDER_INFO.get(provider)
+            if p_config:
+                provider_infos.append(ProviderInfo(
+                    code=provider.value,
+                    logo_path=p_config.get("logo_path", "")
+                ))
+
+        # 获取 Coding 评分
+        coding_score = model_config.get("coding_score")
 
         # 如果 provider 不在配置中，记录警告并使用默认值
         if not provider_config:
-            logger.warning(f"No provider config found for {provider}, using defaults for model {model_name}")
+            logger.warning(f"No provider config found for {first_provider}, using defaults for model {model_name}")
 
         model_info = ModelInfo(
             display_name=display_name,
             model_name=model_name,  # 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
-            provider=provider.value,
+            provider=first_provider.value,  # 使用第一个提供商作为主提供商
             description=model_config.get("description", "暂无描述"),
             input_type=model_config.get("input_type", "Text"),
             output_type=model_config.get("output_type", "Text"),
             context_length=model_config.get("context_length", "N/A"),
             max_output_length=model_config.get("max_output_length", "N/A"),
             available_subscriptions=len(data["shared_by"]),
-            shared_by=data["shared_by"]
+            shared_by=data["shared_by"],
+            used_tokens=tokens_dict.get(model_name, 0),
+            coding_score=coding_score,
+            providers=provider_infos,
+            subscription_platform_count=len(providers_list)
         )
         model_info_list.append(model_info)
 
-    # 按 provider 和 model_name 排序
-    model_info_list.sort(key=lambda m: (m.provider, m.model_name))
+    # 按 Coding 评分倒序排列，评分相同则按 Token 使用量倒序
+    # 没有评分的排在最后
+    model_info_list.sort(
+        key=lambda m: (
+            m.coding_score is None,  # None 排在最后
+            -(m.coding_score or 0),  # 评分倒序
+            -(m.used_tokens or 0)  # Token 使用量倒序
+        )
+    )
 
     return model_info_list
