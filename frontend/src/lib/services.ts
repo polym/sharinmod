@@ -25,7 +25,7 @@ export const userAPI = {
 // API Key API
 export const apiKeyAPI = {
   // Shared API Keys
-  shareAPIKey: (data: { provider: string; api_key: string; api_key_metadata?: string }) =>
+  shareAPIKey: (data: { provider: string; api_key: string; api_key_metadata?: string; selected_models?: string[] }) =>
     api.post('/api/api-keys/share', data),
 
   getMySharedAPIKeys: () => api.get('/api/api-keys/my-shared'),
