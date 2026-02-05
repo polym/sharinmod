@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Type, Image as ImageIcon, Video, Mic, Code2 } from 'lucide-react';
+import { Copy, Check, Type, Image as ImageIcon, Video, Mic, Code2, File } from 'lucide-react';
 import Image from 'next/image';
 import { getModelLogo } from '@/lib/providers';
 import type { SharedBy } from '@/types/model';
@@ -16,8 +16,8 @@ interface ModelCardProps {
     display_name: string;
     model_name: string; // 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
     description: string;
-    input_type: string;
-    output_type: string;
+    input_types: string[];
+    output_types: string[];
     context_length: string;
     max_output_length: string;
     available_subscriptions: number;
@@ -37,6 +37,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   'Image': ImageIcon,
   'Video': Video,
   'Audio': Mic,
+  'File': File,
 };
 
 // 输入/输出类型中文标签映射
@@ -45,7 +46,11 @@ const TYPE_LABELS: Record<string, string> = {
   'Image': '图片',
   'Video': '视频',
   'Audio': '音频',
+  'File': '文件',
 };
+
+// 所有支持的类型（用于显示完整类型栏）
+const ALL_TYPES = ['Text', 'Image', 'Video', 'Audio', 'File'] as const;
 
 // 提供商名称映射
 const PROVIDER_NAMES: Record<string, string> = {
@@ -110,6 +115,29 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
     return <IconComponent className="w-3 h-3" />;
   };
 
+  // 渲染类型图标组
+  const renderTypeIcons = (types: string[]) => {
+    return (
+      <div className="flex gap-1">
+        {ALL_TYPES.map((type) => {
+          const isSupported = types.includes(type);
+          const IconComponent = TYPE_ICONS[type] || Type;
+          return (
+            <div
+              key={type}
+              title={TYPE_LABELS[type] || type}
+              className="inline-flex"
+            >
+              <IconComponent
+                className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // 最多显示前 3 个头像，超出显示 "+N"
   const visibleSharers = model.shared_by.slice(0, 3);
   const extraSharersCount = Math.max(0, model.shared_by.length - 3);
@@ -121,33 +149,22 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
 
   return (
     <Card className="group hover:shadow-md transition-shadow relative">
-      {/* API 调用按钮 - 右上角悬浮显示 */}
-      {onQuickCall && (
-        <Button
-          onClick={() => onQuickCall(model.model_name)}
-          className="absolute top-4 right-4 h-8 w-8 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-          aria-label="API 调用"
-          type="button"
-        >
-          <Code2 className="w-4 h-4" />
-        </Button>
-      )}
-
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+          {/* 左侧：头像 + 模型信息 */}
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {imageError ? (
               // 默认模型图标（首字母占位符）
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 {model.model_name.charAt(0).toUpperCase()}
               </div>
             ) : (
               <Image
                 src={getModelLogo(model.model_name)}
                 alt={model.model_name}
-                width={32}
-                height={32}
-                className="flex-shrink-0 rounded-lg"
+                width={40}
+                height={40}
+                className="flex-shrink-0 rounded-lg object-contain"
                 onError={handleImageError}
               />
             )}
@@ -170,6 +187,18 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
               </div>
             </div>
           </div>
+
+          {/* 右侧：API 按钮 */}
+          {onQuickCall && (
+            <Button
+              onClick={() => onQuickCall(model.model_name)}
+              className="h-10 w-10 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md flex-shrink-0"
+              aria-label="API 调用"
+              type="button"
+            >
+              <Code2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -194,17 +223,15 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
         {/* 模型规格 */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">输入:</span>
+            <span className="text-gray-500 dark:text-gray-400">输入支持:</span>
             <span className="font-medium flex items-center gap-1">
-              {getTypeIcon(model.input_type)}
-              {TYPE_LABELS[model.input_type] || model.input_type}
+              {renderTypeIcons(model.input_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">输出:</span>
+            <span className="text-gray-500 dark:text-gray-400">输出支持:</span>
             <span className="font-medium flex items-center gap-1">
-              {getTypeIcon(model.output_type)}
-              {TYPE_LABELS[model.output_type] || model.output_type}
+              {renderTypeIcons(model.output_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">

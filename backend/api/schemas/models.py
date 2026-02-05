@@ -44,8 +44,8 @@ class ModelInfo(BaseModel):
                 "model_name": "glm-4.7",
                 "provider": "bigmodel",
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "context_length": "128k",
                 "max_output_length": "4k",
                 "available_subscriptions": 3,
@@ -76,8 +76,8 @@ class ModelInfo(BaseModel):
     model_name: str = Field(description="原始模型名称（模型 ID），如 'glm-4.7'")
     provider: str = Field(description="API 提供商标识，如 'bigmodel'")
     description: str = Field(description="模型描述")
-    input_type: str = Field(description="输入类型")
-    output_type: str = Field(description="输出类型")
+    input_types: List[str] = Field(default_factory=lambda: ["Text"], description="输入类型列表")
+    output_types: List[str] = Field(default_factory=lambda: ["Text"], description="输出类型列表")
     context_length: str = Field(description="上下文长度，如 '128k'")
     max_output_length: str = Field(description="最大输出长度，如 '4k'")
     available_subscriptions: int = Field(description="可用订阅数量")

@@ -63,11 +63,30 @@ export function getProviderLogo(code: string): string {
 }
 
 /**
+ * Model logo map - maps model name prefixes to local logo paths
+ */
+export const MODEL_LOGO_MAP: Record<string, string> = {
+  'kimi': '/models/kimi.png',
+  'doubao': '/models/doubao.png',
+  'deepseek': '/models/deepseek.png',
+  'glm': '/models/glm.png',
+  'minimax': '/models/minimax.png',
+};
+
+/**
  * Get model logo path by model name
  * @param modelName - Model name (e.g., "glm-4.7")
  * @returns Path to model logo image (e.g., "/models/glm-4.7.png")
  */
 export function getModelLogo(modelName: string): string {
+  // Check if model name prefix matches MODEL_LOGO_MAP
+  const lowerModelName = modelName.toLowerCase();
+  for (const [prefix, path] of Object.entries(MODEL_LOGO_MAP)) {
+    if (lowerModelName.startsWith(prefix)) {
+      return path;
+    }
+  }
+  // Fallback to model-specific path
   return `/models/${modelName}.png`;
 }
 
