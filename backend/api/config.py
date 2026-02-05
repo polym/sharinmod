@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     VENDOR_BASE_URLS: dict = {
         "bigmodel": "https://open.bigmodel.cn/api/anthropic",
         "z.ai": "https://z.ai/api/anthropic",
-        "volcengine": "https://ark.cn-beijing.volces.com/api/coding"
+        "volcengine": "https://ark.cn-beijing.volces.com/api/coding",
+        "moonshot": "https://api.kimi.com/coding"
     }
 
     # Redis Configuration

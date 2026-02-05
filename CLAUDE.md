@@ -27,6 +27,19 @@
 - 容器内: `postgresql://postgres:postgres@db:5432/sharinmod`
 - 外部访问: `postgresql://postgres:postgres@localhost:5454/sharinmod` (端口 5454)
 
+### 环境变量
+
+项目根目录的 `.env` 文件包含以下关键配置：
+
+- `COMPOSE_PROJECT_NAME`: Docker Compose 项目名称（如 `sharinmod-ws2`），用于区分多个独立的 worktree 运行环境
+  - 容器命名格式：`{COMPOSE_PROJECT_NAME}-{服务名}-1`
+  - 示例：`sharinmod-ws2-backend-1`, `sharinmod-ws2-db-1`
+  - 查找容器时使用：`docker ps | grep sharinmod-ws2`
+
+- `HOST_PORT`: 服务对外暴露的主端口（如 `28888`）
+  - Nginx 反向代理将此端口映射到容器的内部端口
+  - 访问地址：`http://localhost:{HOST_PORT}`
+
 ## 数据库迁移
 
 **必须在容器内执行数据库迁移命令**:

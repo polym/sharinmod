@@ -22,6 +22,12 @@ PROVIDER_CONFIGS = {
         "test_endpoint": "/v1/models",
         "header_name": "Authorization",
         "test_model": "doubao-seed-code"
+    },
+    APIKeyProvider.MOONSHOT: {
+        "base_url": "https://api.kimi.com/coding/v1",
+        "test_endpoint": "/models",
+        "header_name": "Authorization",
+        "test_model": "moonshot-v1-8k"
     }
 }
 

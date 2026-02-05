@@ -3,7 +3,7 @@
  * Maps provider codes to brand names and logos
  */
 
-export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine';
+export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot';
 
 export interface ProviderConfig {
   code: ProviderCode;
@@ -26,6 +26,11 @@ export const PROVIDERS: Record<ProviderCode, ProviderConfig> = {
     code: 'volcengine',
     brandName: '火山引擎',
     logoPath: '/providers/volcengine-logo.png',
+  },
+  moonshot: {
+    code: 'moonshot',
+    brandName: '月之暗面',
+    logoPath: '/providers/moonshot-logo.png',
   },
 };
 
@@ -73,5 +78,8 @@ export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }>
   },
   volcengine: {
     supported_models: ['doubao-seed-code', 'kimi-k2.5', 'kimi-k2', 'glm-4.7', 'deepseek-v3.2'],
+  },
+  moonshot: {
+    supported_models: ['kimi-k2.5'],
   },
 };

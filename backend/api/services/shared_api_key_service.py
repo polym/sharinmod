@@ -204,6 +204,23 @@ PROVIDER_INFO = {
                 "coding_score": 1377
             }
         }
+    },
+    APIKeyProvider.MOONSHOT: {
+        "name": "月之暗面 Coding Plan",
+        "website": "https://kimi.com",
+        "supported_models": ["kimi-k2.5"],
+        "logo_path": "/providers/moonshot-logo.png",
+        "models": {
+            "kimi-k2.5": {
+                "display_name": "Kimi K2.5",
+                "description": "Kimi K2.5 高性能模型",
+                "context_length": "128k",
+                "max_output_length": "128k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1447
+            }
+        }
     }
 }
 
