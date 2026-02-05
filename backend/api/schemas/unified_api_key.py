@@ -2,8 +2,8 @@
 Pydantic schemas for unified API key endpoints
 """
 from pydantic import BaseModel, Field, validator
-from datetime import datetime
-from typing import Optional, List
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Callable
 from api.models.unified_api_key import UnifiedAPIKeyStatus
 
 
@@ -34,6 +34,9 @@ class UnifiedAPIKeyResponse(BaseModel):
     
     class Config:
         from_attributes = True
+        json_encoders: Dict[type[datetime], Callable] = {
+            datetime: lambda v: v.isoformat() if v.tzinfo else v.replace(tzinfo=timezone.utc).isoformat()
+        }
 
 
 class UnifiedAPIKeyUpdate(BaseModel):
