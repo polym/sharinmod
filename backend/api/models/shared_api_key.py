@@ -10,6 +10,7 @@ class APIKeyProvider(str, Enum):
     ZAI = "z.ai"               # Z.AI - https://z.ai
     VOLCENGINE = "volcengine"  # 火山引擎 - https://volcengine.com
     MOONSHOT = "moonshot"      # 月之暗面 - https://kimi.com
+    MINIMAX = "minimax"        # MiniMax - https://www.minimaxi.com
 
 
 class APIKeyStatus(str, Enum):

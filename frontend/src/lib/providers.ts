@@ -3,7 +3,7 @@
  * Maps provider codes to brand names and logos
  */
 
-export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot';
+export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot' | 'minimax';
 
 export interface ProviderConfig {
   code: ProviderCode;
@@ -31,6 +31,11 @@ export const PROVIDERS: Record<ProviderCode, ProviderConfig> = {
     code: 'moonshot',
     brandName: '月之暗面',
     logoPath: '/providers/moonshot-logo.png',
+  },
+  minimax: {
+    code: 'minimax',
+    brandName: 'MiniMax',
+    logoPath: '/providers/minimax-logo.png',
   },
 };
 
@@ -81,5 +86,8 @@ export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }>
   },
   moonshot: {
     supported_models: ['kimi-k2.5'],
+  },
+  minimax: {
+    supported_models: ['minimax-m2.1'],
   },
 };

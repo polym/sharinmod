@@ -28,6 +28,13 @@ PROVIDER_CONFIGS = {
         "test_endpoint": "/models",
         "header_name": "Authorization",
         "test_model": "moonshot-v1-8k"
+    },
+    APIKeyProvider.MINIMAX: {
+        "base_url": "https://api.minimaxi.com/anthropic",
+        # HACK: minmax no model endpoint
+        "test_endpoint": "/../v1/files/list",
+        "header_name": "Authorization",
+        "test_model": "minimax-m2.1"
     }
 }
 

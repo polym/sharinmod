@@ -221,6 +221,23 @@ PROVIDER_INFO = {
                 "coding_score": 1447
             }
         }
+    },
+    APIKeyProvider.MINIMAX: {
+        "name": "MiniMax Coding Plan",
+        "website": "https://www.minimaxi.com",
+        "supported_models": ["minimax-m2.1"],
+        "logo_path": "/providers/minimax-logo.png",
+        "models": {
+            "minimax-m2.1": {
+                "display_name": "MiniMax M2.1",
+                "description": "MiniMax M2.1 高性能代码模型，230B 总参数，10B 激活参数",
+                "context_length": "196k",
+                "max_output_length": "65k",
+                "input_type": "Text",
+                "output_type": "Text",
+                "coding_score": 1409
+            }
+        }
     }
 }
 

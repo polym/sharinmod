@@ -37,7 +37,8 @@ class Settings(BaseSettings):
         "bigmodel": "https://open.bigmodel.cn/api/anthropic",
         "z.ai": "https://z.ai/api/anthropic",
         "volcengine": "https://ark.cn-beijing.volces.com/api/coding",
-        "moonshot": "https://api.kimi.com/coding"
+        "moonshot": "https://api.kimi.com/coding",
+        "minimax": "https://api.minimaxi.com/anthropic"
     }
 
     # Redis Configuration
