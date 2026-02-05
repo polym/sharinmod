@@ -18,8 +18,8 @@ export interface ModelInfo {
   model_name: string;
   provider: string;
   description: string;
-  input_type: string;
-  output_type: string;
+  input_types: string[];
+  output_types: string[];
   context_length: string;
   max_output_length: string;
   available_subscriptions: number;

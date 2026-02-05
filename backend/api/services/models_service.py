@@ -154,8 +154,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             model_name=model_name,  # 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
             provider=first_provider.value,  # 使用第一个提供商作为主提供商
             description=model_config.get("description", "暂无描述"),
-            input_type=model_config.get("input_type", "Text"),
-            output_type=model_config.get("output_type", "Text"),
+            input_types=model_config.get("input_types", ["Text"]),
+            output_types=model_config.get("output_types", ["Text"]),
             context_length=model_config.get("context_length", "N/A"),
             max_output_length=model_config.get("max_output_length", "N/A"),
             available_subscriptions=len(data["shared_by"]),

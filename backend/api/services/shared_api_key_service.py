@@ -93,8 +93,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1441
             },
             "glm-4.6": {
@@ -102,8 +102,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 高性能模型，平衡速度与质量",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1356
             },
             "glm-4.5-air": {
@@ -111,8 +111,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": None
             }
         }
@@ -128,8 +128,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1441
             },
             "glm-4.6": {
@@ -137,8 +137,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 高性能模型，平衡速度与质量",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1356
             },
             "glm-4.5-air": {
@@ -146,8 +146,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 轻量级模型，快速响应适合简单任务",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": None
             }
         }
@@ -163,8 +163,8 @@ PROVIDER_INFO = {
                 "description": "豆包种子代码模型，专注于代码生成和理解",
                 "context_length": "256k",
                 "max_output_length": "32k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1014
             },
             "kimi-k2.5": {
@@ -172,8 +172,8 @@ PROVIDER_INFO = {
                 "description": "Kimi K2.5 高性能模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1447
             },
             "kimi-k2": {
@@ -181,8 +181,8 @@ PROVIDER_INFO = {
                 "description": "Kimi K2 模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1330
             },
             "glm-4.7": {
@@ -190,8 +190,8 @@ PROVIDER_INFO = {
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
                 "context_length": "128k",
                 "max_output_length": "4k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1441
             },
             "deepseek-v3.2": {
@@ -199,8 +199,8 @@ PROVIDER_INFO = {
                 "description": "DeepSeek V3.2 高性能模型",
                 "context_length": "128k",
                 "max_output_length": "8k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1377
             }
         }
@@ -216,8 +216,8 @@ PROVIDER_INFO = {
                 "description": "Kimi K2.5 高性能模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1447
             }
         }
@@ -233,8 +233,8 @@ PROVIDER_INFO = {
                 "description": "MiniMax M2.1 高性能代码模型，230B 总参数，10B 激活参数",
                 "context_length": "196k",
                 "max_output_length": "65k",
-                "input_type": "Text",
-                "output_type": "Text",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
                 "coding_score": 1409
             }
         }
