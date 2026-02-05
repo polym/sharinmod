@@ -96,10 +96,11 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
   const chartData = sortedData.map(d => d.tokens);
   const maxValue = Math.max(...chartData, 1);
 
-  // Calculate label indices (show labels at 0, 6, 12, 18)
+  // Calculate label indices (show labels at 0, 6, 12, 18, and the last hour in data)
+  const lastIndex = sortedData.length - 1;
   const labelIndices = sortedData
     .map((d, idx) => ({ idx, hour: d.hour }))
-    .filter(({ hour }) => hour === 0 || hour === 6 || hour === 12 || hour === 18)
+    .filter(({ hour, idx }) => hour === 0 || hour === 6 || hour === 12 || hour === 18 || idx === lastIndex)
     .map(({ idx }) => idx);
 
   // Prevent division by zero
@@ -157,11 +158,23 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
       {/* Hour axis */}
       <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-3 relative">
         {labelIndices.map((idx) => {
-          const leftPercent = (idx / safeLength) * 100;
+          // Calculate position as percentage, but clamp first and last labels
+          // to prevent them from being cut off at the edges
+          const rawPercent = (idx / safeLength) * 100;
+          const isFirst = idx === 0;
+          const isLast = idx === sortedData.length - 1;
+
+          let leftPercent = rawPercent;
+          if (isFirst) {
+            leftPercent = 0;
+          } else if (isLast) {
+            leftPercent = 100;
+          }
+
           return (
             <span
               key={idx}
-              className="absolute transform -translate-x-1/2"
+              className={`absolute transform ${isFirst ? '' : isLast ? '-translate-x-full' : '-translate-x-1/2'}`}
               style={{ left: `${leftPercent}%` }}
             >
               {sortedData[idx].hour}:00
