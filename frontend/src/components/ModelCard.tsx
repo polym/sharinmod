@@ -9,6 +9,55 @@ import Image from 'next/image';
 import { getModelLogo } from '@/lib/providers';
 import type { SharedBy } from '@/types/model';
 
+// 提供商名称映射（必须放在 ProviderLogoTooltip 之前）
+const PROVIDER_NAMES: Record<string, string> = {
+  'bigmodel': '智谱',
+  'z.ai': 'Z.AI',
+  'volcengine': '火山引擎',
+};
+
+// 提供商 Logo Tooltip 组件
+function ProviderLogoTooltip({ provider, children }: { provider: { code: string; logo_path: string }; children: React.ReactNode }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+          {PROVIDER_NAMES[provider.code] || provider.code}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 分享者头像 Tooltip 组件
+function SharerAvatarTooltip({ name, children }: { name: string; children: React.ReactNode }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+          {name}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 const COPY_FEEDBACK_DURATION = 1500; // ms
 
 interface ModelCardProps {
@@ -45,13 +94,6 @@ const TYPE_LABELS: Record<string, string> = {
   'Image': '图片',
   'Video': '视频',
   'Audio': '音频',
-};
-
-// 提供商名称映射
-const PROVIDER_NAMES: Record<string, string> = {
-  'bigmodel': '智谱',
-  'z.ai': 'Z.AI',
-  'volcengine': '火山引擎',
 };
 
 export function ModelCard({ model, onQuickCall }: ModelCardProps) {
@@ -227,18 +269,16 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleProviders.map((provider) => (
-                  <div
-                    key={provider.code}
-                    className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-white hover:scale-110 transition-transform cursor-help"
-                    title={PROVIDER_NAMES[provider.code] || provider.code}
-                  >
-                    <Image
-                      src={provider.logo_path}
-                      alt={provider.code}
-                      width={24}
-                      height={24}
-                    />
-                  </div>
+                  <ProviderLogoTooltip key={provider.code} provider={provider}>
+                    <div className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-white hover:scale-110 transition-transform cursor-default">
+                      <Image
+                        src={provider.logo_path}
+                        alt={provider.code}
+                        width={24}
+                        height={24}
+                      />
+                    </div>
+                  </ProviderLogoTooltip>
                 ))}
                 {extraProvidersCount > 0 && (
                   <div
@@ -260,16 +300,16 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleSharers.map((sharer) => (
-                  <Avatar
-                    key={sharer.user_id}
-                    className="w-6 h-6 border-2 border-white dark:border-gray-800 hover:scale-110 transition-transform cursor-help"
-                    title={sharer.name || `用户 ${sharer.user_id}`}
-                  >
-                    <AvatarImage src={sharer.avatar_url} alt={sharer.name} />
-                    <AvatarFallback className="text-[10px] bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
-                      {getUserInitial(sharer.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || `用户 ${sharer.user_id}`}>
+                    <Avatar
+                      className="w-6 h-6 border-2 border-white dark:border-gray-800 hover:scale-110 transition-transform cursor-default"
+                    >
+                      <AvatarImage src={sharer.avatar_url} alt={sharer.name} />
+                      <AvatarFallback className="text-[10px] bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
+                        {getUserInitial(sharer.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </SharerAvatarTooltip>
                 ))}
                 {extraSharersCount > 0 && (
                   <div
