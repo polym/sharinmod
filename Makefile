@@ -8,8 +8,12 @@ up:
 	docker-compose up -d --build
 	@echo "Waiting for services to be ready..."
 	@sleep 3
+	@echo "Cleaning up existing port forwarding on port $(HOST_PORT)..."
+	-@pkill -f "socat TCP-LISTEN:$(HOST_PORT)"
+	@sleep 1
 	@echo "Setting up port forward: $(HOST_PORT):80 -> $(COMPOSE_PROJECT_NAME)-nginx-1"
-	port_forward -c $(COMPOSE_PROJECT_NAME)-nginx-1 -p $(HOST_PORT):80
+	@nohup port_forward -c $(COMPOSE_PROJECT_NAME)-nginx-1 -p $(HOST_PORT):80
+	@echo "Port forwarding started. Check logs with: tail -f /tmp/port_forward.log"
 
 down:
 	docker-compose down
@@ -19,3 +23,4 @@ restart:
 
 logs:
 	docker-compose logs -f
+

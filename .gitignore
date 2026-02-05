@@ -180,5 +180,8 @@ template/
 # BMAD output (generated files)
 _bmad-output/
 
+# nohup output
+nohup.out
+
 **:memory:**
 .claude/worktrees/
