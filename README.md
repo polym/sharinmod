@@ -123,6 +123,11 @@ Tests cover:
 3. Update documentation as needed
 4. Use conventional commit messages
 
+## 📝 Changelog
+
+### 2026-02-05
+- Removed browser dark theme support in frontend CSS to ensure consistent light theme styling regardless of browser settings.
+
 ## 📝 License
 
 This project is licensed under the MIT License.
