@@ -103,12 +103,26 @@ const TYPE_LABELS: Record<string, string> = {
 // 所有支持的类型（用于显示完整类型栏）
 const ALL_TYPES = ['Text', 'Image', 'Video', 'Audio', 'File'] as const;
 
-// 提供商名称映射
-const PROVIDER_NAMES: Record<string, string> = {
-  'bigmodel': '智谱',
-  'z.ai': 'Z.AI',
-  'volcengine': '火山引擎',
-};
+// 类型图标 Tooltip 组件
+function TypeIconTooltip({ type, children }: { type: string; children: React.ReactNode }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+          {TYPE_LABELS[type] || type}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const [copied, setCopied] = useState(false);
@@ -166,23 +180,21 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
     return <IconComponent className="w-3 h-3" />;
   };
 
-  // 渲染类型图标组
+  // 渲染类型图标组 - 参考订阅平台 LOGO 的处理方式
   const renderTypeIcons = (types: string[]) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-x-0.5">
         {ALL_TYPES.map((type) => {
           const isSupported = types.includes(type);
           const IconComponent = TYPE_ICONS[type] || Type;
           return (
-            <div
-              key={type}
-              title={TYPE_LABELS[type] || type}
-              className="inline-flex"
-            >
-              <IconComponent
-                className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
-              />
-            </div>
+            <TypeIconTooltip key={type} type={type}>
+              <div className="w-5 h-5 rounded border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 hover:scale-110 transition-transform cursor-default flex items-center justify-center">
+                <IconComponent
+                  className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
+                />
+              </div>
+            </TypeIconTooltip>
           );
         })}
       </div>

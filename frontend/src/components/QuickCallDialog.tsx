@@ -123,28 +123,51 @@ export function QuickCallDialog({
     setTimeout(() => setCopiedTab(null), COPY_FEEDBACK_DURATION);
   };
 
-  const handleCopy = (code: string, tabId: string): void => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(code)
-        .then(() => {
+  const handleCopy = async (code: string, tabId: string): Promise<void> => {
+    // Fallback copy function
+    const fallbackCopy = (): boolean => {
+      const textArea = document.createElement("textarea");
+      textArea.value = code;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(textArea);
+      return success;
+    };
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+        setCopiedTab(tabId);
+        resetCopyState();
+      } else {
+        const success = fallbackCopy();
+        if (success) {
           setCopiedTab(tabId);
           resetCopyState();
-        })
-        .catch((err) => {
-          console.error("Failed to copy:", err);
+        } else {
           toast({
             title: "复制失败",
-            description: "您的浏览器不支持剪贴板功能，请手动复制代码",
+            description: "请手动复制代码",
             variant: "destructive",
           });
+        }
+      }
+    } catch (err) {
+      console.error("Copy failed:", err);
+      const success = fallbackCopy();
+      if (!success) {
+        toast({
+          title: "复制失败",
+          description: "请手动复制代码",
+          variant: "destructive",
         });
-    } else {
-      toast({
-        title: "不支持的浏览器",
-        description: "您的浏览器不支持剪贴板 API，请手动复制代码",
-        variant: "destructive",
-      });
+      } else {
+        setCopiedTab(tabId);
+        resetCopyState();
+      }
     }
   };
 
