@@ -18,7 +18,7 @@ from api.schemas.usage_log import (
     UsageOverviewResponse,
     HourlyTokenData
 )
-from api.schemas.litellm_callback import LiteLLMCallbackRequest
+from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def _get_now_in_timezone(tz_str: Optional[str]) -> date:
 def create_usage_log(
     db: Session,
     user_id: int,
-    callback_data: LiteLLMCallbackRequest,
+    callback_data: LiteLLMSpendlogCallbackRequest,
     subscription: Optional[Subscription] = None,
     client: Optional[str] = None
 ) -> Optional[UsageLog]:

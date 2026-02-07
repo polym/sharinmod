@@ -73,11 +73,11 @@ def test_consumer_handles_missing_user(
     session: Session
 ):
     """Test consumer handles case when user is not found"""
-    from api.schemas.litellm_callback import LiteLLMCallbackRequest
+    from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
     callback_data = make_valid_callback_data(user_hash="nonexistent_hash")
 
-    mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
+    mock_parse.return_value = LiteLLMSpendlogCallbackRequest(**callback_data)
     mock_find_user.return_value = None  # User not found
 
     result = process_callback(session, callback_data)
@@ -97,12 +97,12 @@ def test_consumer_handles_missing_subscription(
     session: Session
 ):
     """Test consumer handles case when subscription is not found"""
-    from api.schemas.litellm_callback import LiteLLMCallbackRequest
+    from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
     from api.models.user import User
 
     callback_data = make_valid_callback_data(model="nonexistent_model")
 
-    mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
+    mock_parse.return_value = LiteLLMSpendlogCallbackRequest(**callback_data)
 
     # Create a mock user
     mock_user = User(
@@ -169,12 +169,12 @@ def test_consumer_retries_on_transient_error(
     session: Session
 ):
     """Test consumer continues processing after transient error"""
-    from api.schemas.litellm_callback import LiteLLMCallbackRequest
+    from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
     from api.models.user import User
 
     callback_data = make_valid_callback_data()
 
-    mock_parse.return_value = LiteLLMCallbackRequest(**callback_data)
+    mock_parse.return_value = LiteLLMSpendlogCallbackRequest(**callback_data)
 
     # Create a mock user
     mock_user = User(

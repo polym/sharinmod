@@ -20,7 +20,7 @@ from api.models.user import User
 from api.models.shared_api_key import SharedAPIKey, APIKeyProvider
 from api.models.subscription import Subscription
 from api.models.unified_api_key import UnifiedAPIKey
-from api.schemas.litellm_callback import LiteLLMCallbackRequest
+from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
 
 @pytest.fixture(name="session")
@@ -149,7 +149,7 @@ def test_parse_callback_data_success(valid_callback_data):
     """Test parsing valid callback data"""
     result = parse_callback_data(valid_callback_data)
     assert result is not None
-    assert isinstance(result, LiteLLMCallbackRequest)
+    assert isinstance(result, LiteLLMSpendlogCallbackRequest)
     assert result.metadata.user_api_key_hash == "litellm_key_hash"
     assert result.model_id == "model-123"
     assert result.total_tokens == 1500
@@ -166,7 +166,7 @@ def test_extract_api_key_hash_success(valid_callback_data):
 # Test 3: Extract api_key_hash when missing
 def test_extract_api_key_hash_missing():
     """Test extracting api_key_hash when metadata is None"""
-    from api.schemas.litellm_callback import LiteLLMCallbackRequest
+    from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
     callback_data = {
         "id": "chatcmpl-test",
         "trace_id": "trace-test",
@@ -181,7 +181,7 @@ def test_extract_api_key_hash_missing():
         "completion_tokens": 50,
         "response_cost": 0.0
     }
-    callback = LiteLLMCallbackRequest(**callback_data)
+    callback = LiteLLMSpendlogCallbackRequest(**callback_data)
     result = extract_api_key_hash(callback)
     assert result is None
 
@@ -197,7 +197,7 @@ def test_extract_model_id_root_level(valid_callback_data):
 # Test 5: Extract model_id from callback (hidden_params)
 def test_extract_model_id_hidden_params():
     """Test extracting model_id from hidden_params when root is None"""
-    from api.schemas.litellm_callback import LiteLLMCallbackRequest, LiteLLMHiddenParams
+    from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest, LiteLLMHiddenParams
     callback_data = {
         "id": "chatcmpl-test",
         "trace_id": "trace-test",
@@ -215,7 +215,7 @@ def test_extract_model_id_hidden_params():
             "model_id": "model-from-hidden"
         }
     }
-    callback = LiteLLMCallbackRequest(**callback_data)
+    callback = LiteLLMSpendlogCallbackRequest(**callback_data)
     result = extract_model_id(callback)
     assert result == "model-from-hidden"
 
@@ -270,7 +270,7 @@ def test_update_token_statistics_consumer_only(
     valid_callback_data
 ):
     """Test updating token statistics for consumer only (no subscription)"""
-    callback = LiteLLMCallbackRequest(**valid_callback_data)
+    callback = LiteLLMSpendlogCallbackRequest(**valid_callback_data)
 
     result = update_token_statistics(session, callback, test_user_consumer, subscription=None)
 
@@ -291,7 +291,7 @@ def test_update_token_statistics_consumer_and_contributor(
     valid_callback_data
 ):
     """Test updating token statistics for both consumer and contributor"""
-    callback = LiteLLMCallbackRequest(**valid_callback_data)
+    callback = LiteLLMSpendlogCallbackRequest(**valid_callback_data)
 
     result = update_token_statistics(session, callback, test_user_consumer, test_subscription)
 
