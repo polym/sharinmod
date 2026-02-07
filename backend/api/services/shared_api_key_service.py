@@ -163,7 +163,7 @@ PROVIDER_INFO = {
                 "description": "豆包种子代码模型，专注于代码生成和理解",
                 "context_length": "256k",
                 "max_output_length": "32k",
-                "input_types": ["Text"],
+                "input_types": ["Text", "Image"],
                 "output_types": ["Text"],
                 "coding_score": 1014
             },
@@ -172,7 +172,7 @@ PROVIDER_INFO = {
                 "description": "Kimi K2.5 高性能模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_types": ["Text"],
+                "input_types": ["Text", "Image", "Video"],
                 "output_types": ["Text"],
                 "coding_score": 1447
             },
@@ -181,7 +181,7 @@ PROVIDER_INFO = {
                 "description": "Kimi K2 模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_types": ["Text"],
+                "input_types": ["Text", "Image", "Video"],
                 "output_types": ["Text"],
                 "coding_score": 1330
             },
@@ -216,7 +216,7 @@ PROVIDER_INFO = {
                 "description": "Kimi K2.5 高性能模型",
                 "context_length": "128k",
                 "max_output_length": "128k",
-                "input_types": ["Text"],
+                "input_types": ["Text", "Image", "Video"],
                 "output_types": ["Text"],
                 "coding_score": 1447
             }
