@@ -165,33 +165,66 @@ export function UnifiedAPIKeys() {
     }
   };
 
-  const handleCopyAPIKey = (key: string, id: number) => {
+  const handleCopyAPIKey = async (key: string, id: number) => {
     // Try modern clipboard API first
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(key).then(() => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(key);
         setCopiedKeyId(id);
         setTimeout(() => setCopiedKeyId(null), 1500);
-      }).catch(() => {
-        fallbackCopy(key, id);
-      });
-    } else {
-      fallbackCopy(key, id);
+        return;
+      }
+    } catch (err) {
+      console.warn('Clipboard API failed, trying fallback:', err);
     }
+
+    // Fallback method
+    fallbackCopy(key, id);
   };
 
   const fallbackCopy = (text: string, id: number) => {
-    // Fallback for older browsers or non-HTTPS contexts
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.select();
     try {
-      document.execCommand('copy');
-      setCopiedKeyId(id);
-      setTimeout(() => setCopiedKeyId(null), 1500);
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      
+      // Better positioning for reliable copy
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '2em';
+      textArea.style.height = '2em';
+      textArea.style.padding = '0';
+      textArea.style.border = 'none';
+      textArea.style.outline = 'none';
+      textArea.style.boxShadow = 'none';
+      textArea.style.background = 'transparent';
+      textArea.style.opacity = '0';
+      
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        textArea.setSelectionRange(0, textArea.value.length);
+      } catch (e) {
+        console.warn('setSelectionRange not supported:', e);
+      }
+      
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (success) {
+        setCopiedKeyId(id);
+        setTimeout(() => setCopiedKeyId(null), 1500);
+      } else {
+        toast({
+          title: '错误',
+          description: '复制失败，请手动复制',
+          variant: 'destructive',
+        });
+      }
     } catch (err) {
+      console.error('Fallback copy error:', err);
       toast({
         title: '错误',
         description: '复制失败，请手动复制',

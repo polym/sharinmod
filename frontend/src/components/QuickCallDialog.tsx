@@ -124,50 +124,95 @@ export function QuickCallDialog({
   };
 
   const handleCopy = async (code: string, tabId: string): Promise<void> => {
-    // Fallback copy function
-    const fallbackCopy = (): boolean => {
-      const textArea = document.createElement("textarea");
-      textArea.value = code;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.select();
-      const success = document.execCommand("copy");
-      document.body.removeChild(textArea);
-      return success;
-    };
-
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(code);
-        setCopiedTab(tabId);
-        resetCopyState();
-      } else {
-        const success = fallbackCopy();
-        if (success) {
-          setCopiedTab(tabId);
-          resetCopyState();
-        } else {
-          toast({
-            title: "复制失败",
-            description: "请手动复制代码",
-            variant: "destructive",
-          });
+    // Robust legacy copy for HTTP contexts (execCommand)
+    const legacyCopy = (): boolean => {
+      let textArea: HTMLTextAreaElement | null = null;
+      try {
+        textArea = document.createElement("textarea");
+        textArea.value = code;
+        
+        // Optimized for HTTP/Dialog contexts - must be visible for selection
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        textArea.style.top = (window.pageYOffset || document.documentElement.scrollTop) + "px";
+        textArea.setAttribute("readonly", "");
+        textArea.style.border = "0";
+        textArea.style.padding = "0";
+        textArea.style.margin = "0";
+        textArea.style.fontSize = "16px"; // Prevent iOS zoom
+        textArea.style.width = "1px";
+        textArea.style.height = "1px";
+        
+        // CRITICAL: Append to dialog content if available, not body
+        // This ensures it's within the focus trap
+        const dialogContent = document.querySelector('[role="dialog"]');
+        const container = dialogContent || document.body;
+        container.appendChild(textArea);
+        
+        // iOS Safari requires this
+        textArea.contentEditable = "true";
+        textArea.readOnly = false;
+        
+        // Create range and select
+        const range = document.createRange();
+        range.selectNodeContents(textArea);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        
+        textArea.select();
+        textArea.setSelectionRange(0, code.length);
+        
+        // Execute copy - this works in HTTP contexts
+        const success = document.execCommand("copy");
+        
+        // Clean up selection
+        if (selection) {
+          selection.removeAllRanges();
+        }
+        
+        return success;
+      } catch (error) {
+        console.error("Legacy copy error:", error);
+        return false;
+      } finally {
+        // Always cleanup
+        if (textArea && textArea.parentNode) {
+          textArea.parentNode.removeChild(textArea);
         }
       }
-    } catch (err) {
-      console.error("Copy failed:", err);
-      const success = fallbackCopy();
-      if (!success) {
-        toast({
-          title: "复制失败",
-          description: "请手动复制代码",
-          variant: "destructive",
-        });
-      } else {
-        setCopiedTab(tabId);
-        resetCopyState();
+    };
+
+    // Check if we're in a secure context (HTTPS or localhost)
+    const isSecureContext = window.isSecureContext;
+    
+    if (isSecureContext) {
+      try {
+        // Try modern clipboard API (HTTPS/localhost only)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+          setCopiedTab(tabId);
+          resetCopyState();
+          return;
+        }
+      } catch (err) {
+        console.warn("Clipboard API failed, falling back to execCommand:", err);
       }
+    }
+
+    // Use legacy method for HTTP or as fallback
+    const success = legacyCopy();
+    if (success) {
+      setCopiedTab(tabId);
+      resetCopyState();
+    } else {
+      toast({
+        title: "复制失败",
+        description: "请尝试手动选择并复制代码",
+        variant: "destructive",
+      });
     }
   };
 
