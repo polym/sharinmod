@@ -2,8 +2,8 @@
 """
 LiteLLM Callback Consumer
 
-Standalone process that consumes LiteLLM success callbacks from Redis queue
-and updates token statistics in the database.
+Standalone process that consumes LiteLLM callbacks (both success and failure) from Redis queue
+and updates token statistics and creates usage logs.
 
 Run with: python -m api.consumers.litellm_callback_consumer
 
