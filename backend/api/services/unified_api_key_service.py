@@ -126,7 +126,7 @@ async def unlock_litellm_key(key: str) -> None:
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             response = await client.post(
-                f"{settings.LITELLM_BASE_URL}/key/unlock",
+                f"{settings.LITELLM_BASE_URL}/key/unblock",
                 json={"key": key},
                 headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
             )

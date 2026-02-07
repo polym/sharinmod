@@ -11,6 +11,7 @@ Graceful shutdown: SIGTERM or SIGINT (Ctrl+C)
 """
 import signal
 import sys
+import json
 import logging
 import time
 from typing import Optional
@@ -93,6 +94,12 @@ def process_message(redis_client: redis.Redis, session: Session) -> bool:
     # Extract model_id for logging (may be at root or in hidden_params)
     model_id = callback_data.get('model_id') or callback_data.get('hidden_params', {}).get('model_id', callback_data.get('model', 'unknown'))
     logger.info(f"Processing callback: model_id={model_id}")
+
+    # Log failure callback data for debugging
+    if callback_data.get("status") == "failure":
+        logger.error(
+            f"Failure callback received:\n{json.dumps(callback_data, indent=2, ensure_ascii=False)}"
+        )
 
     try:
         success = process_callback(session, callback_data)
