@@ -17,7 +17,7 @@ from api.models.subscription import Subscription
 from api.models.shared_api_key import SharedAPIKey, APIKeyProvider
 from api.models.usage_log import UsageLog, UsageLogStatus
 from api.services.litellm_callback_service import process_callback
-from api.schemas.litellm_callback import LiteLLMCallbackRequest
+from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
 
 # Create in-memory SQLite database for testing
