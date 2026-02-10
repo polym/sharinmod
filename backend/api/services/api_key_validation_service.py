@@ -35,6 +35,12 @@ PROVIDER_CONFIGS = {
         "test_endpoint": "/../v1/files/list",
         "header_name": "Authorization",
         "test_model": "minimax-m2.1"
+    },
+    APIKeyProvider.OPENROUTER: {
+        "base_url": "https://openrouter.ai/api/v1",
+        "test_endpoint": "/models",
+        "header_name": "Authorization",
+        "test_model": "pony-alpha"
     }
 }
 

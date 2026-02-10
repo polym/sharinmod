@@ -11,6 +11,7 @@ class APIKeyProvider(str, Enum):
     VOLCENGINE = "volcengine"  # 火山引擎 - https://volcengine.com
     MOONSHOT = "moonshot"      # 月之暗面 - https://kimi.com
     MINIMAX = "minimax"        # MiniMax - https://www.minimaxi.com
+    OPENROUTER = "openrouter"   # OpenRouter - https://openrouter.ai
 
 
 class APIKeyStatus(str, Enum):

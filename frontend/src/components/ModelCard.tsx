@@ -51,6 +51,7 @@ const PROVIDER_CODE_TO_KEY: Record<string, string> = {
   'volcengine': 'volcengine',
   'minimax': 'minimax',
   'moonshot': 'moonshot',
+  'openrouter': 'openrouter',
 };
 
 // 提供商显示名称（回退到代码）
@@ -58,8 +59,9 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   'bigmodel': '智谱',
   'zai': 'Z.AI',
   'volcengine': '火山引擎',
-  'minimax': 'MiniMax',
   'moonshot': '月之暗面',
+  'minimax': 'MiniMax',
+  'openrouter': 'OpenRouter',
 };
 
 // 提供商 Logo Tooltip 组件
@@ -104,93 +106,93 @@ function SharerAvatarTooltip({ name, children }: { name: string; children: React
   );
 }
 
-// 类型图标 Tooltip 组件
-function TypeIconTooltip({ type, children, typeLabel }: { type: string; children: React.ReactNode; typeLabel: string }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+const COPY_FEEDBACK_DURATION = 1500; // ms
 
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      {children}
-      {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
-          {typeLabel}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
-        </div>
-      )}
-    </div>
-  );
+interface ModelCardProps {
+  model: {
+    display_name: string;
+    model_name: string;
+    description: string;
+    input_types: string[];
+    output_types: string[];
+    context_length: string;
+    max_output_length: string;
+    available_subscriptions: number;
+    shared_by: SharedBy[];
+    provider: string;
+    used_tokens?: number;
+    coding_score?: number | null;
+    providers?: Array<{ code: string; logo_path: string }>;
+    subscription_platform_count?: number;
+  };
+  onQuickCall?: (modelName: string) => void;
 }
 
-export function ModelCard({ model, onQuickCall }: ModelCardProps) {
-  const t = useTranslations('modelCard');
-  const tAria = useTranslations('modelCard.ariaLabels');
-  const tProvider = useTranslations('modelCard.providerNames');
-  const tType = useTranslations('modelCard.typeLabels');
+// 输入/输出类型图标映射
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  'Text': Type,
+  'Image': ImageIcon,
+  'Video': Video,
+  'Audio': Mic,
+  'File': File,
+};
 
+// 输入/输出类型中文标签映射
+const TYPE_LABELS: Record<string, string> = {
+  'Text': '文本',
+  'Image': '图片',
+  'Video': '视频',
+  'Audio': '音频',
+  'File': '文件',
+};
+
+// 所有支持的类型（用于显示完整类型栏）
+const ALL_TYPES = ['Text', 'Image', 'Video', 'Audio', 'File'] as const;
+
+export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const [copied, setCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const t = useTranslations('ModelCard');
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     const textToCopy = model.model_name;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(textToCopy);
+
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
-        return;
-      }
-    } catch (err) {
-      console.warn('Clipboard API failed, trying fallback:', err);
+      }).catch(() => {
+        fallbackCopy(textToCopy);
+      });
+    } else {
+      fallbackCopy(textToCopy);
     }
-    fallbackCopy(textToCopy);
   };
 
   const fallbackCopy = (text: string) => {
+    // Fallback for older browsers or non-HTTPS contexts
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.select();
     try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.top = '0';
-      textArea.style.left = '0';
-      textArea.style.width = '2em';
-      textArea.style.height = '2em';
-      textArea.style.padding = '0';
-      textArea.style.border = 'none';
-      textArea.style.outline = 'none';
-      textArea.style.boxShadow = 'none';
-      textArea.style.background = 'transparent';
-      textArea.style.opacity = '0';
-
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-
-      try {
-        textArea.setSelectionRange(0, textArea.value.length);
-      } catch (e) {
-        console.warn('setSelectionRange not supported:', e);
-      }
-
-      const success = document.execCommand('copy');
-      document.body.removeChild(textArea);
-
-      if (success) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
-      }
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
     } catch (err) {
-      console.error('Fallback copy error:', err);
+      console.error('Failed to copy:', err);
     }
+    document.body.removeChild(textArea);
   };
 
   const handleImageError = () => {
     setImageError(true);
   };
 
+  // 获取用户名首字母用于 AvatarFallback
   const getUserInitial = (name?: string): string => {
     if (!name) return '?';
     const parts = name.split('@');
@@ -198,51 +200,64 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
     return username.charAt(0).toUpperCase();
   };
 
+  // 获取输入/输出类型图标
   const getTypeIcon = (type: string) => {
     const IconComponent = TYPE_ICONS[type] || Type;
     return <IconComponent className="w-3 h-3" />;
   };
 
+  // 渲染类型图标组
   const renderTypeIcons = (types: string[]) => {
     return (
-      <div className="flex gap-x-0.5">
+      <div className="flex gap-1">
         {ALL_TYPES.map((type) => {
           const isSupported = types.includes(type);
           const IconComponent = TYPE_ICONS[type] || Type;
           return (
-            <TypeIconTooltip key={type} type={type} typeLabel={tType(type as any) || type}>
-              <div className="w-5 h-5 rounded border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 hover:scale-110 transition-transform cursor-default flex items-center justify-center">
-                <IconComponent
-                  className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
-                />
-              </div>
-            </TypeIconTooltip>
+            <div
+              key={type}
+              title={TYPE_LABELS[type] || type}
+              className="inline-flex"
+            >
+              <IconComponent
+                className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
+              />
+            </div>
           );
         })}
       </div>
     );
   };
 
+  // 最多显示前 3 个头像，超出显示 "+N"
   const visibleSharers = model.shared_by.slice(0, 3);
   const extraSharersCount = Math.max(0, model.shared_by.length - 3);
 
+  // 提供商列表（最多显示前 3 个）
   const providers = model.providers || [];
   const visibleProviders = providers.slice(0, 3);
   const extraProvidersCount = Math.max(0, providers.length - 3);
 
-  const getProviderName = (code: string): string => {
-    // 转换 provider code 为翻译 key
+  // 获取提供商显示名称
+  const getProviderDisplayName = (code: string): string => {
     const key = PROVIDER_CODE_TO_KEY[code] || code;
-    // 先尝试从翻译获取，如果没有则使用显示名称映射
-    return tProvider(key as any) || PROVIDER_DISPLAY_NAMES[key] || code;
+    const displayName = t(`providerNames.${key}`);
+
+    // 如果翻译返回的是 key 本身（翻译不存在），使用回退名称
+    if (displayName === `providerNames.${key}`) {
+      return PROVIDER_DISPLAY_NAMES[code] || code;
+    }
+    return displayName;
   };
 
   return (
     <Card className="group hover:shadow-md transition-shadow relative">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
+          {/* 左侧：头像 + 模型信息 */}
           <div className="flex items-center gap-2 min-w-0 flex-1">
             {imageError ? (
+              // 默认模型图标（首字母占位符）
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 {model.model_name.charAt(0).toUpperCase()}
               </div>
@@ -263,7 +278,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
                 <button
                   onClick={handleCopy}
                   className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  aria-label={copied ? tAria('copied') : tAria('copyModelName')}
+                  aria-label={copied ? t('copied') : t('copyModelName')}
                   type="button"
                 >
                   {copied ? (
@@ -276,11 +291,12 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             </div>
           </div>
 
+          {/* 右侧：API 按钮 */}
           {onQuickCall && (
             <Button
               onClick={() => onQuickCall(model.model_name)}
               className="h-10 w-10 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md flex-shrink-0"
-              aria-label={tAria('apiCall')}
+              aria-label={t('apiCall')}
               type="button"
             >
               <Code2 className="w-4 h-4" />
@@ -289,13 +305,16 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {/* 已使用 Token 和 Coding 评分 - 合并为同一行，两列布局 */}
         <div className="grid grid-cols-2 gap-3">
+          {/* 已使用 Token */}
           <div className="py-2 px-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('tokensUsed')}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('usedTokens')}</div>
             <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {model.used_tokens?.toLocaleString() || '0'}
             </div>
           </div>
+          {/* Coding 评分 */}
           <div className="py-2 px-3 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg">
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('codingScore')}</div>
             <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -304,38 +323,41 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
           </div>
         </div>
 
+        {/* 模型规格 */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('inputSupport')}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('inputSupport')}:</span>
             <span className="font-medium flex items-center gap-1">
               {renderTypeIcons(model.input_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('outputSupport')}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('outputSupport')}:</span>
             <span className="font-medium flex items-center gap-1">
               {renderTypeIcons(model.output_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('context')}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('context')}:</span>
             <span className="font-medium">{model.context_length}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('maxOutput')}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('maxOutput')}:</span>
             <span className="font-medium">{model.max_output_length}</span>
           </div>
         </div>
 
+        {/* 订阅信息 - 2行2列布局 */}
         <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs">
+          {/* 左侧：订阅平台 */}
           <div>
             <div className="text-gray-500 dark:text-gray-400 mb-2">
-              {t('subscriptionPlatforms')}{model.subscription_platform_count || 0}
+              {t('subscriptionPlatforms')}: {model.subscription_platform_count || 0}
             </div>
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleProviders.map((provider) => (
-                  <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderName(provider.code)}>
+                  <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider.code)}>
                     <div className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-white hover:scale-110 transition-transform cursor-default">
                       <Image
                         src={provider.logo_path}
@@ -349,7 +371,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
                 {extraProvidersCount > 0 && (
                   <div
                     className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-400"
-                    title={t('moreProviders', { count: extraProvidersCount })}
+                    title={t('morePlatforms', { count: extraProvidersCount })}
                   >
                     +{extraProvidersCount}
                   </div>
@@ -358,14 +380,15 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             </div>
           </div>
 
+          {/* 右侧：可用订阅 */}
           <div>
             <div className="text-gray-500 dark:text-gray-400 mb-2">
-              {t('availableSubscriptions')}{model.available_subscriptions}
+              {t('availableSubscriptions')}: {model.available_subscriptions}
             </div>
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleSharers.map((sharer) => (
-                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || `User ${sharer.user_id}`}>
+                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || t('userId', { id: sharer.user_id })}>
                     <Avatar
                       className="w-6 h-6 border-2 border-white dark:border-gray-800 hover:scale-110 transition-transform cursor-default"
                     >

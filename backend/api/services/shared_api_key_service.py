@@ -238,6 +238,23 @@ PROVIDER_INFO = {
                 "coding_score": 1409
             }
         }
+    },
+    APIKeyProvider.OPENROUTER: {
+        "name": "OpenRouter Coding Plan",
+        "website": "https://openrouter.ai",
+        "supported_models": ["pony-alpha"],
+        "logo_path": "/providers/openrouter-logo.png",
+        "models": {
+            "pony-alpha": {
+                "display_name": "Pony Alpha",
+                "description": "OpenRouter 高性能大语言模型",
+                "context_length": "200k",
+                "max_output_length": "131k",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
+                "coding_score": None
+            }
+        }
     }
 }
 
@@ -294,6 +311,10 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
     if not supported_models:
         raise ValueError(f"No supported models configured for provider: {provider.value}")
 
+    # Determine the custom_llm_provider based on vendor type
+    # OpenRouter uses its own provider type, others use anthropic
+    custom_provider = "openrouter" if provider == APIKeyProvider.OPENROUTER else "anthropic"
+
     # Use selected models if provided, otherwise use all supported models
     models_to_create = selected_models if selected_models else supported_models
 
@@ -310,7 +331,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
                 "api_base": api_base
             },
             "credential_info": {
-                "custom_llm_provider": "anthropic"
+                "custom_llm_provider": custom_provider
             }
         }
 
@@ -349,15 +370,17 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
         # Step 2: Create selected models in LiteLLM
         model_ids = {}
         for model_name in models_to_create:
+            # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
+            litellm_model = f"openrouter/openrouter/{model_name}" if provider == APIKeyProvider.OPENROUTER else model_name
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
-                    "custom_llm_provider": "anthropic",
+                    "custom_llm_provider": custom_provider,
                     "litellm_credential_name": credential_name,
-                    "model": model_name
+                    "model": litellm_model
                 },
-                "provider": "anthropic",
-                "litellm_model_name": model_name,
+                "provider": custom_provider,
+                "litellm_model_name": litellm_model,
             }
 
             print(f"[MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
@@ -399,18 +422,23 @@ async def _create_models_for_credential(
     if not supported_models:
         raise ValueError(f"No supported models configured for provider: {provider.value}")
 
+    # Determine the custom_llm_provider based on vendor type
+    custom_provider = "openrouter" if provider == APIKeyProvider.OPENROUTER else "anthropic"
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         model_ids = {}
         for model_name in supported_models:
+            # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
+            litellm_model = f"openrouter/openrouter/{model_name}" if provider == APIKeyProvider.OPENROUTER else model_name
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
-                    "custom_llm_provider": "anthropic",
+                    "custom_llm_provider": custom_provider,
                     "litellm_credential_name": credential_name,
-                    "model": model_name
+                    "model": litellm_model
                 },
-                "provider": "anthropic",
-                "litellm_model_name": model_name,
+                "provider": custom_provider,
+                "litellm_model_name": litellm_model,
             }
 
             print(f"[ENABLE_MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
@@ -1166,6 +1194,9 @@ async def update_shared_api_key(
                 if not api_base:
                     raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider.value}")
 
+                # Determine the custom_llm_provider based on vendor type
+                custom_provider = "openrouter" if api_key_obj.provider == APIKeyProvider.OPENROUTER else "anthropic"
+
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     # Update credential with new API key
                     credential_payload = {
@@ -1174,7 +1205,7 @@ async def update_shared_api_key(
                             "api_base": api_base
                         },
                         "credential_info": {
-                            "custom_llm_provider": "anthropic"
+                            "custom_llm_provider": custom_provider
                         }
                     }
                     update_payload = {
@@ -1208,18 +1239,23 @@ async def update_shared_api_key(
 
             # Add new models
             if models_to_add:
+                # Determine the custom_llm_provider based on vendor type
+                custom_provider = "openrouter" if api_key_obj.provider == APIKeyProvider.OPENROUTER else "anthropic"
+
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     credential_name = f"{api_key_obj.provider.value}/{user.email}"
                     for model_name in models_to_add:
+                        # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
+                        litellm_model = f"openrouter/openrouter/{model_name}" if api_key_obj.provider == APIKeyProvider.OPENROUTER else model_name
                         model_payload = {
                             "model_name": model_name,
                             "litellm_params": {
-                                "custom_llm_provider": "anthropic",
+                                "custom_llm_provider": custom_provider,
                                 "litellm_credential_name": credential_name,
-                                "model": model_name
+                                "model": litellm_model
                             },
-                            "provider": "anthropic",
-                            "litellm_model_name": model_name,
+                            "provider": custom_provider,
+                            "litellm_model_name": litellm_model,
                         }
                         print(f"[UPDATE] Creating model '{model_name}'")
                         model_response = await client.post(

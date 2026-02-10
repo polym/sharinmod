@@ -3,7 +3,7 @@
  * Maps provider codes to brand names and logos
  */
 
-export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot' | 'minimax';
+export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot' | 'minimax' | 'openrouter';
 
 export interface ProviderConfig {
   code: ProviderCode;
@@ -36,6 +36,11 @@ export const PROVIDERS: Record<ProviderCode, ProviderConfig> = {
     code: 'minimax',
     brandName: 'MiniMax',
     logoPath: '/providers/minimax-logo.png',
+  },
+  openrouter: {
+    code: 'openrouter',
+    brandName: 'OpenRouter',
+    logoPath: '/providers/openrouter-logo.png',
   },
 };
 
@@ -108,5 +113,8 @@ export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }>
   },
   minimax: {
     supported_models: ['minimax-m2.1'],
+  },
+  openrouter: {
+    supported_models: ['pony-alpha'],
   },
 };

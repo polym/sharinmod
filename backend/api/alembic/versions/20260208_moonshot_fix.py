@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Add MOONSHOT to the apikeyprovider enum
     # This fixes the missing MOONSHOT enum value that should have been added earlier
-    op.execute("ALTER TYPE apikeyprovider ADD VALUE 'MOONSHOT'")
+    op.execute("ALTER TYPE apikeyprovider ADD VALUE IF NOT EXISTS 'MOONSHOT'")
 
 
 def downgrade() -> None:

@@ -223,3 +223,73 @@ docker exec -it db psql -U postgres -d sharinmod
 
 1. **数据库迁移**: 必须在 backend 容器内执行，不能在宿主机直接运行
 2. **时间格式**: 前端使用中文格式化 `zh-CN`，保持 UI 一致性
+
+---
+
+## 经验教训与解决方案
+
+### 问题 1: TypeScript 重复声明变量
+
+**现象**: 添加新提供商时，前端编译报错 `Identifier 'PROVIDER_NAMES' has already been declared`
+
+**原因**: 在 `ModelCard.tsx` 中存在两个同名的 `const PROVIDER_NAMES` 声明（第13行和第107行），一个用于 ProviderLogoTooltip 组件，另一个用于主组件，导致重复声明。
+
+**解决方案**:
+- 合并重复的声明为一个完整的版本
+- 包含所有支持的提供商
+
+**预防措施**:
+- 添加新常量前，先搜索项目中是否已存在同名定义
+- 使用全局常量而非局部重复定义
+
+```typescript
+// 正确做法：单一完整声明
+const PROVIDER_NAMES: Record<string, string> = {
+  'bigmodel': '智谱',
+  'z.ai': 'Z.AI',
+  'volcengine': '火山引擎',
+  'moonshot': '月之暗面',
+  'minimax': 'MiniMax',
+  'openrouter': 'OpenRouter',
+};
+```
+
+### 问题 2: PostgreSQL 枚举类型添加新值
+
+**现象**: 添加 `APIKeyProvider.OPENROUTER` 枚举后，运行时错误 `invalid input value for enum apikeyprovider: "OPENROUTER"`
+
+**原因**: PostgreSQL 的枚举类型 `apikeyprovider` 是数据库层面的约束，添加 Python 枚举值后需要同步更新数据库。
+
+**解决方案**:
+
+1. **创建迁移文件**：
+```python
+# backend/api/alembic/versions/YYYYMMDD_add_provider.py
+def upgrade() -> None:
+    # 使用 IF NOT EXISTS 避免重复添加错误
+    op.execute("ALTER TYPE apikeyprovider ADD VALUE IF NOT EXISTS 'OPENROUTER'")
+```
+
+2. **手动修复（当迁移链断裂时）**：
+```bash
+# 直接在数据库执行
+docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "ALTER TYPE apikeyprovider ADD VALUE IF NOT EXISTS 'OPENROUTER';"
+
+# 检查当前枚举值
+docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "SELECT enumlabel FROM pg_enum WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'apikeyprovider');"
+
+# 更新 alembic_version 表
+docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "UPDATE alembic_version SET version_num = 'YYYYMMDD_new';"
+```
+
+3. **修复迁移链**：
+```bash
+# 修复已存在的迁移文件，添加 IF NOT EXISTS
+# 编辑 backend/api/alembic/versions/20260208_moonshot_fix.py
+# 将 "ALTER TYPE ... ADD VALUE 'MOONSHOT'" 改为 "ALTER TYPE ... ADD VALUE IF NOT EXISTS 'MOONSHOT'"
+```
+
+**预防措施**:
+- 每次添加枚举值时，迁移文件必须使用 `IF NOT EXISTS`
+- 添加新枚举值后，先检查数据库枚举状态再运行迁移
+- 如果迁移失败，检查 `alembic_version` 表状态并手动修复

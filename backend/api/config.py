@@ -38,7 +38,8 @@ class Settings(BaseSettings):
         "z.ai": "https://z.ai/api/anthropic",
         "volcengine": "https://ark.cn-beijing.volces.com/api/coding",
         "moonshot": "https://api.kimi.com/coding",
-        "minimax": "https://api.minimaxi.com/anthropic"
+        "minimax": "https://api.minimaxi.com/anthropic",
+        "openrouter": "https://openrouter.ai/api/v1"
     }
 
     # Redis Configuration
