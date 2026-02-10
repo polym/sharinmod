@@ -9,10 +9,7 @@ import {
   Users,
   Key,
   BarChart3,
-  Grid,
   Sparkles,
-  Radio,
-  User,
   Menu,
   X,
   Settings
@@ -20,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickCallDialog } from "@/components/QuickCallDialog";
+import { useTranslations } from "next-intl";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -48,13 +46,15 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
 export function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const t = useTranslations('sidebar');
+  const tQuickCall = useTranslations('quickCall');
 
   const mainNavItems = [
-    { icon: <Store className="w-4 h-4" />, label: "发现", href: "/marketplace" },
-    { icon: <Users className="w-4 h-4" />, label: "共享订阅", href: "/shared" },
-    { icon: <Key className="w-4 h-4" />, label: "API Keys", href: "/api-keys" },
-    { icon: <BarChart3 className="w-4 h-4" />, label: "使用情况", href: "/usage" },
-    { icon: <Settings className="w-4 h-4" />, label: "设置", href: "/settings" },
+    { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
+    { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
+    { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
+    { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
+    { icon: <Settings className="w-4 h-4" />, label: tQuickCall('selectModel'), href: "/settings" },
   ];
 
   const SidebarContent = () => (
@@ -63,7 +63,7 @@ export function Sidebar() {
       <QuickCallDialog>
         <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
           <Sparkles className="w-4 h-4 mr-1" />
-          即刻调用
+          {tQuickCall('selectModel')}
         </Button>
       </QuickCallDialog>
 

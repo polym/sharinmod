@@ -1,0 +1,328 @@
+{
+  "sidebar": {
+    "marketplace": "Marketplace",
+    "myShared": "My Shared",
+    "apiKeys": "API Keys",
+    "usage": "Usage"
+  },
+  "topbar": {
+    "settings": "Settings",
+    "logout": "Logout",
+    "apiKeys": "API Keys"
+  },
+  "settings": {
+    "languageSettings": "Language Settings",
+    "language": "Language",
+    "profileSettings": "Profile Settings",
+    "profileDescription": "Update your personal information and bio",
+    "email": "Email",
+    "emailNotEditable": "Email address cannot be changed",
+    "name": "Name",
+    "namePlaceholder": "Enter your name",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "loading": "Loading...",
+    "toast": {
+      "success": "Success",
+      "profileUpdateSuccess": "Profile updated successfully",
+      "error": "Error",
+      "updateFailed": "Update failed"
+    }
+  },
+  "language": {
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "apiKeys": {
+    "title": "My API Keys",
+    "description": "Create and manage your API keys to call large language models",
+    "create": "Create API Key",
+    "edit": "Edit API Key",
+    "name": "Name",
+    "description": "Description",
+    "optionalDescription": "Optional description",
+    "namePlaceholder": "API Key name",
+    "descriptionPlaceholder": "Optional description",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusRevoked": "Revoked",
+    "statusEnabled": "Enabled",
+    "statusDisabled": "Disabled",
+    "createdAt": "Created",
+    "lastUsedAt": "Last Used",
+    "actions": "Actions",
+    "noKeys": "You don't have any API Keys yet",
+    "unnamed": "Unnamed",
+    "noKey": "None",
+    "copied": "Copied!",
+    "buttons": {
+      "create": "Create",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "createSuccess": "API Key created successfully",
+      "updateSuccess": "API Key updated successfully",
+      "blockSuccess": "API Key has been disabled",
+      "unblockSuccess": "API Key has been enabled",
+      "deleteSuccess": "API Key deleted successfully",
+      "regenerateSuccess": "API Key has been regenerated",
+      "error": "Error",
+      "enterName": "Please enter a name",
+      "confirmDisable": "Are you sure you want to disable this API Key? Once disabled, the key cannot be used to call APIs.",
+      "confirmDelete": "Are you sure you want to delete this API Key? This action cannot be undone.",
+      "createFailed": "Failed to create",
+      "updateFailed": "Failed to update",
+      "blockFailed": "Failed to disable",
+      "unblockFailed": "Failed to enable",
+      "deleteFailed": "Failed to delete",
+      "regenerateFailed": "Failed to regenerate",
+      "copyFailed": "Copy failed, please copy manually"
+    }
+  },
+  "shared": {
+    "title": "Manage Subscriptions",
+    "description": "Add, enable, disable, or delete your subscription keys",
+    "bindNew": "Bind New Subscription",
+    "bindFirst": "Bind your first subscription",
+    "noBindings": "No subscriptions bound yet",
+    "loading": "Loading...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Are you sure you want to delete this subscription? This action cannot be undone.",
+    "disableFailed": "Failed to disable, please try again",
+    "enableFailed": "Failed to enable, please try again",
+    "deleteFailed": "Failed to delete, please try again",
+    "stats": {
+      "totalTokens": "Total Tokens",
+      "totalDuration": "Total Duration",
+      "totalRequests": "Total Requests",
+      "days": "days",
+      "times": "times"
+    }
+  },
+  "marketplace": {
+    "searchPlaceholder": "Search model name or description...",
+    "loading": "Loading...",
+    "noModels": "No models available",
+    "noMatches": "No matching models found",
+    "toast": {
+      "loadFailed": "Failed to load models",
+      "pleaseLogin": "Please log in first",
+      "noPermission": "No permission to access",
+      "serverError": "Server error, please try again later",
+      "serviceUnavailable": "Service temporarily unavailable",
+      "networkError": "Network connection failed",
+      "requestTimeout": "Request timed out",
+      "error": "Error"
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "emailPlaceholder": "your@email.com",
+    "passwordPlaceholder": "••••••••",
+    "login": "Login",
+    "register": "Register",
+    "loggingIn": "Logging in...",
+    "registering": "Registering...",
+    "noAccount": "Don't have an account? Register",
+    "hasAccount": "Already have an account? Login",
+    "validation": {
+      "enterEmail": "Please enter your email address",
+      "enterValidEmail": "Please enter a valid email address",
+      "enterPassword": "Please enter your password",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "confirmPassword": "Please confirm your password",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "toast": {
+      "loginFailed": "Login failed, please check your credentials",
+      "registerFailed": "Registration failed, please check your information"
+    }
+  },
+  "usage": {
+    "title": "Usage",
+    "description": "View your API usage records and statistics",
+    "selectDate": "Select Date:",
+    "apiKey": "API Key:",
+    "selectDatePlaceholder": "Select date",
+    "selectApiKeyPlaceholder": "Select API Key",
+    "all": "All",
+    "loading": "Loading...",
+    "noData": "No usage records",
+    "totalTokens": "Total Tokens",
+    "inputTokens": "Input Tokens",
+    "outputTokens": "Output Tokens",
+    "totalRequests": "Total Requests",
+    "successfulRequests": "Success",
+    "failedRequests": "Failed",
+    "tokenDistribution": "Token Consumption Distribution",
+    "detailedRecords": "Detailed Usage Records",
+    "noRecords": "No usage records",
+    "loadMore": "Load More",
+    "loadingMore": "Loading..."
+  },
+  "usageTable": {
+    "time": "Time",
+    "client": "Client",
+    "model": "Model",
+    "status": "Status",
+    "apiKey": "API Key",
+    "type": "Type",
+    "tokens": "Tokens",
+    "duration": "Duration",
+    "statusSuccess": "Success",
+    "statusFailed": "Failed",
+    "typeOwn": "Own",
+    "typeShared": "Shared",
+    "typeDirect": "Direct",
+    "loadMore": "Load More",
+    "loadingMore": "Loading..."
+  },
+  "modelCard": {
+    "tokensUsed": "Tokens Used",
+    "codingScore": "Coding Score",
+    "noScore": "N/A",
+    "inputSupport": "Input:",
+    "outputSupport": "Output:",
+    "context": "Context:",
+    "maxOutput": "Max Output:",
+    "subscriptionPlatforms": "Platforms:",
+    "availableSubscriptions": "Available:",
+    "moreProviders": "{count} more platforms",
+    "moreSubscriptions": "{count} more subscriptions",
+    "ariaLabels": {
+      "copyModelName": "Copy model name",
+      "copied": "Copied",
+      "apiCall": "API call"
+    },
+    "providerNames": {
+      "bigmodel": "Zhipu AI",
+      "zai": "Z.AI",
+      "volcengine": "Volcengine",
+      "minimax": "MiniMax",
+      "moonshot": "Moonshot AI"
+    },
+    "typeLabels": {
+      "Text": "Text",
+      "Image": "Image",
+      "Video": "Video",
+      "Audio": "Audio",
+      "File": "File"
+    }
+  },
+  "quickCall": {
+    "title": "Quick API Access",
+    "description": "Select your preferred tools and language, copy the example code to start calling AI models",
+    "selectModel": "Select Model",
+    "createApiKey": "Create API Key",
+    "tabs": {
+      "claudeCode": "Claude Code",
+      "openaiPython": "OpenAI: Python",
+      "openaiCurl": "OpenAI: cURL",
+      "anthropicPython": "Anthropic: Python",
+      "anthropicCurl": "Anthropic: cURL"
+    },
+    "sections": {
+      "claudeCode": {
+        "title": "Configure Claude Code",
+        "description": "Add the following configuration to Claude Code's settings.json file at {path}. Replace {placeholder} with your API Key.",
+        "settingsPath": "~/.claude/settings.json",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      },
+      "openaiPython": {
+        "title": "Use OpenAI Python SDK",
+        "description": "Install SDK: {cmd}",
+        "installCmd": "pip install openai"
+      },
+      "openaiCurl": {
+        "title": "Use cURL with OpenAI",
+        "description": "Run this command in your terminal, replace {placeholder} with your key.",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      },
+      "anthropicPython": {
+        "title": "Use Anthropic Python SDK",
+        "description": "Install SDK: {cmd}",
+        "installCmd": "pip install anthropic"
+      },
+      "anthropicCurl": {
+        "title": "Use cURL with Anthropic",
+        "description": "Run this command in your terminal, replace {placeholder} with your key.",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      }
+    },
+    "toast": {
+      "loadFailed": "Failed to load model",
+      "loadFailedDesc": "Cannot fetch model list, using default model",
+      "copyFailed": "Copy failed",
+      "copyFailedDesc": "Please try selecting and copying the code manually",
+      "navigationFailed": "Navigation failed",
+      "navigationFailedDesc": "Cannot navigate to API Keys page, please try again later"
+    },
+    "ariaLabels": {
+      "copyCode": "Copy code",
+      "copied": "Copied"
+    }
+  },
+  "shareDialog": {
+    "title": "Bind Subscription",
+    "description": "Bind your subscription platform API keys to share with other users without exposing your API Key",
+    "selectPlatform": "Select Platform",
+    "subscriptionPlatform": "Subscription Platform",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API Key",
+    "selectModels": "Select Models",
+    "binding": "Binding...",
+    "bind": "Bind",
+    "toast": {
+      "error": "Error",
+      "selectPlatformAndKey": "Please select a platform and enter an API Key",
+      "selectOneModel": "Please select at least one model",
+      "selectedCount": "{count} models selected",
+      "success": "Success",
+      "bindSuccess": "Subscription bound successfully",
+      "bindFailed": "Binding failed, please try again"
+    }
+  },
+  "editSubscriptionDialog": {
+    "title": "Edit Subscription",
+    "description": "Modify the API Key and available models for your {provider} subscription",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Leave empty to keep current API Key",
+    "saving": "Saving...",
+    "save": "Save",
+    "toast": {
+      "success": "Success",
+      "editSuccess": "Subscription modified successfully",
+      "selectOneModel": "Please select at least one model",
+      "error": "Error",
+      "editFailed": "Modification failed, please try again"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "actions": "Actions",
+    "edit": "Edit",
+    "view": "View",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Copied",
+    "submit": "Submit"
+  }
+}

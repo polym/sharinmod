@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { authAPI } from '@/lib/services';
 import { AxiosError } from 'axios';
+import { useTranslations } from 'next-intl';
 
 interface LoginDialogContentProps {
   onSuccess?: () => void;
@@ -22,6 +23,10 @@ interface ApiError {
 }
 
 export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
+  const t = useTranslations('auth');
+  const tValidation = useTranslations('auth.validation');
+  const tToast = useTranslations('auth.toast');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,19 +38,19 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
-      setError('请输入邮箱地址');
+      setError(tValidation('enterEmail'));
       return false;
     }
     if (!EMAIL_REGEX.test(email)) {
-      setError('请输入有效的邮箱地址');
+      setError(tValidation('enterValidEmail'));
       return false;
     }
     if (!password.trim()) {
-      setError('请输入密码');
+      setError(tValidation('enterPassword'));
       return false;
     }
     if (password.length < 8) {
-      setError('密码长度至少为 8 位');
+      setError(tValidation('passwordMinLength'));
       return false;
     }
     return true;
@@ -75,11 +80,11 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       if (typeof errorData?.detail === 'string') {
         setError(errorData.detail);
       } else if (Array.isArray(errorData?.detail)) {
-        setError(errorData.detail.map((e) => e.msg).join(', '));
+        setError(errorData.detail.map((e: any) => e.msg).join(', '));
       } else if (errorData?.detail) {
         setError(JSON.stringify(errorData.detail));
       } else {
-        setError('登录失败，请检查您的凭据');
+        setError(tToast('loginFailed'));
       }
     } finally {
       setLoading(false);
@@ -89,18 +94,18 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="dialog-email">邮箱</Label>
+        <Label htmlFor="dialog-email">{t('email')}</Label>
         <Input
           id="dialog-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          placeholder="your@email.com"
+          placeholder={t('emailPlaceholder')}
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="dialog-password">密码</Label>
+        <Label htmlFor="dialog-password">{t('password')}</Label>
         <Input
           id="dialog-password"
           type="password"
@@ -108,14 +113,14 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
-          placeholder="••••••••"
+          placeholder={t('passwordPlaceholder')}
         />
       </div>
       {error && (
         <div className="text-red-600 text-sm">{error}</div>
       )}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? '登录中...' : '登录'}
+        {loading ? t('loggingIn') : t('login')}
       </Button>
       <div className="text-center">
         <button
@@ -126,7 +131,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
           }}
           className="text-blue-600 hover:underline text-sm"
         >
-          还没有账户？注册
+          {t('noAccount')}
         </button>
       </div>
     </form>

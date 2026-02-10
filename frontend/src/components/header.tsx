@@ -17,8 +17,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslations } from "next-intl";
 
 export function Header() {
+  const t = useTranslations('topbar');
   const { user, logout, updateUser, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
@@ -85,7 +87,7 @@ export function Header() {
               onClick={() => router.push("/settings")}
             >
               <Settings className="mr-2 h-4 w-4" />
-              设置
+              {t('settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -93,7 +95,7 @@ export function Header() {
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              登出
+              {t('logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -3,6 +3,8 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ClientName } from './ClientName';
+import { useTranslations } from 'next-intl';
+import { useLocaleStore } from '@/lib/store';
 
 interface UsageLog {
   id: number;
@@ -27,14 +29,12 @@ interface UsageLogsTableProps {
   userTimezone?: string;
 }
 
-// Map kind enum to Chinese display (support both lowercase and uppercase)
-const kindLabelMap: Record<string, string> = {
-  'own': '自有',
-  'OWN': '自有',
-  'shared': '外援',
-  'SHARED': '外援',
-  'direct': '直连',
-  'DIRECT': '直连',
+// Map kind enum to display labels
+const getKindLabelKey = (kind: string): string => {
+  const normalizedKind = kind.toLowerCase();
+  if (normalizedKind === 'shared') return 'typeShared';
+  if (normalizedKind === 'own') return 'typeOwn';
+  return 'typeDirect';
 };
 
 // Get label style based on kind
@@ -50,8 +50,11 @@ const getKindLabelStyle = (kind: string): string => {
 };
 
 export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezone }: UsageLogsTableProps) {
+  const t = useTranslations('usageTable');
+  const { locale } = useLocaleStore();
+
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
+    return new Date(dateString).toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -94,14 +97,14 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>时间</TableHead>
-              <TableHead className="text-center">客户端</TableHead>
-              <TableHead>模型</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>API Key</TableHead>
-              <TableHead>类型</TableHead>
-              <TableHead>Tokens</TableHead>
-              <TableHead>总时长</TableHead>
+              <TableHead>{t('time')}</TableHead>
+              <TableHead className="text-center">{t('client')}</TableHead>
+              <TableHead>{t('model')}</TableHead>
+              <TableHead>{t('status')}</TableHead>
+              <TableHead>{t('apiKey')}</TableHead>
+              <TableHead>{t('type')}</TableHead>
+              <TableHead>{t('tokens')}</TableHead>
+              <TableHead>{t('duration')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -118,7 +121,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {log.status === 'success' ? '成功' : '失败'}
+                    {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
                 </TableCell>
                 <TableCell className="text-sm">
@@ -126,7 +129,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                 </TableCell>
                 <TableCell className="text-sm">
                   <span className={getKindLabelStyle(log.kind)}>
-                    {kindLabelMap[log.kind] || log.kind}
+                    {t(getKindLabelKey(log.kind))}
                   </span>
                 </TableCell>
                 <TableCell className="text-sm">
@@ -144,7 +147,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
       {hasMore && (
         <div className="text-center pt-4">
           <Button onClick={onLoadMore} variant="outline" disabled={loading}>
-            {loading ? '加载中...' : '加载更多'}
+            {loading ? t('loadingMore') : t('loadMore')}
           </Button>
         </div>
       )}

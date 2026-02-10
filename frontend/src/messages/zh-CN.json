@@ -1,0 +1,343 @@
+{
+  "sidebar": {
+    "marketplace": "广场",
+    "myShared": "我的共享",
+    "apiKeys": "API Keys",
+    "usage": "使用情况"
+  },
+  "topbar": {
+    "settings": "设置",
+    "logout": "登出",
+    "apiKeys": "API Keys"
+  },
+  "settings": {
+    "languageSettings": "语言设置",
+    "language": "语言",
+    "profileSettings": "个人资料设置",
+    "profileDescription": "更新您的个人信息和个人简介",
+    "email": "邮箱",
+    "emailNotEditable": "邮箱地址不可修改",
+    "name": "姓名",
+    "namePlaceholder": "输入您的姓名",
+    "bio": "个人简介",
+    "bioPlaceholder": "介绍一下自己...",
+    "saveChanges": "保存更改",
+    "saving": "保存中...",
+    "loading": "加载中..."
+  },
+  "language": {
+    "zh-CN": "中文",
+    "en": "English"
+  },
+  "apiKeys": {
+    "title": "我的 API Key",
+    "description": "创建和管理您的 API Key，使用 API Key 调用大模型",
+    "create": "创建 API Key",
+    "edit": "编辑 API Key",
+    "name": "名称",
+    "description": "描述",
+    "optionalDescription": "可选描述",
+    "namePlaceholder": "API Key 名称",
+    "descriptionPlaceholder": "可选描述",
+    "status": "状态",
+    "statusActive": "活跃",
+    "statusRevoked": "已停用",
+    "statusEnabled": "已启用",
+    "statusDisabled": "已停用",
+    "createdAt": "创建时间",
+    "lastUsedAt": "最近使用时间",
+    "actions": "操作",
+    "noKeys": "您还没有 API Key",
+    "unnamed": "未命名",
+    "noKey": "无",
+    "copied": "已复制！",
+    "buttons": {
+      "create": "创建",
+      "save": "保存",
+      "cancel": "取消"
+    },
+    "toast": {
+      "createSuccess": "API Key 创建成功",
+      "updateSuccess": "API Key 更新成功",
+      "blockSuccess": "API Key 已停用",
+      "unblockSuccess": "API Key 已启用",
+      "deleteSuccess": "API Key 删除成功",
+      "regenerateSuccess": "API Key 已重新生成",
+      "error": "错误",
+      "enterName": "请输入名称",
+      "confirmDisable": "确认要停用此 API Key？停用后将无法使用该密钥调用 API。",
+      "confirmDelete": "确认删除此 API Key？此操作不可撤销。",
+      "createFailed": "创建失败",
+      "updateFailed": "更新失败",
+      "blockFailed": "停用失败",
+      "unblockFailed": "启用失败",
+      "deleteFailed": "删除失败",
+      "regenerateFailed": "重新生成失败",
+      "copyFailed": "复制失败，请手动复制"
+    }
+  },
+  "shared": {
+    "title": "管理订阅",
+    "description": "添加、启用、停用或删除您的订阅 Keys",
+    "bindNew": "绑定新订阅",
+    "bindFirst": "绑定您的第一个订阅",
+    "noBindings": "暂无绑定的订阅",
+    "loading": "加载中...",
+    "edit": "修改",
+    "delete": "删除",
+    "confirmDelete": "确定要删除这个订阅吗？此操作不可撤销。",
+    "disableFailed": "停用失败，请重试",
+    "enableFailed": "启用失败，请重试",
+    "deleteFailed": "删除失败，请重试",
+    "stats": {
+      "totalTokens": "总Token",
+      "totalDuration": "总时长",
+      "totalRequests": "总请求",
+      "days": "天",
+      "times": "次"
+    }
+  },
+  "marketplace": {
+    "searchPlaceholder": "搜索模型名称或描述...",
+    "loading": "加载中...",
+    "noModels": "暂无可用的模型",
+    "noMatches": "未找到匹配的模型",
+    "toast": {
+      "loadFailed": "加载模型列表失败",
+      "pleaseLogin": "请先登录",
+      "noPermission": "没有权限访问",
+      "serverError": "服务器错误，请稍后重试",
+      "serviceUnavailable": "服务暂时不可用",
+      "networkError": "网络连接失败",
+      "requestTimeout": "请求超时",
+      "error": "错误"
+    }
+  },
+  "auth": {
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "emailPlaceholder": "your@email.com",
+    "passwordPlaceholder": "••••••••",
+    "login": "登录",
+    "register": "注册",
+    "loggingIn": "登录中...",
+    "registering": "注册中...",
+    "noAccount": "还没有账户？注册",
+    "hasAccount": "已有账户？登录",
+    "validation": {
+      "enterEmail": "请输入邮箱地址",
+      "enterValidEmail": "请输入有效的邮箱地址",
+      "enterPassword": "请输入密码",
+      "passwordMinLength": "密码长度至少为 8 位",
+      "confirmPassword": "请确认密码",
+      "passwordMismatch": "密码不匹配"
+    },
+    "toast": {
+      "loginFailed": "登录失败，请检查您的凭据",
+      "registerFailed": "注册失败，请检查您的信息"
+    }
+  },
+  "usage": {
+    "title": "使用情况",
+    "description": "查看您的 API 使用记录和统计信息",
+    "selectDate": "选择日期:",
+    "apiKey": "API Key:",
+    "selectDatePlaceholder": "选择日期",
+    "selectApiKeyPlaceholder": "选择 API Key",
+    "all": "全部",
+    "loading": "加载中...",
+    "noData": "暂无使用记录",
+    "totalTokens": "总 Token 数",
+    "inputTokens": "输入 Token 数",
+    "outputTokens": "输出 Token 数",
+    "totalRequests": "总请求数",
+    "successfulRequests": "成功",
+    "failedRequests": "失败",
+    "tokenDistribution": "Token 消耗分布",
+    "detailedRecords": "详细使用记录",
+    "noRecords": "暂无使用记录",
+    "loadMore": "加载更多",
+    "loadingMore": "加载中..."
+  },
+  "usageTable": {
+    "time": "时间",
+    "client": "客户端",
+    "model": "模型",
+    "status": "状态",
+    "apiKey": "API Key",
+    "type": "类型",
+    "tokens": "Tokens",
+    "duration": "总时长",
+    "statusSuccess": "成功",
+    "statusFailed": "失败",
+    "typeOwn": "自有",
+    "typeShared": "外援",
+    "typeDirect": "直连",
+    "loadMore": "加载更多",
+    "loadingMore": "加载中..."
+  },
+  "modelCard": {
+    "tokensUsed": "已使用 Token",
+    "codingScore": "Coding 评分",
+    "noScore": "暂无",
+    "inputSupport": "输入支持:",
+    "outputSupport": "输出支持:",
+    "context": "上下文:",
+    "maxOutput": "最大输出:",
+    "subscriptionPlatforms": "订阅平台：",
+    "availableSubscriptions": "可用订阅：",
+    "moreProviders": "还有 {count} 个平台",
+    "moreSubscriptions": "还有 {count} 个订阅",
+    "ariaLabels": {
+      "copyModelName": "复制模型名称",
+      "copied": "已复制",
+      "apiCall": "API 调用"
+    },
+    "providerNames": {
+      "bigmodel": "智谱",
+      "zai": "Z.AI",
+      "volcengine": "火山引擎",
+      "minimax": "MiniMax",
+      "moonshot": "月之暗面"
+    },
+    "typeLabels": {
+      "Text": "文本",
+      "Image": "图片",
+      "Video": "视频",
+      "Audio": "音频",
+      "File": "文件"
+    }
+  },
+  "quickCall": {
+    "title": "快速接入 API",
+    "description": "选择您偏好的工具和语言，复制示例代码即可开始调用 AI 模型",
+    "selectModel": "选择模型",
+    "createApiKey": "创建 API Key",
+    "tabs": {
+      "claudeCode": "Claude Code",
+      "openaiPython": "OpenAI: Python",
+      "openaiCurl": "OpenAI: cURL",
+      "anthropicPython": "Anthropic: Python",
+      "anthropicCurl": "Anthropic: cURL"
+    },
+    "sections": {
+      "claudeCode": {
+        "title": "配置 Claude Code",
+        "description": "将以下配置添加到 Claude Code 的 settings.json 文件中，默认位置为 {path}。使用您创建的 API Key 替换 {placeholder}。",
+        "settingsPath": "~/.claude/settings.json",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      },
+      "openaiPython": {
+        "title": "使用 OpenAI Python SDK",
+        "description": "安装 SDK：{cmd}",
+        "installCmd": "pip install openai"
+      },
+      "openaiCurl": {
+        "title": "使用 cURL 调用 OpenAI 接口",
+        "description": "在终端中直接运行此命令，将 {placeholder} 替换为您的密钥。",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      },
+      "anthropicPython": {
+        "title": "使用 Anthropic Python SDK",
+        "description": "安装 SDK：{cmd}",
+        "installCmd": "pip install anthropic"
+      },
+      "anthropicCurl": {
+        "title": "使用 cURL 调用 Anthropic 接口",
+        "description": "在终端中直接运行此命令，将 {placeholder} 替换为您的密钥。",
+        "apiKeyPlaceholder": "&lt;API_KEY&gt;"
+      }
+    },
+    "toast": {
+      "loadFailed": "加载模型失败",
+      "loadFailedDesc": "无法获取模型列表，将使用默认模型",
+      "copyFailed": "复制失败",
+      "copyFailedDesc": "请尝试手动选择并复制代码",
+      "navigationFailed": "跳转失败",
+      "navigationFailedDesc": "无法跳转到 API Keys 页面，请稍后重试"
+    },
+    "ariaLabels": {
+      "copyCode": "复制代码",
+      "copied": "已复制"
+    }
+  },
+  "shareDialog": {
+    "title": "绑定订阅",
+    "description": "将订阅平台的 APIKey 绑定到平台，平台用户共享使用您的订阅，但不会直接获取 APIKey 信息",
+    "selectPlatform": "选择平台",
+    "subscriptionPlatform": "订阅平台",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "输入您的 API Key",
+    "selectModels": "选择模型",
+    "binding": "绑定中...",
+    "bind": "绑定",
+    "toast": {
+      "error": "错误",
+      "selectPlatformAndKey": "请选择平台并输入 API Key",
+      "selectOneModel": "请至少选择一个模型",
+      "selectedCount": "已选择 {count} 个模型",
+      "success": "成功",
+      "bindSuccess": "订阅绑定成功",
+      "bindFailed": "绑定失败，请重试"
+    }
+  },
+  "editSubscriptionDialog": {
+    "title": "修改订阅",
+    "description": "修改 {provider} 订阅的 API Key 和可用模型",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "留空表示不修改 API Key",
+    "saving": "保存中...",
+    "save": "保存",
+    "toast": {
+      "success": "成功",
+      "editSuccess": "订阅修改成功",
+      "selectOneModel": "请至少选择一个模型",
+      "error": "错误",
+      "editFailed": "修改失败，请重试"
+    }
+  },
+  "settings": {
+    "languageSettings": "语言设置",
+    "language": "语言",
+    "profileSettings": "个人资料设置",
+    "profileDescription": "更新您的个人信息和个人简介",
+    "email": "邮箱",
+    "emailNotEditable": "邮箱地址不可修改",
+    "name": "姓名",
+    "namePlaceholder": "输入您的姓名",
+    "bio": "个人简介",
+    "bioPlaceholder": "介绍一下自己...",
+    "saveChanges": "保存更改",
+    "saving": "保存中...",
+    "loading": "加载中...",
+    "toast": {
+      "success": "成功",
+      "profileUpdateSuccess": "个人资料更新成功",
+      "error": "错误",
+      "updateFailed": "更新失败"
+    }
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "confirm": "确认",
+    "yes": "是",
+    "no": "否",
+    "close": "关闭",
+    "search": "搜索",
+    "filter": "筛选",
+    "sort": "排序",
+    "actions": "操作",
+    "edit": "编辑",
+    "view": "查看",
+    "share": "分享",
+    "copy": "复制",
+    "copied": "已复制",
+    "submit": "提交"
+  }
+}

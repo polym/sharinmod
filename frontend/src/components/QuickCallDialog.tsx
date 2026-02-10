@@ -22,14 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Copy, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { modelAPI } from "@/lib/services";
 import type { ModelInfo } from "@/types/model";
+import { useTranslations } from "next-intl";
 
 // Constants
 const COPY_FEEDBACK_DURATION = 1500; // ms
-const FALLBACK_TEXTAREA_POSITION = "-999999px";
 const DIALOG_MAX_HEIGHT = "85vh";
 const BASE_URL_PLACEHOLDER = "https://your-domain.com";
 const LOCAL_STORAGE_KEY = "sharinmod-last-selected-model";
@@ -47,6 +46,10 @@ export function QuickCallDialog({
   onOpenChange: controlledOnOpenChange,
   initialModelName,
 }: QuickCallDialogProps) {
+  const t = useTranslations('quickCall');
+  const tToast = useTranslations('quickCall.toast');
+  const tAria = useTranslations('quickCall.ariaLabels');
+
   // 受控/非受控模式
   const isControlled = controlledOpen !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -105,8 +108,8 @@ export function QuickCallDialog({
       } catch (error) {
         console.error("Failed to load models:", error);
         toast({
-          title: "加载模型失败",
-          description: "无法获取模型列表，将使用默认模型",
+          title: tToast('loadFailed'),
+          description: tToast('loadFailedDesc'),
           variant: "destructive",
         });
       } finally {
@@ -117,21 +120,18 @@ export function QuickCallDialog({
     if (open) {
       loadModels();
     }
-  }, [open, initialModelName, toast]);
+  }, [open, initialModelName, toast, tToast]);
 
   const resetCopyState = (): void => {
     setTimeout(() => setCopiedTab(null), COPY_FEEDBACK_DURATION);
   };
 
   const handleCopy = async (code: string, tabId: string): Promise<void> => {
-    // Robust legacy copy for HTTP contexts (execCommand)
     const legacyCopy = (): boolean => {
       let textArea: HTMLTextAreaElement | null = null;
       try {
         textArea = document.createElement("textarea");
         textArea.value = code;
-        
-        // Optimized for HTTP/Dialog contexts - must be visible for selection
         textArea.style.position = "absolute";
         textArea.style.left = "-9999px";
         textArea.style.top = (window.pageYOffset || document.documentElement.scrollTop) + "px";
@@ -139,21 +139,17 @@ export function QuickCallDialog({
         textArea.style.border = "0";
         textArea.style.padding = "0";
         textArea.style.margin = "0";
-        textArea.style.fontSize = "16px"; // Prevent iOS zoom
+        textArea.style.fontSize = "16px";
         textArea.style.width = "1px";
         textArea.style.height = "1px";
-        
-        // CRITICAL: Append to dialog content if available, not body
-        // This ensures it's within the focus trap
+
         const dialogContent = document.querySelector('[role="dialog"]');
         const container = dialogContent || document.body;
         container.appendChild(textArea);
-        
-        // iOS Safari requires this
+
         textArea.contentEditable = "true";
         textArea.readOnly = false;
-        
-        // Create range and select
+
         const range = document.createRange();
         range.selectNodeContents(textArea);
         const selection = window.getSelection();
@@ -161,36 +157,31 @@ export function QuickCallDialog({
           selection.removeAllRanges();
           selection.addRange(range);
         }
-        
+
         textArea.select();
         textArea.setSelectionRange(0, code.length);
-        
-        // Execute copy - this works in HTTP contexts
+
         const success = document.execCommand("copy");
-        
-        // Clean up selection
+
         if (selection) {
           selection.removeAllRanges();
         }
-        
+
         return success;
       } catch (error) {
         console.error("Legacy copy error:", error);
         return false;
       } finally {
-        // Always cleanup
         if (textArea && textArea.parentNode) {
           textArea.parentNode.removeChild(textArea);
         }
       }
     };
 
-    // Check if we're in a secure context (HTTPS or localhost)
     const isSecureContext = window.isSecureContext;
-    
+
     if (isSecureContext) {
       try {
-        // Try modern clipboard API (HTTPS/localhost only)
         if (navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(code);
           setCopiedTab(tabId);
@@ -202,15 +193,14 @@ export function QuickCallDialog({
       }
     }
 
-    // Use legacy method for HTTP or as fallback
     const success = legacyCopy();
     if (success) {
       setCopiedTab(tabId);
       resetCopyState();
     } else {
       toast({
-        title: "复制失败",
-        description: "请尝试手动选择并复制代码",
+        title: tToast('copyFailed'),
+        description: tToast('copyFailedDesc'),
         variant: "destructive",
       });
     }
@@ -223,8 +213,8 @@ export function QuickCallDialog({
     } catch (err) {
       console.error("Navigation failed:", err);
       toast({
-        title: "跳转失败",
-        description: "无法跳转到 API Keys 页面，请稍后重试",
+        title: tToast('navigationFailed'),
+        description: tToast('navigationFailedDesc'),
         variant: "destructive",
       });
     }
@@ -234,7 +224,6 @@ export function QuickCallDialog({
     const model = models.find((m) => m.model_name === model_name);
     if (model) {
       setSelectedModel(model);
-      // 保存到 localStorage
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, model_name);
       } catch (e) {
@@ -246,7 +235,7 @@ export function QuickCallDialog({
   // 获取当前选中的模型名称，降级到默认值
   const currentModelName = selectedModel?.model_name || "gpt-4";
 
-  // Memoize code examples to prevent recreation on every render
+  // Memoize code examples
   const claudeCodeExample = useMemo(
     () => `{
   "env": {
@@ -265,13 +254,11 @@ export function QuickCallDialog({
   const openaiPythonExample = useMemo(
     () => `from openai import OpenAI
 
-# 初始化客户端
 client = OpenAI(
     api_key="<API_KEY>",
     base_url="${baseUrl}/api/openai"
 )
 
-# 调用聊天接口
 response = client.chat.completions.create(
     model="${currentModelName}",
     messages=[
@@ -302,13 +289,11 @@ print(response.choices[0].message.content)`,
   const anthropicPythonExample = useMemo(
     () => `from anthropic import Anthropic
 
-# 初始化客户端
 client = Anthropic(
     api_key="<API_KEY>",
     base_url="${baseUrl}/api/anthropic"
 )
 
-# 调用消息接口
 message = client.messages.create(
     model="${currentModelName}",
     max_tokens=1024,
@@ -342,18 +327,11 @@ print(message.content[0].text)`,
   const CodeBlock = ({
     code,
     tabId,
-    title,
   }: {
     code: string;
     tabId: string;
-    title?: string;
   }): JSX.Element => (
     <div className="relative">
-      {title && (
-        <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {title}
-        </div>
-      )}
       <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
         <pre className="font-mono text-sm text-gray-800 dark:text-gray-200">
           <code>{code}</code>
@@ -361,7 +339,7 @@ print(message.content[0].text)`,
         <button
           onClick={() => handleCopy(code, tabId)}
           className="absolute top-2 right-2 p-2 rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-          aria-label={copiedTab === tabId ? "已复制" : "复制代码"}
+          aria-label={copiedTab === tabId ? tAria('copied') : tAria('copyCode')}
           role="button"
           type="button"
         >
@@ -385,19 +363,19 @@ print(message.content[0].text)`,
         <DialogHeader>
           <div className="flex items-center justify-between pr-8">
             <div className="flex flex-col">
-              <DialogTitle>快速接入 API</DialogTitle>
+              <DialogTitle>{t('title')}</DialogTitle>
               <DialogDescription>
-                选择您偏好的工具和语言，复制示例代码即可开始调用 AI 模型
+                {t('description')}
               </DialogDescription>
             </div>
-            {/* 模型选择器 - 放在标题行最右侧 */}
+            {/* 模型选择器 */}
             {!loadingModels && models.length > 0 && (
               <Select
                 value={selectedModel?.model_name || ""}
                 onValueChange={handleModelChange}
               >
                 <SelectTrigger className="w-48 h-8 text-sm">
-                  <SelectValue placeholder="选择模型" />
+                  <SelectValue placeholder={t('selectModel')} />
                 </SelectTrigger>
                 <SelectContent>
                   {models.map((model) => (
@@ -414,7 +392,7 @@ print(message.content[0].text)`,
         <Tabs defaultValue="claude-code" className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
             <TabsTrigger value="claude-code" className="text-xs truncate">
-              Claude Code
+              {t('tabs.claudeCode')}
             </TabsTrigger>
             <TabsTrigger value="openai-python" className="text-xs truncate">
               <span className="hidden sm:inline">OpenAI: </span>Python
@@ -433,12 +411,16 @@ print(message.content[0].text)`,
           <TabsContent value="claude-code" className="space-y-4">
             <div>
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                配置 Claude Code
+                {t('sections.claudeCode.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                将以下配置添加到 Claude Code 的 settings.json 文件中，默认位置为 <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">~/.claude/settings.json</span>。
-                使用您创建的 API Key 替换 <span className="font-mono text-purple-600">&lt;API_KEY&gt;</span>。
-              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+                dangerouslySetInnerHTML={{
+                  __html: t('sections.claudeCode.description', {
+                    path: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">~/.claude/settings.json</span>',
+                    placeholder: '<span class="font-mono text-purple-600">&lt;API_KEY&gt;</span>'
+                  }).replace(/<\/?span[^>]*>/g, (match) => match)
+                }}
+              />
               <CodeBlock code={claudeCodeExample} tabId="claude-code" />
             </div>
           </TabsContent>
@@ -446,10 +428,10 @@ print(message.content[0].text)`,
           <TabsContent value="openai-python" className="space-y-4">
             <div>
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                使用 OpenAI Python SDK
+                {t('sections.openaiPython.title')}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                安装 SDK：<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install openai</span>
+                {t('sections.openaiPython.description', { cmd: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install openai</span>' })}
               </p>
               <CodeBlock code={openaiPythonExample} tabId="openai-python" />
             </div>
@@ -458,11 +440,10 @@ print(message.content[0].text)`,
           <TabsContent value="openai-curl" className="space-y-4">
             <div>
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                使用 cURL 调用 OpenAI 接口
+                {t('sections.openaiCurl.title')}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                在终端中直接运行此命令，将{" "}
-                <span className="font-mono text-purple-600">&lt;API_KEY&gt;</span> 替换为您的密钥。
+                {t('sections.openaiCurl.description', { placeholder: '<API_KEY>' })}
               </p>
               <CodeBlock code={openaiCurlExample} tabId="openai-curl" />
             </div>
@@ -471,10 +452,10 @@ print(message.content[0].text)`,
           <TabsContent value="anthropic-python" className="space-y-4">
             <div>
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                使用 Anthropic Python SDK
+                {t('sections.anthropicPython.title')}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                安装 SDK：<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install anthropic</span>
+                {t('sections.anthropicPython.description', { cmd: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install anthropic</span>' })}
               </p>
               <CodeBlock code={anthropicPythonExample} tabId="anthropic-python" />
             </div>
@@ -483,11 +464,10 @@ print(message.content[0].text)`,
           <TabsContent value="anthropic-curl" className="space-y-4">
             <div>
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
-                使用 cURL 调用 Anthropic 接口
+                {t('sections.anthropicCurl.title')}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                在终端中直接运行此命令，将{" "}
-                <span className="font-mono text-purple-600">&lt;API_KEY&gt;</span> 替换为您的密钥。
+                {t('sections.anthropicCurl.description', { placeholder: '<API_KEY>' })}
               </p>
               <CodeBlock code={anthropicCurlExample} tabId="anthropic-curl" />
             </div>
@@ -499,7 +479,7 @@ print(message.content[0].text)`,
             onClick={handleCreateAPIKey}
             className="bg-purple-500 hover:bg-purple-600 text-white border border-purple-600"
           >
-            创建 API Key
+            {t('createApiKey')}
           </Button>
         </DialogFooter>
       </DialogContent>

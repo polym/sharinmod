@@ -12,11 +12,13 @@ import { Copy, Edit, Trash2, Check } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/services';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { useTranslations } from 'next-intl';
+import { useLocaleStore } from '@/lib/store';
 
 interface UnifiedAPIKey {
   id: number;
   api_key_name: string;
-  description?: string; // Optional: User-provided description, may be null for older keys
+  description?: string;
   api_key: string;
   status: string;
   litellm_key?: string;
@@ -26,6 +28,12 @@ interface UnifiedAPIKey {
 }
 
 export function UnifiedAPIKeys() {
+  const t = useTranslations('apiKeys');
+  const tButtons = useTranslations('apiKeys.buttons');
+  const tToast = useTranslations('apiKeys.toast');
+  const tCommon = useTranslations('common');
+  const { locale } = useLocaleStore();
+
   const [apiKeys, setAPIKeys] = useState<UnifiedAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -58,8 +66,8 @@ export function UnifiedAPIKeys() {
   const handleCreateUnifiedAPIKey = async () => {
     if (!name) {
       toast({
-        title: '错误',
-        description: '请输入名称',
+        title: tToast('error'),
+        description: tToast('enterName'),
         variant: 'destructive',
       });
       return;
@@ -73,8 +81,8 @@ export function UnifiedAPIKeys() {
       });
 
       toast({
-        title: '成功',
-        description: 'API Key 创建成功',
+        title: tToast('success'),
+        description: tToast('createSuccess'),
       });
 
       setCreateDialogOpen(false);
@@ -83,8 +91,8 @@ export function UnifiedAPIKeys() {
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '创建失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('createFailed'),
         variant: 'destructive',
       });
     }
@@ -95,14 +103,14 @@ export function UnifiedAPIKeys() {
     try {
       await apiKeyAPI.blockUnifiedAPIKey(id);
       toast({
-        title: '成功',
-        description: 'API Key 已停用',
+        title: tToast('success'),
+        description: tToast('blockSuccess'),
       });
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '停用失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('blockFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -124,19 +132,18 @@ export function UnifiedAPIKeys() {
 
   const handleSaveEdit = async () => {
     if (!editingKey) return;
-    
+
     if (!editName) {
       toast({
-        title: '错误',
-        description: '请输入名称',
+        title: tToast('error'),
+        description: tToast('enterName'),
         variant: 'destructive',
       });
       return;
     }
 
-    // Confirm if disabling an active key
     if (editingKey.status === 'active' && !editEnabled) {
-      if (!confirm('确认要停用此 API Key？停用后将无法使用该密钥调用 API。')) {
+      if (!confirm(tToast('confirmDisable'))) {
         return;
       }
     }
@@ -149,8 +156,8 @@ export function UnifiedAPIKeys() {
       });
 
       toast({
-        title: '成功',
-        description: 'API Key 更新成功',
+        title: tToast('success'),
+        description: tToast('updateSuccess'),
       });
 
       setEditDialogOpen(false);
@@ -158,15 +165,14 @@ export function UnifiedAPIKeys() {
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '更新失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('updateFailed'),
         variant: 'destructive',
       });
     }
   };
 
   const handleCopyAPIKey = async (key: string, id: number) => {
-    // Try modern clipboard API first
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(key);
@@ -178,7 +184,6 @@ export function UnifiedAPIKeys() {
       console.warn('Clipboard API failed, trying fallback:', err);
     }
 
-    // Fallback method
     fallbackCopy(key, id);
   };
 
@@ -186,8 +191,6 @@ export function UnifiedAPIKeys() {
     try {
       const textArea = document.createElement('textarea');
       textArea.value = text;
-      
-      // Better positioning for reliable copy
       textArea.style.position = 'fixed';
       textArea.style.top = '0';
       textArea.style.left = '0';
@@ -199,39 +202,38 @@ export function UnifiedAPIKeys() {
       textArea.style.boxShadow = 'none';
       textArea.style.background = 'transparent';
       textArea.style.opacity = '0';
-      
+
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      
+
       try {
         textArea.setSelectionRange(0, textArea.value.length);
       } catch (e) {
         console.warn('setSelectionRange not supported:', e);
       }
-      
+
       const success = document.execCommand('copy');
       document.body.removeChild(textArea);
-      
+
       if (success) {
         setCopiedKeyId(id);
         setTimeout(() => setCopiedKeyId(null), 1500);
       } else {
         toast({
-          title: '错误',
-          description: '复制失败，请手动复制',
+          title: tToast('error'),
+          description: tToast('copyFailed'),
           variant: 'destructive',
         });
       }
     } catch (err) {
       console.error('Fallback copy error:', err);
       toast({
-        title: '错误',
-        description: '复制失败，请手动复制',
+        title: tToast('error'),
+        description: tToast('copyFailed'),
         variant: 'destructive',
       });
     }
-    document.body.removeChild(textArea);
   };
 
   const handleUnblockUnifiedAPIKey = async (id: number) => {
@@ -239,14 +241,14 @@ export function UnifiedAPIKeys() {
     try {
       await apiKeyAPI.unblockUnifiedAPIKey(id);
       toast({
-        title: '成功',
-        description: 'API Key 已启用',
+        title: tToast('success'),
+        description: tToast('unblockSuccess'),
       });
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '启用失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('unblockFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -259,25 +261,23 @@ export function UnifiedAPIKeys() {
   };
 
   const handleDeleteUnifiedAPIKey = async (id: number) => {
-    if (!confirm('确认删除此 API Key？此操作不可撤销。')) return;
+    if (!confirm(tToast('confirmDelete'))) return;
     setLoadingKeys(prev => new Set(prev).add(id));
     try {
-      // First revoke if active
       const apiKey = apiKeys.find(k => k.id === id);
       if (apiKey?.status === 'active') {
         await apiKeyAPI.blockUnifiedAPIKey(id);
       }
-      // Then delete
       await apiKeyAPI.deleteUnifiedAPIKey(id);
       toast({
-        title: '成功',
-        description: 'API Key 删除成功',
+        title: tToast('success'),
+        description: tToast('deleteSuccess'),
       });
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '删除失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('deleteFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -294,14 +294,14 @@ export function UnifiedAPIKeys() {
     try {
       await apiKeyAPI.regenerateUnifiedAPIKey(id);
       toast({
-        title: '成功',
-        description: 'API Key 已重新生成',
+        title: tToast('success'),
+        description: tToast('regenerateSuccess'),
       });
       loadAPIKeys();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.detail || '重新生成失败',
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('regenerateFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -313,53 +313,67 @@ export function UnifiedAPIKeys() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">我的 API Key</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">创建和管理您的 API Key，使用 API Key 调用大模型</p>
+              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">创建 API Key</Button>
+                <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">
+                  {t('create')}
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>创建 API Key</DialogTitle>
+                  <DialogTitle>{t('create')}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="name" className="text-right">
-                      名称
+                      {t('name')}
                     </Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="col-span-3"
-                      placeholder="API Key 名称"
+                      placeholder={t('namePlaceholder')}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="description" className="text-right">
-                      描述
+                      {t('description')}
                     </Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="col-span-3"
-                      placeholder="可选描述"
+                      placeholder={t('descriptionPlaceholder')}
                       rows={3}
                     />
                   </div>
                 </div>
                 <DialogFooter>
                   <Button onClick={handleCreateUnifiedAPIKey}>
-                    创建
+                    {tButtons('create')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -368,134 +382,118 @@ export function UnifiedAPIKeys() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">加载中...</div>
+            <div className="text-center py-8">{tCommon('loading')}</div>
           ) : apiKeys.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              您还没有 API Key
+              {t('noKeys')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>API Key</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead>最近使用时间</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apiKeys.map((apiKey) => (
-                  <TableRow key={apiKey.id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{apiKey.api_key_name || '未命名'}</span>
-                        {apiKey.description && (
-                          <span 
-                            className="text-xs text-gray-400 line-clamp-2 break-words" 
-                            title={apiKey.description}
-                          >
-                            {apiKey.description}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {apiKey.litellm_key ? (
-                          <>
-                            <span className="font-mono bg-gray-100 p-1 rounded text-sm">
-                              {apiKey.litellm_key.length > 10
-                                ? `${apiKey.litellm_key.substring(0, 6)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
-                                : apiKey.litellm_key}
-                            </span>
-                            <div className="flex items-center w-[92px]">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCopyAPIKey(apiKey.litellm_key!, apiKey.id)}
-                                aria-label="复制 API Key"
-                                className="h-6 w-6 p-0"
-                              >
-                                {copiedKeyId === apiKey.id ? (
-                                  <Check className="h-3 w-3 text-purple-600" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
-                              {copiedKeyId === apiKey.id && (
-                                <span className="text-xs text-purple-600 ml-1 inline-block w-16">
-                                  已复制！
-                                </span>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-gray-500">无</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        apiKey.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {apiKey.status === 'active' ? '活跃' : '已停用'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(apiKey.created_at).toLocaleString('zh-CN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                      })}
-                    </TableCell>
-                    <TableCell>
-                      {apiKey.last_used_at
-                        ? new Date(apiKey.last_used_at).toLocaleString('zh-CN', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                          })
-                        : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditAPIKey(apiKey)}
-                          aria-label="编辑 API Key"
-                          disabled={loadingKeys.has(apiKey.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
-                          aria-label="删除 API Key"
-                          disabled={loadingKeys.has(apiKey.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('name')}</TableHead>
+                    <TableHead>API Key</TableHead>
+                    <TableHead>{t('status')}</TableHead>
+                    <TableHead>{t('createdAt')}</TableHead>
+                    <TableHead>{t('lastUsedAt')}</TableHead>
+                    <TableHead>{t('actions')}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {apiKeys.map((apiKey) => (
+                    <TableRow key={apiKey.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{apiKey.api_key_name || t('unnamed')}</span>
+                          {apiKey.description && (
+                            <span
+                              className="text-xs text-gray-400 line-clamp-2 break-words"
+                              title={apiKey.description}
+                            >
+                              {apiKey.description}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {apiKey.litellm_key ? (
+                            <>
+                              <span className="font-mono bg-gray-100 p-1 rounded text-sm">
+                                {apiKey.litellm_key.length > 10
+                                  ? `${apiKey.litellm_key.substring(0, 6)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
+                                  : apiKey.litellm_key}
+                              </span>
+                              <div className="flex items-center w-[92px]">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyAPIKey(apiKey.litellm_key!, apiKey.id)}
+                                  aria-label={t('copied')}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  {copiedKeyId === apiKey.id ? (
+                                    <Check className="h-3 w-3 text-purple-600" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                {copiedKeyId === apiKey.id && (
+                                  <span className="text-xs text-purple-600 ml-1 inline-block w-16">
+                                    {t('copied')}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-gray-500">{t('noKey')}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          apiKey.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {apiKey.status === 'active' ? t('statusActive') : t('statusRevoked')}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(apiKey.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        {apiKey.last_used_at
+                          ? formatDate(apiKey.last_used_at)
+                          : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditAPIKey(apiKey)}
+                            aria-label={t('edit')}
+                            disabled={loadingKeys.has(apiKey.id)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
+                            aria-label={tCommon('delete')}
+                            disabled={loadingKeys.has(apiKey.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
@@ -505,37 +503,37 @@ export function UnifiedAPIKeys() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>编辑 API Key</DialogTitle>
+            <DialogTitle>{t('edit')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="text-right">
-                名称
+                {t('name')}
               </Label>
               <Input
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 className="col-span-3"
-                placeholder="API Key 名称"
+                placeholder={t('namePlaceholder')}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-description" className="text-right">
-                描述
+                {t('description')}
               </Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 className="col-span-3"
-                placeholder="可选描述"
+                placeholder={t('optionalDescription')}
                 rows={3}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-enabled" className="text-right">
-                启用状态
+                {t('status')}
               </Label>
               <div className="col-span-3 flex items-center gap-2">
                 <Switch
@@ -544,17 +542,17 @@ export function UnifiedAPIKeys() {
                   onCheckedChange={setEditEnabled}
                 />
                 <span className="text-sm text-gray-600">
-                  {editEnabled ? '已启用' : '已停用'}
+                  {editEnabled ? t('statusEnabled') : t('statusDisabled')}
                 </span>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              取消
+              {tButtons('cancel')}
             </Button>
             <Button onClick={handleSaveEdit}>
-              保存
+              {tButtons('save')}
             </Button>
           </DialogFooter>
         </DialogContent>

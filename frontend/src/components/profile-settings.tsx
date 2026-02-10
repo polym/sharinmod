@@ -7,10 +7,75 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useLocaleStore } from '@/lib/store';
 import { authAPI, userAPI } from '@/lib/services';
+import { useTranslations } from 'next-intl';
+
+export function SettingsPage() {
+  const t = useTranslations('settings');
+  const tApiKeys = useTranslations('apiKeys');
+  const tCommon = useTranslations('common');
+
+  return (
+    <div className="space-y-6">
+      <LanguageSettingsCard />
+      <ProfileSettings />
+    </div>
+  );
+}
+
+function LanguageSettingsCard() {
+  const t = useTranslations('settings');
+  const tLang = useTranslations('language');
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('languageSettings')}</CardTitle>
+        <CardDescription>
+          {t('languageSettings')}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium">{t('language')}:</span>
+          <LanguageSelector />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LanguageSelector() {
+  const t = useTranslations('settings');
+  const { locale, setLocale } = useLocaleStore();
+  const tLang = useTranslations('language');
+
+  const languageOptions = [
+    { value: 'zh-CN', label: tLang('zh-CN') },
+    { value: 'en', label: tLang('en') },
+  ];
+
+  return (
+    <select
+      value={locale}
+      onChange={(e) => setLocale(e.target.value as 'zh-CN' | 'en')}
+      className="border rounded-md px-3 py-2 text-sm"
+    >
+      {languageOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export function ProfileSettings() {
+  const t = useTranslations('settings');
+  const tApiKeys = useTranslations('apiKeys');
+  const tCommon = useTranslations('common');
+
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
   const [email, setEmail] = useState('');
@@ -56,13 +121,13 @@ export function ProfileSettings() {
 
       updateUser(response.data);
       toast({
-        title: '成功',
-        description: '个人资料更新成功',
+        title: t('toast.success'),
+        description: t('toast.profileUpdateSuccess'),
       });
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.message || '更新失败',
+        title: tApiKeys('toast.error'),
+        description: error.response?.data?.message || tApiKeys('toast.updateFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -71,20 +136,20 @@ export function ProfileSettings() {
   };
 
   if (loading) {
-    return <div className="text-center py-8">加载中...</div>;
+    return <div className="text-center py-8">{tCommon('loading')}</div>;
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>个人资料设置</CardTitle>
+        <CardTitle>{t('profileSettings')}</CardTitle>
         <CardDescription>
-          更新您的个人信息和个人简介
+          {t('profileDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="email">邮箱</Label>
+          <Label htmlFor="email">{t('email')}</Label>
           <Input
             id="email"
             type="email"
@@ -92,33 +157,33 @@ export function ProfileSettings() {
             disabled
             className="bg-gray-50"
           />
-          <p className="text-sm text-gray-500">邮箱地址不可修改</p>
+          <p className="text-sm text-gray-500">{t('emailNotEditable')}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">姓名</Label>
+          <Label htmlFor="name">{t('name')}</Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="输入您的姓名"
+            placeholder={t('namePlaceholder')}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bio">个人简介</Label>
+          <Label htmlFor="bio">{t('bio')}</Label>
           <Textarea
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="介绍一下自己..."
+            placeholder={t('bioPlaceholder')}
             rows={4}
           />
         </div>
 
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? '保存中...' : '保存更改'}
+            {saving ? t('saving') : t('saveChanges')}
           </Button>
         </div>
       </CardContent>
