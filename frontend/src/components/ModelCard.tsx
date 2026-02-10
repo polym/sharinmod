@@ -106,8 +106,6 @@ function SharerAvatarTooltip({ name, children }: { name: string; children: React
   );
 }
 
-const COPY_FEEDBACK_DURATION = 1500; // ms
-
 interface ModelCardProps {
   model: {
     display_name: string;
@@ -128,15 +126,6 @@ interface ModelCardProps {
   onQuickCall?: (modelName: string) => void;
 }
 
-// 输入/输出类型图标映射
-const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  'Text': Type,
-  'Image': ImageIcon,
-  'Video': Video,
-  'Audio': Mic,
-  'File': File,
-};
-
 // 输入/输出类型中文标签映射
 const TYPE_LABELS: Record<string, string> = {
   'Text': '文本',
@@ -145,9 +134,6 @@ const TYPE_LABELS: Record<string, string> = {
   'Audio': '音频',
   'File': '文件',
 };
-
-// 所有支持的类型（用于显示完整类型栏）
-const ALL_TYPES = ['Text', 'Image', 'Video', 'Audio', 'File'] as const;
 
 export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const [copied, setCopied] = useState(false);
