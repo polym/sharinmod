@@ -10,6 +10,7 @@ import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
 import { getProviderBrandName } from '@/lib/providers';
 import { SharedAPIKey } from '@/types/apiKey';
+import { useTranslations } from 'next-intl';
 
 interface EditSubscriptionDialogProps {
   apiKey: SharedAPIKey;
@@ -19,6 +20,9 @@ interface EditSubscriptionDialogProps {
 }
 
 export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }: EditSubscriptionDialogProps) {
+  const t = useTranslations('editSubscriptionDialog');
+  const tToast = useTranslations('editSubscriptionDialog.toast');
+
   const [newApiKey, setNewApiKey] = useState('');
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [modelError, setModelError] = useState('');
@@ -38,7 +42,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
     e.preventDefault();
 
     if (selectedModels.length === 0) {
-      setModelError('请至少选择一个模型');
+      setModelError(tToast('selectOneModel'));
       return;
     }
 
@@ -51,8 +55,8 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       });
 
       toast({
-        title: '成功',
-        description: '订阅修改成功',
+        title: tToast('success'),
+        description: tToast('editSuccess'),
       });
 
       onOpenChange(false);
@@ -62,8 +66,8 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       onUpdated();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.message || '修改失败，请重试',
+        title: tToast('error'),
+        description: error.response?.data?.message || tToast('editFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -75,21 +79,21 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>修改订阅</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            修改 {getProviderBrandName(apiKey.provider)} 订阅的 API Key 和可用模型
+            {t('description', { provider: getProviderBrandName(apiKey.provider) })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="token">
-                API Key
+                {t('apiKey')}
               </Label>
               <Input
                 id="token"
                 type="password"
-                placeholder="留空表示不修改 API Key"
+                placeholder={t('apiKeyPlaceholder')}
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
               />
@@ -103,7 +107,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '保存中...' : '保存'}
+              {loading ? t('saving') : t('save')}
             </Button>
           </DialogFooter>
         </form>

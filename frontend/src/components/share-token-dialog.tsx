@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
-import { PROVIDER_LIST, getProviderLogo, getProviderBrandName, PROVIDER_INFO } from '@/lib/providers';
+import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 interface ShareAPIKeyDialogProps {
   onAPIKeyShared: () => void;
@@ -18,6 +19,9 @@ interface ShareAPIKeyDialogProps {
 }
 
 export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialogProps) {
+  const t = useTranslations('shareDialog');
+  const tToast = useTranslations('shareDialog.toast');
+
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState('');
   const [apiKey, setAPIKey] = useState('');
@@ -38,15 +42,15 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
 
     if (!provider || !apiKey) {
       toast({
-        title: '错误',
-        description: '请选择平台并输入 API Key',
+        title: tToast('error'),
+        description: tToast('selectPlatformAndKey'),
         variant: 'destructive',
       });
       return;
     }
 
     if (selectedModels.length === 0) {
-      setModelError('请至少选择一个模型');
+      setModelError(tToast('selectOneModel'));
       return;
     }
 
@@ -61,8 +65,8 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       });
 
       toast({
-        title: '成功',
-        description: '订阅绑定成功',
+        title: tToast('success'),
+        description: tToast('bindSuccess'),
       });
 
       setOpen(false);
@@ -73,8 +77,8 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       onAPIKeyShared();
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.message || '绑定失败，请重试',
+        title: tToast('error'),
+        description: error.response?.data?.message || tToast('bindFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -85,20 +89,20 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {children || <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">绑定新订阅</Button>}
+        {children || <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">{t('bind')}</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>绑定订阅</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>
-            将订阅平台的 APIKey 绑定到平台，平台用户共享使用您的订阅，但不会直接获取 APIKey 信息
+            {t('description')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="provider">
-                订阅平台
+                {t('subscriptionPlatform')}
               </Label>
               <Select value={provider} onValueChange={handleProviderChange}>
                 <SelectTrigger>
@@ -108,7 +112,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                       <span>{getProviderBrandName(provider)}</span>
                     </div>
                   ) : (
-                    <SelectValue placeholder="选择平台" />
+                    <SelectValue placeholder={t('selectPlatform')} />
                   )}
                 </SelectTrigger>
                 <SelectContent>
@@ -125,12 +129,12 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
             </div>
             <div className="space-y-2">
               <Label htmlFor="token">
-                API Key
+                {t('apiKey')}
               </Label>
               <Input
                 id="token"
                 type="password"
-                placeholder="输入您的 API Key"
+                placeholder={t('apiKeyPlaceholder')}
                 value={apiKey}
                 onChange={(e) => setAPIKey(e.target.value)}
               />
@@ -146,7 +150,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading}>
-              {loading ? '绑定中...' : '绑定'}
+              {loading ? t('binding') : t('bind')}
             </Button>
           </DialogFooter>
         </form>

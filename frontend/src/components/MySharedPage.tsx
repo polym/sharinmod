@@ -15,16 +15,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useTranslations } from 'next-intl';
 
 // Modern square toggle switch component with custom soft colors
-function SquareSwitch({ 
-  checked, 
+function SquareSwitch({
+  checked,
   onCheckedChange,
-  disabled = false
-}: { 
-  checked: boolean; 
+  disabled = false,
+  ariaLabelOn,
+  ariaLabelOff
+}: {
+  checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   disabled?: boolean;
+  ariaLabelOn?: string;
+  ariaLabelOff?: string;
 }) {
   return (
     <button
@@ -32,9 +37,9 @@ function SquareSwitch({
       disabled={disabled}
       role="switch"
       aria-checked={checked}
-      aria-label={checked ? "启用" : "禁用"}
+      aria-label={checked ? ariaLabelOn : ariaLabelOff}
       className={`
-        relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center 
+        relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center
         rounded-md transition-all duration-200 ease-in-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
         disabled:cursor-not-allowed disabled:opacity-50
@@ -53,11 +58,11 @@ function SquareSwitch({
 }
 
 // Token formatting helper - formats raw token value for display
-function formatTokens(totalTokens: number): { value: number; unit: string } {
+function formatTokens(totalTokens: number, unitMillion: string, unitTenThousand: string): { value: number; unit: string } {
   if (totalTokens >= 1_000_000) {
-    return { value: Math.round(totalTokens / 1_000_000 * 10) / 10, unit: '百万' };
+    return { value: Math.round(totalTokens / 1_000_000 * 10) / 10, unit: unitMillion };
   } else {
-    return { value: Math.round(totalTokens / 10_000 * 10) / 10, unit: '万' };
+    return { value: Math.round(totalTokens / 10_000 * 10) / 10, unit: unitTenThousand };
   }
 }
 
@@ -66,6 +71,7 @@ const TOOLTIP_PADDING = 12;
 
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
+  const tCommon = useTranslations('common');
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [tooltipFlip, setTooltipFlip] = useState<'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none'>('none');
@@ -77,22 +83,16 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const getTooltipTransform = useCallback((flip: 'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none') => {
     switch (flip) {
       case 'left':
-        // Near left boundary - show to the right of mouse, above
         return 'translate(0, -100%)';
       case 'right':
-        // Near right boundary - show to the left of mouse, above
         return 'translate(-100%, -100%)';
       case 'top':
-        // Near top boundary - show below mouse, centered horizontally
         return 'translate(-50%, 0)';
       case 'top-left':
-        // Near top and left boundary - show to the right and below
         return 'translate(0, 0)';
       case 'top-right':
-        // Near top and right boundary - show to the left and below
         return 'translate(-100%, 0)';
       default:
-        // Default - show above mouse, centered horizontally
         return 'translate(-50%, -100%)';
     }
   }, []);
@@ -111,15 +111,12 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     let nearRight = false;
     let nearTop = false;
 
-    // Left boundary detection - tooltip would overflow on the left
     if (mousePosition.x < tooltipRect.width / 2 + TOOLTIP_PADDING) {
       nearLeft = true;
     }
-    // Right boundary detection - tooltip would overflow on the right
     if (mousePosition.x > containerRect.width - tooltipRect.width / 2 - TOOLTIP_PADDING) {
       nearRight = true;
     }
-    // Top boundary detection - tooltip would overflow on the top
     if (mousePosition.y < tooltipRect.height + TOOLTIP_PADDING) {
       nearTop = true;
     }
@@ -146,13 +143,10 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
 
   // Parse UTC date string and return components with UTC+8 offset
   const parseBeijingTime = (dateStr: string) => {
-    // Backend returns format: "YYYY-MM-DD HH:00" (UTC)
     const [ymd, time] = dateStr.split(' ');
     const [year, month, day] = ymd.split('-').map(Number);
     const [hour, minute] = time.split(':').map(Number);
-    // Add 8 hours for Beijing time
     const beijingHour = (hour + 8) % 24;
-    // Handle date rollover when crossing midnight
     const date = new Date(Date.UTC(year, month - 1, day, beijingHour, minute));
     return {
       month: date.getUTCMonth() + 1,
@@ -236,7 +230,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
             }}
           >
             <div className="bg-gray-900 text-white text-[10px] rounded py-0.5 px-2 whitespace-nowrap shadow-md">
-              <span className="font-semibold">{chartData[hoverIndex]} tokens</span>
+              <span className="font-semibold">{chartData[hoverIndex]} {tCommon('tokens')}</span>
               <br />
               <span className="text-gray-300 text-[9px]">
                 {parseBeijingTime(data[hoverIndex].date).month}/{parseBeijingTime(data[hoverIndex].date).day} {parseBeijingTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
@@ -265,6 +259,10 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
 }
 
 export function MySharedPage() {
+  const t = useTranslations('shared');
+  const tCommon = useTranslations('common');
+  const tStats = useTranslations('shared.stats');
+
   const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
   const [metricsMap, setMetricsMap] = useState<{[key: number]: SharedAPIKeyMetrics}>({});
   const [loading, setLoading] = useState(true);
@@ -279,7 +277,7 @@ export function MySharedPage() {
       const response = await apiKeyAPI.getMySharedAPIKeys();
       const keys = response.data.items;
       setSharedAPIKeys(keys);
-      
+
       // Load metrics for each key
       for (const key of keys) {
         loadMetrics(key.id);
@@ -323,7 +321,7 @@ export function MySharedPage() {
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to disable API key:', error);
-      alert('停用失败，请重试');
+      alert(t('disableFailed'));
     }
   };
 
@@ -333,12 +331,12 @@ export function MySharedPage() {
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to enable API key:', error);
-      alert('启用失败，请重试');
+      alert(t('enableFailed'));
     }
   };
 
   const handleDeleteAPIKey = async (apiKeyId: number) => {
-    if (!confirm('确定要删除这个订阅吗？此操作不可撤销。')) {
+    if (!confirm(t('confirmDelete'))) {
       return;
     }
     try {
@@ -346,7 +344,7 @@ export function MySharedPage() {
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to delete API key:', error);
-      alert('删除失败，请重试');
+      alert(t('deleteFailed'));
     }
   };
 
@@ -356,12 +354,12 @@ export function MySharedPage() {
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">管理订阅</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">添加、启用、停用或删除您的订阅 Keys</p>
+              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
               <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">
-                绑定新订阅
+                {t('bindNew')}
               </Button>
             </ShareAPIKeyDialog>
           </div>
@@ -369,14 +367,14 @@ export function MySharedPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500">加载中...</div>
+              <div className="text-gray-500">{t('loading')}</div>
             </div>
           ) : sharedAPIKeys.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-500 mb-4">暂无绑定的订阅</div>
+              <div className="text-gray-500 mb-4">{t('noBindings')}</div>
               <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
                 <Button variant="outline">
-                  绑定您的第一个订阅
+                  {t('bindFirst')}
                 </Button>
               </ShareAPIKeyDialog>
             </div>
@@ -394,12 +392,11 @@ export function MySharedPage() {
                     <div className="flex items-center gap-4">
                       {/* Provider Logo */}
                       {apiKey.provider_logo_path ? (
-                        <img 
-                          src={apiKey.provider_logo_path} 
+                        <img
+                          src={apiKey.provider_logo_path}
                           alt={apiKey.provider_display_name || apiKey.provider}
                           className="w-14 h-14 rounded-full object-cover border border-gray-200"
                           onError={(e) => {
-                            // Fallback to first letter if image fails to load
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
@@ -408,7 +405,7 @@ export function MySharedPage() {
                           {(apiKey.provider_display_name || apiKey.provider || 'A').charAt(0).toUpperCase()}
                         </div>
                       )}
-                      
+
                       {/* Provider Name - Title is clickable */}
                       <div>
                         {apiKey.provider_website ? (
@@ -452,6 +449,8 @@ export function MySharedPage() {
                             handleDisableAPIKey(apiKey.id);
                           }
                         }}
+                        ariaLabelOn={t('statusEnabled')}
+                        ariaLabelOff={t('statusDisabled')}
                       />
 
                       {/* Dropdown Menu for Delete */}
@@ -466,48 +465,48 @@ export function MySharedPage() {
                             className="cursor-pointer"
                             onClick={() => setEditingApiKey(apiKey)}
                           >
-                            修改
+                            {t('edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600 cursor-pointer focus:text-red-600"
                             onClick={() => handleDeleteAPIKey(apiKey.id)}
                           >
-                            删除
+                            {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>
 
-                  {/* Stats and Chart Section - ~25%:75% ratio (excluding gap) */}
+                  {/* Stats and Chart Section */}
                   {metricsMap[apiKey.id] && (
                     <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                      {/* Statistics - 1 part */}
+                      {/* Statistics */}
                       <dl className="sm:flex-[1] flex flex-row gap-4 sm:gap-6 items-center">
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">总Token</dt>
+                          <dt className="text-xs text-gray-500">{tStats('totalTokens')}</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
                             {(() => {
-                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens);
+                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('days'), tStats('times'));
                               return <>{value}<span className="text-sm font-normal text-gray-500 ml-1">{unit}</span></>;
                             })()}
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">总时长</dt>
+                          <dt className="text-xs text-gray-500">{tStats('totalDuration')}</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-gray-500 ml-1">天</span>
+                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-gray-500 ml-1">{tStats('days')}</span>
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">总请求</dt>
+                          <dt className="text-xs text-gray-500">{tStats('totalRequests')}</dt>
                           <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-gray-500 ml-1">次</span>
+                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-gray-500 ml-1">{tStats('times')}</span>
                           </dd>
                         </div>
                       </dl>
-                      
-                      {/* 48-hour Bar Chart - 75% width (sm:flex-[3] of 4 total) */}
+
+                      {/* 48-hour Bar Chart */}
                       <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-40">
                         <div className="p-2 pt-2 pb-5 h-full">
                           <UsageBarChart data={metricsMap[apiKey.id].chart_data} />

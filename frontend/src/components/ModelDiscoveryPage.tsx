@@ -7,8 +7,12 @@ import { modelAPI } from '@/lib/services';
 import { useToast } from '@/components/ui/toast';
 import { Search } from 'lucide-react';
 import type { ModelInfo } from '@/types/model';
+import { useTranslations } from 'next-intl';
 
 export function ModelDiscoveryPage() {
+  const t = useTranslations('marketplace');
+  const tToast = useTranslations('marketplace.toast');
+
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,23 +30,23 @@ export function ModelDiscoveryPage() {
         console.error('Failed to load models:', error);
 
         // 区分不同类型的错误，显示更友好的错误消息
-        let errorMessage = '加载模型列表失败';
+        let errorMessage = tToast('loadFailed');
         if (error.response?.status === 401) {
-          errorMessage = '请先登录';
+          errorMessage = tToast('pleaseLogin');
         } else if (error.response?.status === 403) {
-          errorMessage = '没有权限访问';
+          errorMessage = tToast('noPermission');
         } else if (error.response?.status === 500) {
-          errorMessage = '服务器错误，请稍后重试';
+          errorMessage = tToast('serverError');
         } else if (error.response?.status === 503) {
-          errorMessage = '服务暂时不可用';
+          errorMessage = tToast('serviceUnavailable');
         } else if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-          errorMessage = '网络连接失败';
+          errorMessage = tToast('networkError');
         } else if (error.code === 'ECONNABORTED') {
-          errorMessage = '请求超时';
+          errorMessage = tToast('requestTimeout');
         }
 
         toast({
-          title: '错误',
+          title: tToast('error'),
           description: errorMessage,
           variant: 'destructive',
         });
@@ -52,7 +56,7 @@ export function ModelDiscoveryPage() {
     };
 
     loadModels();
-  }, [toast]);
+  }, [toast, tToast]);
 
   // 使用 useMemo 缓存过滤结果，优化性能
   const filteredModels = useMemo(() => {
@@ -86,7 +90,7 @@ export function ModelDiscoveryPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="搜索模型名称或描述..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -96,11 +100,11 @@ export function ModelDiscoveryPage() {
         {/* 加载状态 */}
         {loading ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            加载中...
+            {t('loading')}
           </div>
         ) : filteredModels.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            {searchQuery ? '未找到匹配的模型' : '暂无可用的模型'}
+            {searchQuery ? t('noMatches') : t('noModels')}
           </div>
         ) : (
           /* 模型卡片网格 */

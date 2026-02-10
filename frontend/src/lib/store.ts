@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { detectBrowserLanguage, type Locale } from '@/i18n';
 
 interface User {
   id?: number;
@@ -59,6 +60,24 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         // showLoginDialog, showRegisterDialog and _isLoggingOut are NOT persisted
       }),
+    }
+  )
+);
+
+// Locale state for i18n
+interface LocaleState {
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+}
+
+export const useLocaleStore = create<LocaleState>()(
+  persist(
+    (set) => ({
+      locale: detectBrowserLanguage(),
+      setLocale: (locale: Locale) => set({ locale }),
+    }),
+    {
+      name: 'sharinmod-locale',
     }
   )
 );

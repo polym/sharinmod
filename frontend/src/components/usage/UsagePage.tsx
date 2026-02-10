@@ -8,6 +8,7 @@ import { usageAPI, apiKeyAPI } from '@/lib/services';
 import { UsageStatsCard } from './UsageStatsCard';
 import { UsageBarChart } from './UsageBarChart';
 import { UsageLogsTable } from './UsageLogsTable';
+import { useTranslations } from 'next-intl';
 
 interface UnifiedAPIKey {
   id: number;
@@ -49,6 +50,9 @@ interface UsageLogsResponse {
 }
 
 export function UsagePage() {
+  const t = useTranslations('usage');
+  const tCommon = useTranslations('common');
+
   // Get user timezone
   const [userTimezone] = useState<string>(() =>
     Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Shanghai'
@@ -208,18 +212,18 @@ export function UsagePage() {
         <CardHeader className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">使用情况</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">查看您的 API 使用记录和统计信息</p>
+              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               {/* Date Filter */}
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600 whitespace-nowrap">
-                  选择日期:
+                  {t('selectDate')}
                 </label>
                 <Select value={selectedDate} onValueChange={handleDateChange}>
                   <SelectTrigger className="w-[140px]">
-                    <SelectValue placeholder="选择日期" />
+                    <SelectValue placeholder={t('selectDatePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {dateOptions.map((date) => (
@@ -234,14 +238,14 @@ export function UsagePage() {
               {/* API Key Filter */}
               <div className="flex items-center gap-2">
                 <label className="text-sm text-gray-600 whitespace-nowrap">
-                  API Key:
+                  {t('apiKey')}
                 </label>
                 <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="选择 API Key" />
+                    <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="all">{t('all')}</SelectItem>
                     {apiKeys.map((key) => (
                       <SelectItem key={key.id} value={key.id.toString()}>
                         {key.api_key_name}
@@ -258,40 +262,40 @@ export function UsagePage() {
       {/* Loading state */}
       {overviewLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">加载中...</div>
+          <div className="text-gray-500">{tCommon('loading')}</div>
         </div>
       ) : overviewData === null ? (
         /* No data state */
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">暂无使用记录</div>
+          <div className="text-gray-500">{t('noData')}</div>
         </div>
       ) : (
         <>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <UsageStatsCard
-              title="总 Token 数"
+              title={t('totalTokens')}
               value={overviewData.total_tokens.toLocaleString()}
             />
             <UsageStatsCard
-              title="输入 Token 数"
+              title={t('inputTokens')}
               value={overviewData.input_tokens.toLocaleString()}
             />
             <UsageStatsCard
-              title="输出 Token 数"
+              title={t('outputTokens')}
               value={overviewData.output_tokens.toLocaleString()}
             />
             <UsageStatsCard
-              title="总请求数"
+              title={t('totalRequests')}
               value={`${overviewData.successful_requests + overviewData.failed_requests}`}
-              subtitle={`${overviewData.successful_requests} 成功 + ${overviewData.failed_requests} 失败`}
+              subtitle={`${overviewData.successful_requests} ${t('successfulRequests')} + ${overviewData.failed_requests} ${t('failedRequests')}`}
             />
           </div>
 
           {/* Hourly Distribution Chart */}
           <Card className="border-purple-100">
             <CardHeader className="p-6">
-              <h4 className="text-lg font-semibold">Token 消耗分布</h4>
+              <h4 className="text-lg font-semibold">{t('tokenDistribution')}</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
               <div className="border border-gray-200 rounded overflow-hidden h-40">
@@ -305,12 +309,12 @@ export function UsagePage() {
           {/* Usage Logs Table */}
           <Card className="border-purple-100">
             <CardHeader className="p-6">
-              <h4 className="text-lg font-semibold">详细使用记录</h4>
+              <h4 className="text-lg font-semibold">{t('detailedRecords')}</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
               {logsData.length === 0 && !logsLoading ? (
                 <div className="text-center py-8 text-gray-500">
-                  暂无使用记录
+                  {t('noRecords')}
                 </div>
               ) : (
                 <UsageLogsTable
