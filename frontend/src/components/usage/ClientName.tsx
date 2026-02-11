@@ -13,13 +13,14 @@ const clientNameMap: Record<string, string> = {
   'chrome': 'Chrome',
   'safari': 'Safari',
   'firefox': 'Firefox',
+  'codex': 'Codex',
 };
 
 // Supported clients with PNG icons (prefer PNG over SVG)
-const clientsWithPng = ['zed', 'claude-code', 'chrome', 'firefox'];
+const clientsWithPng = ['zed', 'claude-code', 'chrome', 'firefox', 'codex'];
 
 // All known clients (used to determine if we should show unknown icon)
-const knownClients = ['zed', 'claude-code', 'chrome', 'safari', 'firefox'];
+const knownClients = ['zed', 'claude-code', 'chrome', 'safari', 'firefox', 'codex'];
 
 export function ClientName({ client }: ClientNameProps) {
   const clientKey = client?.toLowerCase() || '';
