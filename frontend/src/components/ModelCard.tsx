@@ -283,7 +283,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <Button
               onClick={() => onQuickCall(model.model_name)}
               className="h-10 w-10 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md flex-shrink-0"
-              aria-label={t('apiCall')}
+              aria-label={t('ariaLabels.apiCall')}
               type="button"
             >
               <Code2 className="w-4 h-4" />
