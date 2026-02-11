@@ -7,9 +7,6 @@ export const getUserTimezone = (): string => {
 
 // Auth API
 export const authAPI = {
-  register: (data: { email: string; password: string }) =>
-    api.post('/api/users/register', data),
-
   login: (data: { email: string; password: string }) =>
     api.post('/api/auth/login', data),
 
