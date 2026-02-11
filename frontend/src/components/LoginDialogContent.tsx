@@ -95,8 +95,8 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
 
   const handleGithubLogin = () => {
     setOauthLoading(true);
-    // 跳转到后端 OAuth 端点
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:38888'}/api/oauth/github/login`;
+    // 跳转到后端 OAuth 端点，使用相对路径
+    window.location.href = '/api/oauth/github/login';
   };
 
   return (

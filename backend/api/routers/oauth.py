@@ -58,8 +58,11 @@ async def github_callback(
     # 创建 JWT token
     access_token = create_oauth_token(user)
 
-    # 获取前端 URL（从环境变量或使用默认值）
-    frontend_url = f"http://localhost:{settings.HOST_PORT if hasattr(settings, 'HOST_PORT') else '28888'}/auth/callback?token={access_token}"
+    # 获取前端 URL（从请求头动态获取）
+    host = request.headers.get('host', 'localhost:38888')
+    # 构建前端 URL
+    scheme = request.headers.get('x-forwarded-proto', 'http')
+    frontend_url = f"{scheme}://{host}/auth/callback?token={access_token}"
     return RedirectResponse(url=frontend_url)
 
 

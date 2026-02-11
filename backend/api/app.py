@@ -57,7 +57,7 @@ def create_app(settings: Settings):
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000", "http://frontend:3000"],
+        allow_origins=["http://localhost:3000", "http://frontend:3000", "http://localhost:38888", "http://10.0.5.176:38888"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
