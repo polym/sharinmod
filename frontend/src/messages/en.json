@@ -3,7 +3,8 @@
     "marketplace": "Marketplace",
     "myShared": "My Shared",
     "apiKeys": "API Keys",
-    "usage": "Usage"
+    "usage": "Usage",
+    "settings": "Settings"
   },
   "topbar": {
     "settings": "Settings",
@@ -101,7 +102,9 @@
       "totalRequests": "Total Requests",
       "days": "days",
       "times": "times"
-    }
+    },
+    "statusEnabled": "Enabled",
+    "statusDisabled": "Disabled"
   },
   "marketplace": {
     "searchPlaceholder": "Search model name or description...",
@@ -118,6 +121,10 @@
       "requestTimeout": "Request timed out",
       "error": "Error"
     }
+  },
+  "loginDialog": {
+    "title": "Login to SharinMod",
+    "description": "Enter your credentials to access the platform"
   },
   "auth": {
     "email": "Email",
@@ -278,6 +285,7 @@
     "selectModels": "Select Models",
     "binding": "Binding...",
     "bind": "Bind",
+    "noModelsAvailable": "No models available for this platform",
     "toast": {
       "error": "Error",
       "selectPlatformAndKey": "Please select a platform and enter an API Key",

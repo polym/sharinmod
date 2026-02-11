@@ -3,7 +3,8 @@
     "marketplace": "广场",
     "myShared": "我的共享",
     "apiKeys": "API Keys",
-    "usage": "使用情况"
+    "usage": "使用情况",
+    "settings": "设置"
   },
   "topbar": {
     "settings": "设置",
@@ -95,7 +96,9 @@
       "totalRequests": "总请求",
       "days": "天",
       "times": "次"
-    }
+    },
+    "statusEnabled": "已启用",
+    "statusDisabled": "已停用"
   },
   "marketplace": {
     "searchPlaceholder": "搜索模型名称或描述...",
@@ -112,6 +115,10 @@
       "requestTimeout": "请求超时",
       "error": "错误"
     }
+  },
+  "loginDialog": {
+    "title": "登录 SharinMod",
+    "description": "输入您的凭据来访问平台"
   },
   "auth": {
     "email": "邮箱",
@@ -272,6 +279,7 @@
     "selectModels": "选择模型",
     "binding": "绑定中...",
     "bind": "绑定",
+    "noModelsAvailable": "该平台暂无可用的模型",
     "toast": {
       "error": "错误",
       "selectPlatformAndKey": "请选择平台并输入 API Key",

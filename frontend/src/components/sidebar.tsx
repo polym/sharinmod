@@ -54,7 +54,7 @@ export function Sidebar() {
     { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
-    { icon: <Settings className="w-4 h-4" />, label: tQuickCall('selectModel'), href: "/settings" },
+    { icon: <Settings className="w-4 h-4" />, label: t('settings'), href: "/settings" },
   ];
 
   const SidebarContent = () => (
