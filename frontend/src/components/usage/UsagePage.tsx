@@ -40,6 +40,7 @@ interface UsageLog {
   output_tokens: number;
   ttft: number | null;
   total_duration: number | null;
+  num_fails: number;
 }
 
 interface UsageLogsResponse {
