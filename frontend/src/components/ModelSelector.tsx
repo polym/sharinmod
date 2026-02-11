@@ -32,7 +32,7 @@ export function ModelSelector({ provider, selectedModels, onChange, error }: Mod
       <Label>{t('selectModels')} <span className="text-red-500">*</span></Label>
       <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
         {supportedModels.length === 0 ? (
-          <div className="text-sm text-gray-500">该平台暂无可用的模型</div>
+          <div className="text-sm text-gray-500">{t('noModelsAvailable')}</div>
         ) : (
           supportedModels.map((model) => (
             <div key={model} className="flex items-center space-x-2">

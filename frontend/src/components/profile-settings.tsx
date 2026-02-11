@@ -24,7 +24,7 @@ export function SettingsPage() {
   );
 }
 
-function LanguageSettingsCard() {
+export function LanguageSettingsCard() {
   const t = useTranslations('settings');
   const tLang = useTranslations('language');
 

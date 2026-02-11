@@ -139,6 +139,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const [copied, setCopied] = useState(false);
   const [imageError, setImageError] = useState(false);
   const t = useTranslations('ModelCard');
+  const tCommon = useTranslations('common');
 
   const handleCopy = () => {
     const textToCopy = model.model_name;
@@ -295,7 +296,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
         <div className="grid grid-cols-2 gap-3">
           {/* 已使用 Token */}
           <div className="py-2 px-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('usedTokens')}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('tokensUsed')}</div>
             <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {model.used_tokens?.toLocaleString() || '0'}
             </div>
@@ -357,7 +358,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
                 {extraProvidersCount > 0 && (
                   <div
                     className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-400"
-                    title={t('morePlatforms', { count: extraProvidersCount })}
+                    title={t('moreProviders', { count: extraProvidersCount })}
                   >
                     +{extraProvidersCount}
                   </div>
@@ -374,7 +375,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleSharers.map((sharer) => (
-                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || t('userId', { id: sharer.user_id })}>
+                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || tCommon('unknown')}>
                     <Avatar
                       className="w-6 h-6 border-2 border-white dark:border-gray-800 hover:scale-110 transition-transform cursor-default"
                     >
