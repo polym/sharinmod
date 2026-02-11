@@ -4,11 +4,11 @@ from sqlmodel import Session
 from authlib.integrations.starlette_client import OAuth
 from fastapi import HTTPException
 from api.models.user import User
-from api.services.user_service import create_user_with_litellm
 from api.utils.jwt import create_access_token
 from datetime import timedelta
 from api.config import settings
 import secrets
+import httpx
 
 # 创建 OAuth 客户端注册表
 oauth = OAuth()
@@ -25,6 +25,32 @@ def register_github_client():
             'scope': 'user:email'
         }
     )
+
+
+async def create_user_in_litellm(email: str) -> str:
+    """
+    Create user in LiteLLM
+
+    Args:
+        email: User email to use as user_id
+
+    Returns:
+        LiteLLM user_id
+    """
+    if not settings.TESTING:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    f"{settings.LITELLM_BASE_URL}/user/new",
+                    json={"user_id": email},
+                    headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                )
+                response.raise_for_status()
+                litellm_data = response.json()
+                return litellm_data["user_id"]
+        except Exception as e:
+            raise ValueError(f"Failed to create user in LiteLLM: {str(e)}")
+    return email
 
 
 def get_or_create_github_user(db: Session, github_user_info: dict) -> User:
@@ -89,13 +115,23 @@ def get_or_create_github_user(db: Session, github_user_info: dict) -> User:
     )
 
     # 创建用户并同步到 LiteLLM
-    user = create_user_with_litellm(db, new_user)
-    return user
+    import asyncio
+    litellm_user_id = asyncio.run(create_user_in_litellm(email))
+    new_user.litellm_user_id = litellm_user_id
+
+    # 添加到数据库
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return new_user
 
 
 def create_oauth_token(user: User) -> str:
     """
     Create JWT token for OAuth-authenticated user
+
+
 
     Args:
         user: User object
