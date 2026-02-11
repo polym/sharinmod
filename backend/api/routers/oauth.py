@@ -25,7 +25,8 @@ async def github_login(request: Request):
     # 将 FastAPI Request 转换为 Starlette Request
     starlette_request = StarletteRequest(request.scope, request.receive)
     client = oauth.create_client('github')
-    redirect_uri = str(request.url_for('github_callback'))
+    # 使用环境变量中配置的回调地址
+    redirect_uri = settings.GITHUB_REDIRECT_URI
     return await client.authorize_redirect(starlette_request, redirect_uri)
 
 
