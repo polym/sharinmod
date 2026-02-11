@@ -3,9 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Zap } from "lucide-react";
+import { Settings, LogOut, Zap, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -16,12 +16,19 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useTranslations } from "next-intl";
+import { localeNames, locales, type Locale } from "@/i18n";
 
 export function Header() {
   const t = useTranslations('topbar');
   const { user, logout, updateUser, isAuthenticated } = useAuthStore();
+  const { locale, setLocale } = useLocaleStore();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -89,6 +96,21 @@ export function Header() {
               <Settings className="mr-2 h-4 w-4" />
               {t('settings')}
             </DropdownMenuItem>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <Globe className="mr-2 h-4 w-4" />
+                {t('language')}
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent>
+                <DropdownMenuRadioGroup value={locale} onValueChange={(value) => setLocale(value as Locale)}>
+                  {locales.map((loc) => (
+                    <DropdownMenuRadioItem key={loc} value={loc}>
+                      {localeNames[loc]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
-import { ProfileSettings, LanguageSettingsCard } from '@/components/profile-settings';
+import { ProfileSettings } from '@/components/profile-settings';
 
 export default function SettingsPage() {
   const [isHydrated, setIsHydrated] = useState(false);
@@ -33,7 +33,6 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8 space-y-6">
-      <LanguageSettingsCard />
       <ProfileSettings />
     </div>
   );

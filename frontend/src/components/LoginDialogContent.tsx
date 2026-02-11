@@ -9,6 +9,7 @@ import { useAuthStore } from '@/lib/store';
 import { authAPI } from '@/lib/services';
 import { AxiosError } from 'axios';
 import { useTranslations } from 'next-intl';
+import GithubIcon from '@/components/icons/github-icon';
 
 interface LoginDialogContentProps {
   onSuccess?: () => void;
@@ -30,6 +31,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
@@ -91,6 +93,12 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
     }
   };
 
+  const handleGithubLogin = () => {
+    setOauthLoading(true);
+    // 跳转到后端 OAuth 端点
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:38888'}/api/oauth/github/login`;
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -122,6 +130,36 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? t('loggingIn') : t('login')}
       </Button>
+
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-500">或</span>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={handleGithubLogin}
+        disabled={oauthLoading || loading}
+      >
+        {oauthLoading ? (
+          <span className="animate-spin mr-2">
+            <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </span>
+        ) : (
+          <GithubIcon className="h-4 w-4 mr-2" />
+        )}
+        使用 GitHub 登录
+      </Button>
+
       <div className="text-center">
         <button
           type="button"

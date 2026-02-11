@@ -9,22 +9,9 @@
   "topbar": {
     "settings": "设置",
     "logout": "登出",
-    "apiKeys": "API Keys"
-  },
-  "settings": {
-    "languageSettings": "语言设置",
+    "apiKeys": "API Keys",
     "language": "语言",
-    "profileSettings": "个人资料设置",
-    "profileDescription": "更新您的个人信息和个人简介",
-    "email": "邮箱",
-    "emailNotEditable": "邮箱地址不可修改",
-    "name": "姓名",
-    "namePlaceholder": "输入您的姓名",
-    "bio": "个人简介",
-    "bioPlaceholder": "介绍一下自己...",
-    "saveChanges": "保存更改",
-    "saving": "保存中...",
-    "loading": "加载中..."
+    "languageSettings": "语言设置"
   },
   "language": {
     "zh-CN": "中文",

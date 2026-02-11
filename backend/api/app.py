@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi_pagination import  add_pagination
 from sqlalchemy.exc import IntegrityError
 
@@ -20,6 +21,7 @@ from api.routers.api_key_discovery import router as api_key_discovery_router
 from api.routers.models import router as models_router
 from api.routers.webhooks import router as webhooks_router
 from api.routers.usage import router as usage_router
+from api.routers.oauth import router as oauth_router
 from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -86,6 +88,9 @@ def create_app(settings: Settings):
         allow_headers=["*"],
     )
 
+    # Add SessionMiddleware for OAuth
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
     # Add IP whitelist middleware for webhooks
     app.middleware("http")(ip_whitelist_middleware)
 
@@ -97,6 +102,7 @@ def create_app(settings: Settings):
     app.include_router(public_router)
     app.include_router(user_router)
     app.include_router(auth_router)
+    app.include_router(oauth_router)
     app.include_router(api_key_usage_router)
     app.include_router(shared_api_key_router)
     app.include_router(unified_api_key_router)
