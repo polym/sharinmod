@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi_pagination import  add_pagination
 from sqlalchemy.exc import IntegrityError
 
@@ -61,6 +62,9 @@ def create_app(settings: Settings):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add SessionMiddleware for OAuth
+    app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
     # Add IP whitelist middleware for webhooks
     app.middleware("http")(ip_whitelist_middleware)
