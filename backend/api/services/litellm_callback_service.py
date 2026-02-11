@@ -214,6 +214,8 @@ def extract_client_from_request_tags(request_tags: Optional[List[str]]) -> Optio
         return "Zed"
     elif "claude" in user_agent:
         return "Claude-Code"
+    elif "codex" in user_agent:
+        return "Codex"
     elif ("chrome" in user_agent or "mozilla" in user_agent) and "edg" not in user_agent:
         return "Chrome"
     elif "safari" in user_agent and "chrome" not in user_agent:
