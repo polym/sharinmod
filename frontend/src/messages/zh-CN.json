@@ -184,7 +184,7 @@
     "loadMore": "加载更多",
     "loadingMore": "加载中..."
   },
-  "modelCard": {
+  "ModelCard": {
     "tokensUsed": "已使用 Token",
     "codingScore": "Coding 评分",
     "noScore": "暂无",

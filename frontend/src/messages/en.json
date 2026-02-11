@@ -190,7 +190,7 @@
     "loadMore": "Load More",
     "loadingMore": "Loading..."
   },
-  "modelCard": {
+  "ModelCard": {
     "tokensUsed": "Tokens Used",
     "codingScore": "Coding Score",
     "noScore": "N/A",
