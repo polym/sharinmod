@@ -131,26 +131,19 @@
   "auth": {
     "email": "Email",
     "password": "Password",
-    "confirmPassword": "Confirm Password",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "••••••••",
     "login": "Login",
-    "register": "Register",
     "loggingIn": "Logging in...",
-    "registering": "Registering...",
-    "noAccount": "Don't have an account? Register",
     "hasAccount": "Already have an account? Login",
     "validation": {
       "enterEmail": "Please enter your email address",
       "enterValidEmail": "Please enter a valid email address",
       "enterPassword": "Please enter your password",
-      "passwordMinLength": "Password must be at least 8 characters",
-      "confirmPassword": "Please confirm your password",
-      "passwordMismatch": "Passwords do not match"
+      "passwordMinLength": "Password must be at least 8 characters"
     },
     "toast": {
-      "loginFailed": "Login failed, please check your credentials",
-      "registerFailed": "Registration failed, please check your information"
+      "loginFailed": "Login failed, please check your credentials"
     }
   },
   "usage": {
