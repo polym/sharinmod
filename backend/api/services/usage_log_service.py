@@ -29,6 +29,27 @@ DEFAULT_TIMEZONE = "Asia/Shanghai"
 UTC8_OFFSET = timedelta(hours=8)
 
 
+def _extract_model_short_name(model: Optional[str]) -> str:
+    """
+    Extract the short name from a model identifier.
+
+    Examples:
+        "openai/Qwen/Qwen2.5-3B-Instruct" -> "Qwen2.5-3B-Instruct"
+        "anthropic/claude-3-opus" -> "claude-3-opus"
+        "gpt-4" -> "gpt-4"
+        None -> "unknown"
+
+    Args:
+        model: Full model identifier
+
+    Returns:
+        Short model name (last part after /)
+    """
+    if not model:
+        return "unknown"
+    return model.split("/")[-1] if "/" in model else model
+
+
 def _get_timezone_offset(tz_str: Optional[str]) -> timedelta:
     """
     Get timezone offset for a given timezone string
@@ -134,7 +155,7 @@ def create_usage_log(
             unified_api_key_id=unified_api_key_id,
             unified_api_key_name=unified_api_key_name,
             model_id=model_id,
-            model_name=callback_data.model,
+            model_name=_extract_model_short_name(callback_data.model),
             status=UsageLogStatus.SUCCESS,
             kind=kind,
             client=client,
@@ -202,7 +223,7 @@ def create_failure_usage_log(
             unified_api_key_id=unified_api_key_id,
             unified_api_key_name=unified_api_key_name,
             model_id=model_id,
-            model_name=model or "unknown",
+            model_name=_extract_model_short_name(model),
             status=UsageLogStatus.FAILURE,
             kind=kind,
             total_duration=None,
@@ -303,7 +324,7 @@ def update_usage_log_for_retry(
                 """),
                 {
                     "status": new_status.value,
-                    "model_name": callback_data.model,
+                    "model_name": _extract_model_short_name(callback_data.model),
                     "client": callback_data.get('client'),
                     "total_duration": callback_data.response_time,
                     "ttft": callback_data.response_time if callback_data.completion_start_time else None,

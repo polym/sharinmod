@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { ClientName } from './ClientName';
@@ -49,6 +51,28 @@ const getKindLabelStyle = (kind: string): string => {
   // direct - no background style
   return '';
 };
+
+// 重试次数 Tooltip 组件
+function RetryTooltip({ count, children }: { count: number; children: React.ReactNode }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const t = useTranslations('usageTable');
+
+  return (
+    <div
+      className="relative inline-block"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+      {showTooltip && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+          {t('retryTimes', { count })}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezone }: UsageLogsTableProps) {
   const t = useTranslations('usageTable');
@@ -125,13 +149,9 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
                   {log.num_fails > 0 && (
-                    <span
-                      className="ml-1 text-amber-600 cursor-help"
-                      title={t('retryTimes', { count: log.num_fails })}
-                      role="tooltip"
-                    >
-                      !
-                    </span>
+                    <RetryTooltip count={log.num_fails}>
+                      <AlertTriangle className="ml-1 w-4 h-4 text-amber-600 cursor-help" />
+                    </RetryTooltip>
                   )}
                 </TableCell>
                 <TableCell className="text-sm">
