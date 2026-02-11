@@ -85,9 +85,18 @@ PROVIDER_INFO = {
     APIKeyProvider.BIGMODEL: {
         "name": "智谱 AI Coding Plan",
         "website": "https://bigmodel.cn",
-        "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
+        "supported_models": ["glm-5", "glm-4.7", "glm-4.6", "glm-4.5-air"],
         "logo_path": "/providers/bigmodel-logo.png",
         "models": {
+            "glm-5": {
+                "display_name": "GLM-5",
+                "description": "智谱 AI 最新一代旗舰模型，超长上下文支持",
+                "context_length": "200k",
+                "max_output_length": "4k",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
+                "coding_score": None
+            },
             "glm-4.7": {
                 "display_name": "GLM-4.7",
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
@@ -120,9 +129,18 @@ PROVIDER_INFO = {
     APIKeyProvider.ZAI: {
         "name": "Z.AI Coding Plan",
         "website": "https://z.ai",
-        "supported_models": ["glm-4.7", "glm-4.6", "glm-4.5-air"],
+        "supported_models": ["glm-5", "glm-4.7", "glm-4.6", "glm-4.5-air"],
         "logo_path": "/providers/zai-logo.png",
         "models": {
+            "glm-5": {
+                "display_name": "GLM-5",
+                "description": "智谱 AI 最新一代旗舰模型，超长上下文支持",
+                "context_length": "200k",
+                "max_output_length": "4k",
+                "input_types": ["Text"],
+                "output_types": ["Text"],
+                "coding_score": None
+            },
             "glm-4.7": {
                 "display_name": "GLM-4.7",
                 "description": "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力",
