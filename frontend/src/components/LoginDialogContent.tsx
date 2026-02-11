@@ -35,7 +35,6 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
-  const setShowRegisterDialog = useAuthStore((state) => state.setShowRegisterDialog);
   const router = useRouter();
 
   const validateForm = (): boolean => {
@@ -160,18 +159,6 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
         使用 GitHub 登录
       </Button>
 
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => {
-            setShowLoginDialog(false);
-            setShowRegisterDialog(true);
-          }}
-          className="text-blue-600 hover:underline text-sm"
-        >
-          {t('noAccount')}
-        </button>
-      </div>
     </form>
   );
 }

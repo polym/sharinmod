@@ -18,13 +18,11 @@ interface AuthState {
   user: User | null;
   token: string | null;
   showLoginDialog: boolean;
-  showRegisterDialog: boolean;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: User) => void;
   setShowLoginDialog: (show: boolean) => void;
-  setShowRegisterDialog: (show: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -34,7 +32,6 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       showLoginDialog: false,
-      showRegisterDialog: false,
       _isLoggingOut: false,
       login: (user: User, token: string) => {
         set({ isAuthenticated: true, user, token, _isLoggingOut: false });
@@ -48,9 +45,6 @@ export const useAuthStore = create<AuthState>()(
       setShowLoginDialog: (show: boolean) => {
         set({ showLoginDialog: show });
       },
-      setShowRegisterDialog: (show: boolean) => {
-        set({ showRegisterDialog: show });
-      },
     }),
     {
       name: 'auth-storage',
@@ -58,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         token: state.token,
-        // showLoginDialog, showRegisterDialog and _isLoggingOut are NOT persisted
+        // showLoginDialog and _isLoggingOut are NOT persisted
       }),
     }
   )

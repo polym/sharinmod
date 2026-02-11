@@ -110,26 +110,19 @@
   "auth": {
     "email": "邮箱",
     "password": "密码",
-    "confirmPassword": "确认密码",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "••••••••",
     "login": "登录",
-    "register": "注册",
     "loggingIn": "登录中...",
-    "registering": "注册中...",
-    "noAccount": "还没有账户？注册",
     "hasAccount": "已有账户？登录",
     "validation": {
       "enterEmail": "请输入邮箱地址",
       "enterValidEmail": "请输入有效的邮箱地址",
       "enterPassword": "请输入密码",
-      "passwordMinLength": "密码长度至少为 8 位",
-      "confirmPassword": "请确认密码",
-      "passwordMismatch": "密码不匹配"
+      "passwordMinLength": "密码长度至少为 8 位"
     },
     "toast": {
-      "loginFailed": "登录失败，请检查您的凭据",
-      "registerFailed": "注册失败，请检查您的信息"
+      "loginFailed": "登录失败，请检查您的凭据"
     }
   },
   "usage": {

@@ -4,7 +4,7 @@ A Next.js frontend application for the SharinMod platform - a token sharing syst
 
 ## Features
 
-- **User Authentication**: Register and login with email/password
+- **User Authentication**: Login with GitHub OAuth
 - **Token Sharing**: Share your bigmodel and z.ai API tokens with the community
 - **Token Discovery**: Browse and discover tokens shared by other users
 - **Unified Tokens**: Create unified tokens by combining multiple shared tokens
@@ -53,8 +53,7 @@ A Next.js frontend application for the SharinMod platform - a token sharing syst
 src/
 ├── app/                    # Next.js app router pages
 │   ├── dashboard/         # Main dashboard with token management
-│   ├── login/            # Login page
-│   ├── register/         # Registration page
+│   ├── login/            # GitHub OAuth login page
 │   └── chat/             # Chat interface for token consumption
 ├── components/           # Reusable UI components
 │   ├── ui/              # Base UI components (buttons, inputs, etc.)
@@ -79,7 +78,7 @@ The frontend integrates with the SharinMod backend API. Make sure the backend is
 
 ## Authentication
 
-The app uses JWT tokens for authentication, stored securely in localStorage with automatic API header injection. Invalid tokens trigger automatic logout and redirect to login.
+The app uses GitHub OAuth for user authentication. JWT tokens are stored securely in localStorage with automatic API header injection. Invalid tokens trigger automatic logout and redirect to login.
 
 ## Security Features
 
