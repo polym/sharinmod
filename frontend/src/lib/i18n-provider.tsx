@@ -8,10 +8,27 @@ import { useEffect, useState } from 'react';
 type Messages = typeof import('@/messages/zh-CN.json');
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const { locale } = useLocaleStore();
+  const { locale, setLocale } = useLocaleStore();
   const [messages, setMessages] = useState<Messages | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    // Ensure locale is set after hydration
+    if (!locale) {
+      const storedLocale = localStorage.getItem('sharinmod-locale');
+      if (storedLocale) {
+        const parsed = JSON.parse(storedLocale);
+        if (parsed.state && parsed.state.locale) {
+          setLocale(parsed.state.locale);
+        }
+      }
+    }
+    setIsHydrated(true);
+  }, [locale, setLocale]);
+
+  useEffect(() => {
+    if (!locale) return;
+
     const loadMessages = async () => {
       try {
         let newMessages: Messages;
@@ -32,8 +49,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     loadMessages();
   }, [locale]);
 
-  // Avoid flash of untranslated content
-  if (!messages) {
+  // Avoid flash of untranslated content - wait for hydration and messages
+  if (!isHydrated || !messages || !locale) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>

@@ -70,14 +70,22 @@ interface LocaleState {
   setLocale: (locale: Locale) => void;
 }
 
+// Initial value is handled by Zustand persist middleware
+// It will be undefined initially until hydration completes
 export const useLocaleStore = create<LocaleState>()(
   persist(
     (set) => ({
-      locale: detectBrowserLanguage(),
+      locale: undefined as Locale | undefined, // Will be filled after hydration
       setLocale: (locale: Locale) => set({ locale }),
     }),
     {
       name: 'sharinmod-locale',
+      onRehydrateStorage: () => (state) => {
+        // After hydration, if no locale was persisted, use browser language
+        if (state && state.locale === undefined) {
+          state.setLocale(detectBrowserLanguage());
+        }
+      },
     }
   )
 );
