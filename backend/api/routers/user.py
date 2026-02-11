@@ -4,8 +4,8 @@ User API routes for registration and authentication
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 from api.database import get_db
-from api.schemas.user import UserCreate, UserResponse, UserProfileUpdate, UserProfileResponse
-from api.services.user_service import create_user, update_user_profile, get_user_profile
+from api.schemas.user import UserResponse, UserProfileUpdate, UserProfileResponse
+from api.services.user_service import update_user_profile, get_user_profile
 from api.dependencies.auth import get_current_user
 from api.models.user import User
 
