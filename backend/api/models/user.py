@@ -24,7 +24,12 @@ class User(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True, max_length=255)
-    hashed_password: str = Field(max_length=255)
+    hashed_password: Optional[str] = Field(default=None, max_length=255)
+
+    # OAuth fields
+    oauth_provider: Optional[str] = Field(default=None, max_length=50)  # 'github', 'google', etc.
+    oauth_provider_user_id: Optional[str] = Field(default=None, max_length=255)  # GitHub user ID, etc.
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
