@@ -10,6 +10,8 @@ from sqlmodel.pool import StaticPool
 from api.app import create_app
 from api.config import Settings
 from api.database import get_db
+from api.models.user import User
+from api.utils.security import hash_password
 
 # Set testing mode globally for this test file
 import api.config
@@ -40,22 +42,26 @@ def client_fixture(session: Session):
     settings.TESTING = True  # Enable testing mode
     app = create_app(settings)
     app.dependency_overrides[get_db] = get_session_override
-    
+
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="auth_token")
-def auth_token_fixture(client: TestClient):
+def auth_token_fixture(client: TestClient, session: Session):
     """Create user and get auth token"""
-    # Register
-    register_response = client.post("/api/users/register", json={
-        "email": "profiletest@example.com",
-        "password": "TestPass123!"
-    })
-    assert register_response.status_code == 201
-    # Login
+    # Create user directly in database
+    user = User(
+        email="profiletest@example.com",
+        hashed_password=hash_password("TestPass123!"),
+        litellm_user_id="profiletest@example.com"
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    # Login to get token
     login_response = client.post("/api/auth/login", json={
         "email": "profiletest@example.com",
         "password": "TestPass123!"
@@ -75,7 +81,7 @@ def test_get_profile_success(client: TestClient, auth_token):
         "/api/users/me/profile",
         headers={"Authorization": f"Bearer {auth_token}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == "profiletest@example.com"
@@ -115,7 +121,7 @@ def test_update_profile_full(client: TestClient, auth_token):
             "bio": "这是一个测试用户的简介"
         }
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "测试用户"
@@ -137,14 +143,14 @@ def test_update_profile_partial(client: TestClient, auth_token):
             "bio": "原简介"
         }
     )
-    
+
     # Update only name
     response = client.patch(
         "/api/users/me/profile",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={"name": "新名字"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "新名字"
@@ -213,7 +219,7 @@ def test_profile_persistence(client: TestClient, auth_token):
         headers={"Authorization": f"Bearer {auth_token}"},
         json={"bio": "持久化测试"}
     )
-    
+
     # Get profile in new request
     response = client.get(
         "/api/users/me/profile",
@@ -233,24 +239,24 @@ def test_updated_at_changes(client: TestClient, auth_token):
         headers={"Authorization": f"Bearer {auth_token}"}
     )
     initial_updated_at = response1.json()["updated_at"]
-    
+
     # Small delay to ensure timestamp difference
     time.sleep(1)
-    
+
     # Update profile
     client.patch(
         "/api/users/me/profile",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={"name": "更新时间测试"}
     )
-    
+
     # Get updated profile
     response2 = client.get(
         "/api/users/me/profile",
         headers={"Authorization": f"Bearer {auth_token}"}
     )
     updated_updated_at = response2.json()["updated_at"]
-    
+
     # updated_at should have changed
     assert updated_updated_at > initial_updated_at
 

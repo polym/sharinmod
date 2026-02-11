@@ -4,11 +4,13 @@ Tests cover all acceptance criteria from Story 1.3
 """
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 from sqlmodel.pool import StaticPool
 from api.app import create_app
 from api.config import Settings
 from api.database import get_db
+from api.models.user import User
+from api.utils.security import hash_password
 
 
 # Create in-memory SQLite database for testing
@@ -34,28 +36,24 @@ def client_fixture(session: Session):
     settings = Settings()
     app = create_app(settings)
     app.dependency_overrides[get_db] = get_session_override
-    
+
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture(client: TestClient, mocker):
-    """Create a test user for login tests"""
-    # Mock LiteLLM API success
-    mock_response = mocker.Mock()
-    mock_response.json.return_value = {"user_id": "logintest@example.com"}
-    mock_response.raise_for_status.return_value = None
-    
-    mocker.patch('httpx.AsyncClient.post', return_value=mock_response)
-    
-    response = client.post("/api/users/register", json={
-        "email": "logintest@example.com",
-        "password": "TestPass123!"
-    })
-    assert response.status_code == 201
-    return response.json()
+def test_user_fixture(session: Session):
+    """Create a test user for login tests directly in the database"""
+    user = User(
+        email="logintest@example.com",
+        hashed_password=hash_password("TestPass123!"),
+        litellm_user_id="logintest@example.com"
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 def test_login_success(client: TestClient, test_user):
@@ -102,7 +100,7 @@ def test_login_wrong_password(client: TestClient, test_user):
         "email": "logintest@example.com",
         "password": "WrongPassword123!"
     })
-    
+
     assert response.status_code == 401
     assert "Incorrect email or password" in response.json()["detail"]
 
@@ -118,7 +116,7 @@ def test_login_nonexistent_email(client: TestClient):
         "email": "nonexistent@example.com",
         "password": "TestPass123!"
     })
-    
+
     assert response.status_code == 401
     assert "Incorrect email or password" in response.json()["detail"]
 
@@ -132,7 +130,7 @@ def test_login_invalid_email(client: TestClient):
         "email": "not-an-email",
         "password": "TestPass123!"
     })
-    
+
     assert response.status_code == 422  # Validation error
 
 
@@ -150,13 +148,13 @@ def test_protected_endpoint_with_valid_token(client: TestClient, test_user):
     })
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]
-    
+
     # Access protected endpoint with token
     response = client.get(
         "/api/users/me",
         headers={"Authorization": f"Bearer {token}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == "logintest@example.com"
@@ -182,7 +180,7 @@ def test_protected_endpoint_with_invalid_token(client: TestClient):
         "/api/users/me",
         headers={"Authorization": "Bearer invalid-token-here"}
     )
-    
+
     assert response.status_code == 401
     assert "Could not validate credentials" in response.json()["detail"]
 
@@ -193,13 +191,13 @@ def test_token_expiration_structure(client: TestClient, test_user):
     """
     from api.utils.jwt import create_access_token, verify_token
     from datetime import timedelta
-    
+
     # Create token with short expiration
     token = create_access_token(
         data={"sub": "test@example.com"},
         expires_delta=timedelta(minutes=5)
     )
-    
+
     # Token should be valid immediately
     email = verify_token(token)
     assert email == "test@example.com"
@@ -213,7 +211,7 @@ def test_login_missing_password(client: TestClient):
     response = client.post("/api/auth/login", json={
         "email": "test@example.com"
     })
-    
+
     assert response.status_code == 422
 
 
@@ -225,5 +223,5 @@ def test_login_missing_email(client: TestClient):
     response = client.post("/api/auth/login", json={
         "password": "TestPass123!"
     })
-    
+
     assert response.status_code == 422

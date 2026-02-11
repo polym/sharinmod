@@ -9,6 +9,8 @@ from sqlmodel.pool import StaticPool
 from api.app import create_app
 from api.config import Settings
 from api.database import get_db
+from api.models.user import User
+from api.utils.security import hash_password
 
 
 # Create in-memory SQLite database for testing
@@ -34,28 +36,32 @@ def client_fixture(session: Session):
     settings = Settings()
     app = create_app(settings)
     app.dependency_overrides[get_db] = get_session_override
-    
+
     client = TestClient(app)
     yield client
     app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="auth_setup")
-def auth_setup_fixture(client: TestClient):
+def auth_setup_fixture(client: TestClient, session: Session):
     """Create user and login to get auth token"""
-    # Register user
-    client.post("/api/users/register", json={
-        "email": "usagetest@example.com",
-        "password": "TestPass123!"
-    })
-    
+    # Create user directly in database
+    user = User(
+        email="usagetest@example.com",
+        hashed_password=hash_password("TestPass123!"),
+        litellm_user_id="usagetest@example.com"
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
     # Login to get token
     response = client.post("/api/auth/login", json={
         "email": "usagetest@example.com",
         "password": "TestPass123!"
     })
     access_token = response.json()["access_token"]
-    
+
     return {"access_token": access_token, "email": "usagetest@example.com"}
 
 
@@ -70,7 +76,7 @@ def test_get_empty_usage_history(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 0
@@ -90,7 +96,7 @@ def test_get_empty_usage_statistics(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage/stats",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["total_actions"] == 0
@@ -139,7 +145,7 @@ def test_usage_history_pagination_defaults(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["page"] == 1
@@ -154,7 +160,7 @@ def test_usage_history_custom_pagination(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage?page=2&page_size=10",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["page"] == 2
@@ -171,7 +177,7 @@ def test_usage_history_invalid_pagination(client: TestClient, auth_setup):
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
     assert response.status_code == 422  # Validation error
-    
+
     # Invalid page_size (exceeds max 100)
     response = client.get(
         "/api/users/me/api-key-usage?page_size=101",
@@ -196,7 +202,7 @@ def test_history_endpoint_structure(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     # Check required fields
@@ -215,7 +221,7 @@ def test_statistics_endpoint_structure(client: TestClient, auth_setup):
         "/api/users/me/api-key-usage/stats",
         headers={"Authorization": f"Bearer {auth_setup['access_token']}"}
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     # Check required fields
