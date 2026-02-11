@@ -14,6 +14,9 @@ export const authAPI = {
     api.post('/api/auth/login', data),
 
   getProfile: () => api.get('/api/users/me'),
+
+  // OAuth 相关方法
+  getOAuthProviders: () => api.get('/api/oauth/providers'),
 };
 
 // User API
