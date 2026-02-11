@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
 
 // Locale state for i18n
 interface LocaleState {
-  locale: Locale;
+  locale: Locale | undefined;
   setLocale: (locale: Locale) => void;
 }
 

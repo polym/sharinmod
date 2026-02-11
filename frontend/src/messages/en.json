@@ -9,7 +9,9 @@
   "topbar": {
     "settings": "Settings",
     "logout": "Logout",
-    "apiKeys": "API Keys"
+    "apiKeys": "API Keys",
+    "language": "Language",
+    "languageSettings": "Language Settings"
   },
   "settings": {
     "languageSettings": "Language Settings",
