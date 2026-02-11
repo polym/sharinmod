@@ -53,8 +53,8 @@ async def github_callback(
     resp = await client.get('https://api.github.com/user', token=token)
     github_user_info = resp.json()
 
-    # 获取或创建用户
-    user = get_or_create_github_user(db, github_user_info)
+    # 获取或创建用户 - 修复：添加 await
+    user = await get_or_create_github_user(db, github_user_info)
 
     # 创建 JWT token
     access_token = create_oauth_token(user)

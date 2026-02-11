@@ -55,7 +55,7 @@ async def create_user_in_litellm(email: str) -> str:
     return email
 
 
-def get_or_create_github_user(db: Session, github_user_info: dict) -> User:
+async def get_or_create_github_user(db: Session, github_user_info: dict) -> User:
     """
     Get existing user by GitHub ID or create new user from GitHub info
 
@@ -116,9 +116,8 @@ def get_or_create_github_user(db: Session, github_user_info: dict) -> User:
         oauth_provider_user_id=github_id,
     )
 
-    # 创建用户并同步到 LiteLLM
-    import asyncio
-    litellm_user_id = asyncio.run(create_user_in_litellm(email))
+    # 创建用户并同步到 LiteLLM - 修复：使用 await 而不是 asyncio.run()
+    litellm_user_id = await create_user_in_litellm(email)
     new_user.litellm_user_id = litellm_user_id
 
     # 添加到数据库

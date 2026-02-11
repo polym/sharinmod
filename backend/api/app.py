@@ -1,10 +1,20 @@
 from contextlib import asynccontextmanager
+import logging
+import traceback
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi_pagination import  add_pagination
 from sqlalchemy.exc import IntegrityError
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from api.config import Settings
 from api.database import create_db_and_tables, initialize_sharinmod_data, get_db
@@ -79,6 +89,17 @@ def create_app(settings: Settings):
         description=settings.DESCRIPTION,
         lifespan=lifespan,
     )
+
+    # 添加全局异常处理器
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        logger.error(
+            f"Unhandled exception on {request.method} {request.url}: {str(exc)}\n{traceback.format_exc()}"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error", "error": str(exc)}
+        )
 
     app.add_middleware(
         CORSMiddleware,
