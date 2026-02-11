@@ -207,7 +207,8 @@
       "zai": "Z.AI",
       "volcengine": "火山引擎",
       "minimax": "MiniMax",
-      "moonshot": "月之暗面"
+      "moonshot": "月之暗面",
+      "openrouter": "OpenRouter"
     },
     "typeLabels": {
       "Text": "文本",
@@ -348,6 +349,7 @@
     "share": "分享",
     "copy": "复制",
     "copied": "已复制",
-    "submit": "提交"
+    "submit": "提交",
+    "tokens": "Tokens"
   }
 }

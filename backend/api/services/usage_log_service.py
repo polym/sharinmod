@@ -479,7 +479,8 @@ def get_user_usage_overview(
     db: Session,
     user_id: int,
     target_date: Optional[date] = None,
-    timezone_str: Optional[str] = None
+    timezone_str: Optional[str] = None,
+    unified_api_key_id: Optional[int] = None
 ) -> UsageOverviewResponse:
     """
     Get usage overview for a user on a specific date (user timezone)
@@ -489,6 +490,7 @@ def get_user_usage_overview(
         user_id: User ID to query
         target_date: Date to query (user timezone), defaults to today
         timezone_str: Optional timezone string for date conversion
+        unified_api_key_id: Optional filter by unified API key ID
 
     Returns:
         UsageOverviewResponse with aggregated data
@@ -507,21 +509,24 @@ def get_user_usage_overview(
     utc_start = datetime.combine(target_date, datetime.min.time()) - tz_offset
     utc_end = datetime.combine(target_date, datetime.max.time()) - tz_offset
 
-    # Get total requests
-    total_query = select(func.count()).select_from(UsageLog).where(
+    # Build base filters
+    base_filters = [
         UsageLog.user_id == user_id,
         UsageLog.request_time >= utc_start,
         UsageLog.request_time <= utc_end
-    )
+    ]
+
+    # Add unified API key filter if provided
+    if unified_api_key_id is not None:
+        base_filters.append(UsageLog.unified_api_key_id == unified_api_key_id)
+
+    # Get total requests
+    total_query = select(func.count()).select_from(UsageLog).where(*base_filters)
     total_requests = db.exec(total_query).one()
 
     # Get successful requests
-    success_query = select(func.count()).select_from(UsageLog).where(
-        UsageLog.user_id == user_id,
-        UsageLog.request_time >= utc_start,
-        UsageLog.request_time <= utc_end,
-        UsageLog.status == UsageLogStatus.SUCCESS
-    )
+    success_filters = base_filters + [UsageLog.status == UsageLogStatus.SUCCESS]
+    success_query = select(func.count()).select_from(UsageLog).where(*success_filters)
     successful_requests = db.exec(success_query).one()
 
     # Failed requests
@@ -532,11 +537,7 @@ def get_user_usage_overview(
         func.sum(UsageLog.input_tokens),
         func.sum(UsageLog.output_tokens),
         func.sum(UsageLog.total_tokens)
-    ).where(
-        UsageLog.user_id == user_id,
-        UsageLog.request_time >= utc_start,
-        UsageLog.request_time <= utc_end
-    )
+    ).where(*base_filters)
     result = db.exec(token_query).one()
     input_tokens = result[0] or 0
     output_tokens = result[1] or 0
@@ -546,13 +547,17 @@ def get_user_usage_overview(
     # Calculate timezone offset in hours for PostgreSQL date conversion
     tz_offset_hours = int(tz_offset.total_seconds() / 3600)
 
-    hourly_query = text("""
+    # Build WHERE clause for unified_api_key_id filter
+    key_filter = "AND unified_api_key_id = :key_id" if unified_api_key_id is not None else ""
+
+    hourly_query = text(f"""
         SELECT CAST(EXTRACT(HOUR FROM request_time AT TIME ZONE 'UTC' + (INTERVAL '1 hour' * :offset)) AS INTEGER) AS hour,
                SUM(total_tokens) as tokens
         FROM usage_logs
         WHERE user_id = :user_id
           AND request_time >= :utc_start
           AND request_time <= :utc_end
+          {key_filter}
         GROUP BY hour
         ORDER BY hour
     """)
@@ -561,16 +566,17 @@ def get_user_usage_overview(
     hourly_distribution = [HourlyTokenData(hour=h, tokens=0) for h in range(24)]
 
     # Execute query and update distribution
+    query_params = {
+        "user_id": user_id,
+        "utc_start": utc_start,
+        "utc_end": utc_end,
+        "offset": tz_offset_hours
+    }
+    if unified_api_key_id is not None:
+        query_params["key_id"] = unified_api_key_id
+
     try:
-        results = db.execute(
-            hourly_query,
-            {
-                "user_id": user_id,
-                "utc_start": utc_start,
-                "utc_end": utc_end,
-                "offset": tz_offset_hours
-            }
-        ).fetchall()
+        results = db.execute(hourly_query, query_params).fetchall()
     except Exception as e:
         logger.error(f"Hourly distribution query failed: {e}")
         results = []
