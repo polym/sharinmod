@@ -217,9 +217,9 @@
     }
   },
   "quickCall": {
-    "title": "快速接入 API",
+    "title": "即刻调用",
     "description": "选择您偏好的工具和语言，复制示例代码即可开始调用 AI 模型",
-    "selectModel": "选择模型",
+    "quickCall": "即刻调用",
     "createApiKey": "创建 API Key",
     "tabs": {
       "claudeCode": "Claude Code",
