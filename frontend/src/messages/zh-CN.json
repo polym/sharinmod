@@ -182,7 +182,8 @@
     "typeShared": "外援",
     "typeDirect": "直连",
     "loadMore": "加载更多",
-    "loadingMore": "加载中..."
+    "loadingMore": "加载中...",
+    "retryTimes": "重试 {count} 次"
   },
   "modelCard": {
     "tokensUsed": "已使用 Token",

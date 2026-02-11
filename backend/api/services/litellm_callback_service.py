@@ -2,7 +2,7 @@
 Service layer for processing LiteLLM success callbacks
 
 Handles:
-- Enqueuing callbacks to Redis
+-   Enqueuing callbacks to Redis
 - Processing callbacks from queue
 - Updating token statistics
 """
@@ -19,6 +19,7 @@ from sqlalchemy import text
 from api.models.user import User
 from api.models.shared_api_key import SharedAPIKey
 from api.models.subscription import Subscription
+from api.models.usage_log import UsageLogKind
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ def get_redis_client() -> Optional[redis.Redis]:
 
 def close_redis_client():
     """
-    Close the Redis client for current thread.
+    Close Redis client for current thread.
     Should be called during cleanup/shutdown.
     """
     if hasattr(_redis_local, 'client') and _redis_local.client is not None:
@@ -99,6 +100,9 @@ def enqueue_callback(redis_client, callback_data: Dict[str, Any]) -> bool:
     except Exception as e:
         logger.error(f"Failed to enqueue callback: {e}")
         return False
+
+
+
 
 
 def dequeue_callback(redis_client, timeout: int = 0) -> Optional[Dict[str, Any]]:
@@ -192,11 +196,11 @@ def extract_client_from_request_tags(request_tags: Optional[List[str]]) -> Optio
     if not request_tags:
         return None
 
-    # Find the longest User-Agent string (contains the full browser info)
+    # Find the longest User-Agent string (contains full browser info)
     user_agent = None
     for tag in request_tags:
         if tag and "User-Agent:" in tag:
-            # Use the longer string which contains the full User-Agent
+            # Use longer string which contains full User-Agent
             if user_agent is None or len(tag) > len(user_agent):
                 user_agent = tag.lower()
 
@@ -283,7 +287,7 @@ def update_token_statistics(
     Args:
         session: Database session
         callback: Parsed callback data
-        consumer_user: User who consumed the tokens
+        consumer_user: User who consumed tokens
         subscription: Subscription linking to contributor (optional)
 
     Returns:
@@ -316,7 +320,7 @@ def update_token_statistics(
                     logger.debug(f"Updated Redis Hash: {redis_key}, hour: {hour_key}, tokens: {total_tokens}")
                 except Exception as e:
                     logger.error(f"Failed to update Redis Hash: {e}")
-                    # Don't fail the entire operation if Redis update fails
+                    # Don't fail entire operation if Redis update fails
 
             # Update shared API key stats atomically (using bind params to prevent SQL injection)
             session.execute(
@@ -365,6 +369,9 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         return False
 
     try:
+        # Extract trace_id for retry tracking
+        trace_id = callback_data.get('trace_id')
+
         # Extract api_key_hash from callback (from metadata)
         api_key_hash = extract_api_key_hash(callback)
         if not api_key_hash:
@@ -420,21 +427,47 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             callback_status = "success"
         callback_status = callback_status if callback_status else "success"
 
+        # Determine kind: own (contributor), shared (consumer), or direct (no subscription)
+        kind = UsageLogKind.DIRECT
+        if subscription:
+            if subscription.user_id == consumer.id:
+                kind = UsageLogKind.OWN  # User is contributor
+            else:
+                kind = UsageLogKind.SHARED  # User is consuming someone else's API key
+
+        # Handle trace-based retry tracking
+        if trace_id and consumer:
+            from api.services.usage_log_service import find_usage_log_by_trace, update_usage_log_for_retry
+            from api.models.usage_log import UsageLogStatus
+
+            # Find existing log with same trace_id
+            existing_log = find_usage_log_by_trace(session, consumer.id, trace_id)
+
+            # Determine new status enum
+            new_status = UsageLogStatus.SUCCESS if callback_status == "success" else UsageLogStatus.FAILURE
+
+            if existing_log:
+                # Merge with existing record
+                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status)
+                if updated_log is None:
+                    # Callback was ignored (duplicate success)
+                    logger.info(f"Ignored callback for trace_id={trace_id}")
+                    return True
+
+                # Update token statistics for success callbacks
+                if callback_status == "success":
+                    return update_token_statistics(session, callback, consumer, subscription)
+                return True
+            else:
+                # No existing record, create new one
+                pass  # Fall through to create logic below
+
         # Handle based on callback status
         if callback_status == "failure":
             # Failure callback: create failure usage log only
             if consumer:
                 try:
                     from api.services.usage_log_service import create_failure_usage_log
-                    from api.models.usage_log import UsageLogKind
-
-                    # Determine kind: own (contributor), shared (consumer), or direct (no subscription)
-                    kind = UsageLogKind.DIRECT
-                    if subscription:
-                        if subscription.user_id == consumer.id:
-                            kind = UsageLogKind.OWN  # User is the contributor
-                        else:
-                            kind = UsageLogKind.SHARED  # User is consuming someone else's API key
 
                     create_failure_usage_log(
                         db=session,
@@ -444,7 +477,8 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                         model_id=model_id,
                         unified_api_key_id=unified_api_key_id,
                         unified_api_key_name=unified_api_key_name,
-                        kind=kind
+                        kind=kind,
+                        trace_id=trace_id
                     )
                     logger.info(f"Created failure usage log for user {consumer.id}, kind={kind}")
                 except Exception as e:
@@ -463,7 +497,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                 if stats_updated:
                     try:
                         from api.services.usage_log_service import create_usage_log
-                        create_usage_log(session, consumer.id, callback, subscription, client)
+                        create_usage_log(session, consumer.id, callback, subscription, client, trace_id)
                     except Exception as e:
                         logger.error(f"Failed to create usage log (non-critical): {e}")
 

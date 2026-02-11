@@ -41,6 +41,8 @@ class UsageLog(SQLModel, table=True):
         total_tokens: Total tokens consumed
         request_time: When the API call was made
         created_at: When the log entry was created
+        trace_id: Trace ID for linking retry attempts (nullable)
+        num_fails: Number of failed retry attempts
     """
     __tablename__ = "usage_logs"
 
@@ -60,3 +62,5 @@ class UsageLog(SQLModel, table=True):
     total_tokens: int = Field(default=0)
     request_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    trace_id: Optional[str] = Field(default=None, max_length=255, index=True)
+    num_fails: int = Field(default=0)

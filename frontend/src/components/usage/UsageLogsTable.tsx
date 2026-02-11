@@ -19,6 +19,7 @@ interface UsageLog {
   output_tokens: number;
   ttft: number | null;
   total_duration: number | null;
+  num_fails: number;
 }
 
 interface UsageLogsTableProps {
@@ -123,6 +124,15 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                   }`}>
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
+                  {log.num_fails > 0 && (
+                    <span
+                      className="ml-1 text-amber-600 cursor-help"
+                      title={t('retryTimes', { count: log.num_fails })}
+                      role="tooltip"
+                    >
+                      !
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell className="text-sm">
                   {log.unified_api_key_name || '-'}

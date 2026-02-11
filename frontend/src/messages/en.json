@@ -188,7 +188,8 @@
     "typeShared": "Shared",
     "typeDirect": "Direct",
     "loadMore": "Load More",
-    "loadingMore": "Loading..."
+    "loadingMore": "Loading...",
+    "retryTimes": "Retried {count} times"
   },
   "modelCard": {
     "tokensUsed": "Tokens Used",

@@ -26,6 +26,8 @@ class UsageLogResponse(BaseModel):
     total_tokens: int
     request_time: datetime
     created_at: datetime
+    trace_id: Optional[str] = None
+    num_fails: int = 0
 
     @field_serializer('request_time', 'created_at')
     def datetime_to_rfc3339(self, dt: datetime) -> str:
@@ -58,7 +60,9 @@ class UsageLogResponse(BaseModel):
                 "output_tokens": 140,
                 "total_tokens": 173,
                 "request_time": "2026-02-02T10:30:00+00:00",
-                "created_at": "2026-02-02T10:30:00+00:00"
+                "created_at": "2026-02-02T10:30:00+00:00",
+                "trace_id": "abc123",
+                "num_fails": 0
             }
         }
     }

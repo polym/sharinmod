@@ -78,7 +78,8 @@ def create_usage_log(
     user_id: int,
     callback_data: LiteLLMSpendlogCallbackRequest,
     subscription: Optional[Subscription] = None,
-    client: Optional[str] = None
+    client: Optional[str] = None,
+    trace_id: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a usage log entry from LiteLLM callback data
@@ -142,7 +143,9 @@ def create_usage_log(
             input_tokens=callback_data.prompt_tokens,
             output_tokens=callback_data.completion_tokens,
             total_tokens=callback_data.total_tokens,
-            request_time=datetime.fromtimestamp(callback_data.end_time, tz=timezone.utc)
+            request_time=datetime.fromtimestamp(callback_data.end_time, tz=timezone.utc),
+            trace_id=trace_id,
+            num_fails=0
         )
 
         db.add(usage_log)
@@ -174,7 +177,8 @@ def create_failure_usage_log(
     model_id: Optional[str] = None,
     unified_api_key_id: Optional[int] = None,
     unified_api_key_name: Optional[str] = None,
-    kind: UsageLogKind = UsageLogKind.DIRECT
+    kind: UsageLogKind = UsageLogKind.DIRECT,
+    trace_id: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a failure usage log entry
@@ -206,7 +210,9 @@ def create_failure_usage_log(
             input_tokens=0,
             output_tokens=0,
             total_tokens=0,
-            request_time=datetime.now(timezone.utc)
+            request_time=datetime.now(timezone.utc),
+            trace_id=trace_id,
+            num_fails=1
         )
 
         db.add(usage_log)
@@ -219,6 +225,129 @@ def create_failure_usage_log(
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create failure usage log: {e}")
+        return None
+
+
+def find_usage_log_by_trace(db: Session, user_id: int, trace_id: str) -> Optional[UsageLog]:
+    """
+    Find an existing usage log by user_id and trace_id
+
+    Args:
+        db: Database session
+        user_id: User ID
+        trace_id: Trace ID from callback
+
+    Returns:
+        UsageLog record or None if not found
+    """
+    try:
+        statement = select(UsageLog).where(
+            UsageLog.user_id == user_id,
+            UsageLog.trace_id == trace_id
+        )
+        return db.exec(statement).first()
+    except Exception as e:
+        logger.error(f"Failed to find usage log by trace: {e}")
+        return None
+
+
+def update_usage_log_for_retry(
+    db: Session,
+    existing_log: UsageLog,
+    callback_data: LiteLLMSpendlogCallbackRequest,
+    new_status: UsageLogStatus
+) -> Optional[UsageLog]:
+    """
+    Update an existing usage log for retry scenarios
+
+    Merging logic:
+    - Old failure + New success: Update status to success, update token fields, keep num_fails
+    - Old failure + New failure: Increment num_fails
+    - Old success + New failure: Increment num_fails, update status to failure
+    - Old success + New success: Ignore (return None)
+
+    Does NOT update request_time (keeps first callback time)
+
+    Args:
+        db: Database session
+        existing_log: Existing UsageLog record
+        callback_data: New callback data
+        new_status: New status (success/failure)
+
+    Returns:
+        Updated UsageLog record or None (if ignored)
+    """
+    try:
+        old_status = existing_log.status
+
+        # Case: Old success + New success -> ignore
+        if old_status == UsageLogStatus.SUCCESS and new_status == UsageLogStatus.SUCCESS:
+            logger.info(f"Ignoring duplicate success callback for trace_id={existing_log.trace_id}")
+            return None
+
+        # Case: Old failure + New success -> update status and tokens, keep num_fails
+        if old_status == UsageLogStatus.FAILURE and new_status == UsageLogStatus.SUCCESS:
+            # Update status, token fields, client, duration
+            db.execute(
+                text("""
+                    UPDATE usage_logs
+                    SET status = :status,
+                        model_name = :model_name,
+                        client = :client,
+                        total_duration = :total_duration,
+                        ttft = :ttft,
+                        input_tokens = :input_tokens,
+                        output_tokens = :output_tokens,
+                        total_tokens = :total_tokens
+                    WHERE id = :log_id
+                """),
+                {
+                    "status": new_status.value,
+                    "model_name": callback_data.model,
+                    "client": callback_data.get('client'),
+                    "total_duration": callback_data.response_time,
+                    "ttft": callback_data.response_time if callback_data.completion_start_time else None,
+                    "input_tokens": callback_data.prompt_tokens,
+                    "output_tokens": callback_data.completion_tokens,
+                    "total_tokens": callback_data.total_tokens,
+                    "log_id": existing_log.id
+                }
+            )
+            db.commit()
+            db.refresh(existing_log)
+            logger.info(f"Updated failure->success for trace_id={existing_log.trace_id}, num_fails={existing_log.num_fails}")
+            return existing_log
+
+        # Case: Old failure + New failure -> increment num_fails
+        if old_status == UsageLogStatus.FAILURE and new_status == UsageLogStatus.FAILURE:
+            db.execute(
+                text("UPDATE usage_logs SET num_fails = num_fails + 1 WHERE id = :log_id"),
+                {"log_id": existing_log.id}
+            )
+            db.commit()
+            db.refresh(existing_log)
+            logger.info(f"Updated failure->failure for trace_id={existing_log.trace_id}, num_fails={existing_log.num_fails}")
+            return existing_log
+
+        # Case: Old success + New failure -> increment num_fails, update status to failure
+        if old_status == UsageLogStatus.SUCCESS and new_status == UsageLogStatus.FAILURE:
+            db.execute(
+                text("""
+                    UPDATE usage_logs
+                    SET status = :status, num_fails = num_fails + 1
+                    WHERE id = :log_id
+                """),
+                {"status": new_status.value, "log_id": existing_log.id}
+            )
+            db.commit()
+            db.refresh(existing_log)
+            logger.info(f"Updated success->failure for trace_id={existing_log.trace_id}, num_fails={existing_log.num_fails}")
+            return existing_log
+
+        return existing_log
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to update usage log for retry: {e}")
         return None
 
 
