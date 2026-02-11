@@ -244,7 +244,7 @@
       "openaiPython": {
         "title": "Use OpenAI Python SDK",
         "description": "Install SDK: {cmd}",
-        "installCmd": "pip install openai"
+        "installCmd": "<span class=\"font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded\">pip install openai</span>"
       },
       "openaiCurl": {
         "title": "Use cURL with OpenAI",
@@ -254,7 +254,7 @@
       "anthropicPython": {
         "title": "Use Anthropic Python SDK",
         "description": "Install SDK: {cmd}",
-        "installCmd": "pip install anthropic"
+        "installCmd": "<span class=\"font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded\">pip install anthropic</span>"
       },
       "anthropicCurl": {
         "title": "Use cURL with Anthropic",

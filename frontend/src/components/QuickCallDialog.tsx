@@ -430,9 +430,14 @@ print(message.content[0].text)`,
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
                 {t('sections.openaiPython.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {t('sections.openaiPython.description', { cmd: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install openai</span>' })}
-              </p>
+              <p
+                className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+                dangerouslySetInnerHTML={{
+                  __html: t('sections.openaiPython.description', {
+                    cmd: '<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install openai</span>'
+                  })
+                }}
+              />
               <CodeBlock code={openaiPythonExample} tabId="openai-python" />
             </div>
           </TabsContent>
@@ -454,9 +459,14 @@ print(message.content[0].text)`,
               <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
                 {t('sections.anthropicPython.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {t('sections.anthropicPython.description', { cmd: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install anthropic</span>' })}
-              </p>
+              <p
+                className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+                dangerouslySetInnerHTML={{
+                  __html: t('sections.anthropicPython.description', {
+                    cmd: '<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install anthropic</span>'
+                  })
+                }}
+              />
               <CodeBlock code={anthropicPythonExample} tabId="anthropic-python" />
             </div>
           </TabsContent>
