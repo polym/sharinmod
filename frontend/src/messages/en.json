@@ -191,7 +191,7 @@
     "loadingMore": "Loading...",
     "retryTimes": "Retried {count} times"
   },
-  "modelCard": {
+  "ModelCard": {
     "tokensUsed": "Tokens Used",
     "codingScore": "Coding Score",
     "noScore": "N/A",
@@ -224,9 +224,10 @@
     }
   },
   "quickCall": {
-    "title": "Quick API Access",
+    "title": "Quick Call",
     "description": "Select your preferred tools and language, copy the example code to start calling AI models",
     "selectModel": "Select Model",
+    "quickCall": "Quick Call",
     "createApiKey": "Create API Key",
     "tabs": {
       "claudeCode": "Claude Code",
@@ -245,7 +246,7 @@
       "openaiPython": {
         "title": "Use OpenAI Python SDK",
         "description": "Install SDK: {cmd}",
-        "installCmd": "pip install openai"
+        "installCmd": "<span class=\"font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded\">pip install openai</span>"
       },
       "openaiCurl": {
         "title": "Use cURL with OpenAI",
@@ -255,7 +256,7 @@
       "anthropicPython": {
         "title": "Use Anthropic Python SDK",
         "description": "Install SDK: {cmd}",
-        "installCmd": "pip install anthropic"
+        "installCmd": "<span class=\"font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded\">pip install anthropic</span>"
       },
       "anthropicCurl": {
         "title": "Use cURL with Anthropic",

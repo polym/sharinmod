@@ -61,9 +61,9 @@ export function Sidebar() {
     <div className="flex flex-col h-full p-4">
       {/* Launch Button */}
       <QuickCallDialog>
-        <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white">
-          <Sparkles className="w-4 h-4 mr-1" />
-          {tQuickCall('selectModel')}
+        <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center">
+          <Sparkles className="w-4 h-4 mr-1.5" />
+          {tQuickCall('quickCall')}
         </Button>
       </QuickCallDialog>
 

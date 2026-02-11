@@ -7,15 +7,41 @@ import { useEffect, useState } from 'react';
 
 type Messages = typeof import('@/messages/zh-CN.json');
 
+// Normalize locale to proper case
+function normalizeLocale(loc: string | undefined): Locale {
+  if (!loc) return 'zh-CN';
+  if (loc.toLowerCase() === 'zh-cn' || loc.toLowerCase() === 'zh') return 'zh-CN';
+  if (loc.toLowerCase() === 'en') return 'en';
+  return 'zh-CN';
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const { locale } = useLocaleStore();
+  const { locale, setLocale } = useLocaleStore();
   const [messages, setMessages] = useState<Messages | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    // Ensure locale is set after hydration
+    if (!locale) {
+      const storedLocale = localStorage.getItem('sharinmod-locale');
+      if (storedLocale) {
+        const parsed = JSON.parse(storedLocale);
+        if (parsed.state && parsed.state.locale) {
+          setLocale(normalizeLocale(parsed.state.locale));
+        }
+      }
+    }
+    setIsHydrated(true);
+  }, [locale, setLocale]);
+
+  useEffect(() => {
+    if (!locale) return;
+
     const loadMessages = async () => {
       try {
         let newMessages: Messages;
-        if (locale === 'zh-CN') {
+        const normalizedLocale = normalizeLocale(locale);
+        if (normalizedLocale === 'zh-CN') {
           newMessages = await import('@/messages/zh-CN.json');
         } else {
           newMessages = await import('@/messages/en.json');
@@ -32,8 +58,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     loadMessages();
   }, [locale]);
 
-  // Avoid flash of untranslated content
-  if (!messages) {
+  // Avoid flash of untranslated content - wait for hydration and messages
+  if (!isHydrated || !messages || !locale) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>
@@ -42,7 +68,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={normalizeLocale(locale)} messages={messages}>
       {children}
     </NextIntlClientProvider>
   );
