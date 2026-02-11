@@ -265,7 +265,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
                 <button
                   onClick={handleCopy}
                   className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  aria-label={copied ? t('copied') : t('copyModelName')}
+                  aria-label={copied ? t('ariaLabels.copied') : t('ariaLabels.copyModelName')}
                   type="button"
                 >
                   {copied ? (
