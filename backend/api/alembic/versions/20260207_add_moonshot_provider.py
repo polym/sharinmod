@@ -17,8 +17,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add MOONSHOT to the apikeyprovider enum
-    op.execute("ALTER TYPE apikeyprovider ADD VALUE 'MOONSHOT'")
+    # Add MOONSHOT to apikeyprovider enum
+    op.execute("ALTER TYPE apikeyprovider ADD VALUE IF NOT EXISTS 'MOONSHOT'")
 
 def downgrade() -> None:
     # Note: PostgreSQL doesn't support removing enum values directly

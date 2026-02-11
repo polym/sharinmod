@@ -7,6 +7,9 @@ from sqlalchemy.exc import IntegrityError
 
 from api.config import Settings
 from api.database import create_db_and_tables, initialize_sharinmod_data, get_db
+
+from alembic.config import Config
+from alembic import command
 from api.public.routes import public_router
 from api.routers.user import router as user_router
 from api.routers.auth import router as auth_router
@@ -31,10 +34,32 @@ load_dotenv(env_path)
 
 REDIS_ENV = os.getenv("REDIS_DATABASE" ,"redis://redis:6379/")
 
+
+def run_alembic_migrations():
+    """运行 Alembic 数据库迁移"""
+    try:
+        alembic_dir = os.path.join(os.path.dirname(__file__), "alembic")
+        alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
+        config = Config(alembic_ini)
+        config.set_main_option("script_location", alembic_dir)
+        # 使用环境变量中的 DATABASE_URI
+        database_uri = os.getenv("DATABASE_URI")
+        if database_uri:
+            config.set_main_option("sqlalchemy.url", database_uri)
+        command.upgrade(config, "head")
+        print("✓ Alembic migrations applied successfully")
+    except Exception as e:
+        print(f"⚠ Alembic migration warning: {e}")
+        # 迁移失败不阻止应用启动，后续会使用 create_db_and_tables 作为兜底
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 首先运行 Alembic 迁移
+    run_alembic_migrations()
+
     db = next(get_db())  # Fetching the database session
-    create_db_and_tables()
+    create_db_and_tables()  # 作为兜底，创建任何可能缺失的表
     redis_connection= redis.from_url(REDIS_ENV, encoding="utf-8", decode_responses=True)
     await FastAPILimiter.init(redis_connection)
     try:

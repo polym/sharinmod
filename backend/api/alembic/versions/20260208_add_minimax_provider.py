@@ -16,8 +16,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add MINIMAX to the apikeyprovider enum
-    op.execute("ALTER TYPE apikeyprovider ADD VALUE 'MINIMAX'")
+    # Add MINIMAX to apikeyprovider enum
+    op.execute("ALTER TYPE apikeyprovider ADD VALUE IF NOT EXISTS 'MINIMAX'")
 
 
 def downgrade() -> None:
