@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
     GITHUB_REDIRECT_URI: str = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:28888/api/oauth/github/callback")
 
+    # Website Base URL (for OAuth callback)
+    WEBSITE_BASE_URL: str = os.getenv("WEBSITE_BASE_URL", "http://localhost:38888")
+
     # LiteLLM Configuration
     LITELLM_BASE_URL: str = os.getenv("LITELLM_BASE_URL", "http://10.0.5.176:4000")
     LITELLM_MASTER_KEY: str = os.getenv("LITELLM_MASTER_KEY", "sk-1234")
