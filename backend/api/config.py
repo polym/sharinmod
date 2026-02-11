@@ -27,7 +27,12 @@ class Settings(BaseSettings):
     # JWT Configuration
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days (7 * 24 * 60)
-    
+
+    # GitHub OAuth Configuration
+    GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
+    GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
+    GITHUB_REDIRECT_URI: str = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:28888/api/oauth/github/callback")
+
     # LiteLLM Configuration
     LITELLM_BASE_URL: str = os.getenv("LITELLM_BASE_URL", "http://10.0.5.176:4000")
     LITELLM_MASTER_KEY: str = os.getenv("LITELLM_MASTER_KEY", "sk-1234")
