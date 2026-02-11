@@ -7,6 +7,14 @@ import { useEffect, useState } from 'react';
 
 type Messages = typeof import('@/messages/zh-CN.json');
 
+// Normalize locale to proper case
+function normalizeLocale(loc: string | undefined): Locale {
+  if (!loc) return 'zh-CN';
+  if (loc.toLowerCase() === 'zh-cn' || loc.toLowerCase() === 'zh') return 'zh-CN';
+  if (loc.toLowerCase() === 'en') return 'en';
+  return 'zh-CN';
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const { locale, setLocale } = useLocaleStore();
   const [messages, setMessages] = useState<Messages | null>(null);
@@ -19,7 +27,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       if (storedLocale) {
         const parsed = JSON.parse(storedLocale);
         if (parsed.state && parsed.state.locale) {
-          setLocale(parsed.state.locale);
+          setLocale(normalizeLocale(parsed.state.locale));
         }
       }
     }
@@ -32,7 +40,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const loadMessages = async () => {
       try {
         let newMessages: Messages;
-        if (locale === 'zh-CN') {
+        const normalizedLocale = normalizeLocale(locale);
+        if (normalizedLocale === 'zh-CN') {
           newMessages = await import('@/messages/zh-CN.json');
         } else {
           newMessages = await import('@/messages/en.json');
@@ -59,7 +68,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={normalizeLocale(locale)} messages={messages}>
       {children}
     </NextIntlClientProvider>
   );

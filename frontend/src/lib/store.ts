@@ -70,6 +70,14 @@ interface LocaleState {
   setLocale: (locale: Locale) => void;
 }
 
+// Normalize locale to proper case (zh-CN, en)
+function normalizeLocale(loc: string | null): Locale | undefined {
+  if (!loc) return undefined;
+  if (loc.toLowerCase() === 'zh-cn' || loc.toLowerCase() === 'zh') return 'zh-CN';
+  if (loc.toLowerCase() === 'en') return 'en';
+  return 'zh-CN';
+}
+
 // Initial value is handled by Zustand persist middleware
 // It will be undefined initially until hydration completes
 export const useLocaleStore = create<LocaleState>()(
@@ -83,6 +91,19 @@ export const useLocaleStore = create<LocaleState>()(
       onRehydrateStorage: () => (state) => {
         // After hydration, if no locale was persisted, use browser language
         if (state && state.locale === undefined) {
+          // Check localStorage directly and normalize
+          const stored = localStorage.getItem('sharinmod-locale');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed.state && parsed.state.locale) {
+                state.setLocale(normalizeLocale(parsed.state.locale) || 'zh-CN');
+                return;
+              }
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
           state.setLocale(detectBrowserLanguage());
         }
       },
