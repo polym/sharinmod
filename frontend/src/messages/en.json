@@ -212,7 +212,8 @@
       "zai": "Z.AI",
       "volcengine": "Volcengine",
       "minimax": "MiniMax",
-      "moonshot": "Moonshot AI"
+      "moonshot": "Moonshot AI",
+      "openrouter": "OpenRouter"
     },
     "typeLabels": {
       "Text": "Text",
@@ -332,6 +333,7 @@
     "share": "Share",
     "copy": "Copy",
     "copied": "Copied",
-    "submit": "Submit"
+    "submit": "Submit",
+    "tokens": "Tokens"
   }
 }
