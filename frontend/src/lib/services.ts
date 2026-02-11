@@ -94,7 +94,7 @@ export const apiKeyAPI = {
 
 // Usage API
 export const usageAPI = {
-  getOverview: (params?: { target_date?: string; timezone?: string }) => {
+  getOverview: (params?: { target_date?: string; timezone?: string; unified_api_key_id?: number }) => {
     const paramsWithTimezone = {
       ...params,
       timezone: params?.timezone || getUserTimezone(),

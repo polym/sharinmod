@@ -128,7 +128,10 @@ export function UsagePage() {
   const loadOverviewData = useCallback(async () => {
     try {
       setOverviewLoading(true);
-      const response = await usageAPI.getOverview({ target_date: selectedDate });
+      const response = await usageAPI.getOverview({
+        target_date: selectedDate,
+        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) })
+      });
       setOverviewData(response.data);
     } catch (error) {
       console.error('Failed to load overview data:', error);
@@ -136,7 +139,7 @@ export function UsagePage() {
     } finally {
       setOverviewLoading(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedApiKey]);
 
   // Load logs data
   const loadLogsData = useCallback(async (page: number, reset: boolean = false) => {

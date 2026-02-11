@@ -58,6 +58,7 @@ def get_my_usage_logs(
 def get_my_usage_overview(
     target_date: Optional[date] = Query(None, description="Target date (user timezone), defaults to today"),
     timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
+    unified_api_key_id: Optional[int] = Query(None, description="Filter by unified API key ID"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -72,10 +73,12 @@ def get_my_usage_overview(
 
     Default date is today (user timezone)
     Supports dynamic timezone specification
+    Supports optional unified API key filtering
     """
     return get_user_usage_overview(
         db=db,
         user_id=current_user.id,
         target_date=target_date,
-        timezone_str=timezone
+        timezone_str=timezone,
+        unified_api_key_id=unified_api_key_id
     )
