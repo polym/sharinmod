@@ -123,3 +123,15 @@ export const usageAPI = {
 export const modelAPI = {
   getModels: () => api.get('/api/models'),
 };
+
+// Admin API
+export const adminAPI = {
+  getUsers: (params?: { offset?: number; limit?: number }) =>
+    api.get('/api/admin/users', { params }),
+
+  grantAdmin: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/grant-admin`),
+
+  revokeAdmin: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/revoke-admin`),
+};

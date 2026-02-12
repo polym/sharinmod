@@ -44,3 +44,6 @@ class User(SQLModel, table=True):
     # Token statistics
     consumed_tokens: int = Field(default=0)  # Tokens consumed by this user
     contributed_tokens: int = Field(default=0)  # Tokens contributed by this user's shared API keys
+
+    # Admin privileges
+    is_admin: bool = Field(default=False, description="Whether user has admin privileges")
