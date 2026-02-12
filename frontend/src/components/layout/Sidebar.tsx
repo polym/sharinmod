@@ -3,7 +3,7 @@
 import { Store, Key, BarChart3, Share } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type PageType = 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings';
+export type PageType = 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users';
 
 interface SidebarProps {
   currentPage: PageType;

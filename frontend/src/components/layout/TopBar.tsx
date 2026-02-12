@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Settings, Key, LogOut, Zap } from 'lucide-react';
+import { Settings, Key, LogOut, Zap, Shield } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,6 +95,18 @@ export function TopBar({ onPageChange }: TopBarProps) {
               <Key className="mr-2 h-4 w-4" />
               API Keys
             </DropdownMenuItem>
+            {user?.is_admin && (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onPageChange('admin-users')}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  Admin 看板
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"

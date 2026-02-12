@@ -11,6 +11,7 @@ interface User {
   token_balance?: number;
   contributed_tokens?: number;
   consumed_tokens?: number;
+  is_admin?: boolean;
 }
 
 interface AuthState {

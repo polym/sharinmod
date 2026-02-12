@@ -12,18 +12,32 @@ import {
   Sparkles,
   Menu,
   X,
-  Settings
+  Settings,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickCallDialog } from "@/components/QuickCallDialog";
 import { useTranslations } from "next-intl";
+import { useAuthStore } from "@/lib/store";
 
 interface NavItemProps {
   icon: React.ReactNode;
   label: string;
   href: string;
   active?: boolean;
+}
+
+interface NavSectionProps {
+  children: React.ReactNode;
+}
+
+function NavSection({ children }: NavSectionProps) {
+  return (
+    <div className="mb-4">
+      {children}
+    </div>
+  );
 }
 
 function NavItem({ icon, label, href, active }: NavItemProps) {
@@ -48,6 +62,7 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
+  const { user } = useAuthStore();
 
   const mainNavItems = [
     { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
@@ -55,6 +70,10 @@ export function Sidebar() {
     { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
     { icon: <Settings className="w-4 h-4" />, label: t('settings'), href: "/settings" },
+  ];
+
+  const adminNavItems = [
+    { icon: <Users className="w-4 h-4" />, label: '用户管理', href: "/admin/users" },
   ];
 
   const SidebarContent = () => (
@@ -68,16 +87,35 @@ export function Sidebar() {
       </QuickCallDialog>
 
       {/* Main Navigation */}
-      <nav className="flex-1 space-y-1">
-        {mainNavItems.map((item) => (
-          <NavItem
-            key={item.href}
-            icon={item.icon}
-            label={item.label}
-            href={item.href}
-            active={pathname === item.href}
-          />
-        ))}
+      <nav className="flex flex-col space-y-1">
+        <NavSection>
+          {mainNavItems.map((item) => (
+            <NavItem
+              key={item.href}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              active={pathname === item.href}
+            />
+          ))}
+        </NavSection>
+
+        {user?.is_admin && (
+          <>
+            <div className="border-t border-purple-200/50 my-2" />
+            <NavSection>
+              {adminNavItems.map((item) => (
+                <NavItem
+                  key={item.href}
+                  icon={item.icon}
+                  label={item.label}
+                  href={item.href}
+                  active={pathname === item.href}
+                />
+              ))}
+            </NavSection>
+          </>
+        )}
       </nav>
     </div>
   );
