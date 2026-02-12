@@ -50,6 +50,15 @@ class LiteLLMHiddenParams(BaseModel):
     litellm_model_name: Optional[str] = None
 
 
+class ErrorInformation(BaseModel):
+    """Error information from LiteLLM callback"""
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+    error_class: Optional[str] = None
+    llm_provider: Optional[str] = None
+    traceback: Optional[str] = None
+
+
 class LiteLLMSpendlogCallbackRequest(BaseModel):
     """
     Unified schema for LiteLLM spendlog callback webhook
@@ -72,6 +81,8 @@ class LiteLLMSpendlogCallbackRequest(BaseModel):
     status_fields: Optional[LiteLLMStatusFields] = Field(None, description="Detailed status info")
     error_message: Optional[str] = Field(None, description="Error message if available")
     error_code: Optional[str] = Field(None, description="Error code")
+    error_str: Optional[str] = Field(None, description="Error string from callback")
+    error_information: Optional[ErrorInformation] = Field(None, description="Detailed error information")
 
     # Provider info
     custom_llm_provider: Optional[str] = Field(None, description="LLM provider (openai, anthropic, etc)")

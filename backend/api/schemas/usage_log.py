@@ -28,6 +28,7 @@ class UsageLogResponse(BaseModel):
     created_at: datetime
     trace_id: Optional[str] = None
     num_fails: int = 0
+    error_details: Optional[str] = None
 
     @field_serializer('request_time', 'created_at')
     def datetime_to_rfc3339(self, dt: datetime) -> str:
@@ -62,7 +63,8 @@ class UsageLogResponse(BaseModel):
                 "request_time": "2026-02-02T10:30:00+00:00",
                 "created_at": "2026-02-02T10:30:00+00:00",
                 "trace_id": "abc123",
-                "num_fails": 0
+                "num_fails": 0,
+                "error_details": None
             }
         }
     }

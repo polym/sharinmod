@@ -43,6 +43,8 @@ class UsageLog(SQLModel, table=True):
         created_at: When the log entry was created
         trace_id: Trace ID for linking retry attempts (nullable)
         num_fails: Number of failed retry attempts
+        error_details: JSON array of error details for failed requests (nullable)
+            Format: [{"start_time": 1739337600.0, "error_code": "500", "error_str": "...", "provider": "bigmodel", "subscription_id": 123}]
     """
     __tablename__ = "usage_logs"
 
@@ -64,3 +66,4 @@ class UsageLog(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     trace_id: Optional[str] = Field(default=None, max_length=255, index=True)
     num_fails: int = Field(default=0)
+    error_details: Optional[str] = Field(default=None, max_length=20000)

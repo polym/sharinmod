@@ -188,3 +188,5 @@ nohup.out
 
 # Git worktrees for isolated development
 .worktrees/
+
+docs/plans

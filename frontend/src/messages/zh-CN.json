@@ -163,7 +163,9 @@
     "typeDirect": "直连",
     "loadMore": "加载更多",
     "loadingMore": "加载中...",
-    "retryTimes": "重试 {count} 次"
+    "retryTimes": "重试 {count} 次",
+    "errorCode": "错误码",
+    "errorMessage": "错误信息"
   },
   "ModelCard": {
     "tokensUsed": "已使用 Token",

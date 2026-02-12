@@ -53,6 +53,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     contributed_tokens: int = 0
     consumed_tokens: int = 0
+    is_admin: bool = False
 
     @computed_field
     @property
@@ -94,7 +95,8 @@ class UserProfileResponse(BaseModel):
     bio: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+    is_admin: bool = False
+
     model_config = {
         "from_attributes": True
     }

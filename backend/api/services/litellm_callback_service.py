@@ -11,7 +11,7 @@ import logging
 import redis
 import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 from sqlalchemy import text
@@ -437,6 +437,42 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             else:
                 kind = UsageLogKind.SHARED  # User is consuming someone else's API key
 
+        # Build error_details for failure callbacks
+        error_details_json = None
+        if callback_status == "failure":
+            # Extract error information
+            error_str = callback.error_str
+            error_code = None
+            if callback.error_information:
+                error_code = callback.error_information.error_code
+
+            # Build error_details structure
+            error_detail = {
+                "start_time": callback.start_time if callback.start_time else datetime.now(timezone.utc).timestamp(),
+                "error_code": error_code,
+                "error_str": error_str,
+                "provider": None,
+                "subscription_id": None
+            }
+
+            # Get provider and subscription_id from subscription
+            if subscription:
+                error_detail["subscription_id"] = subscription.id
+                # Fetch SharedAPIKey to get provider
+                shared_key_statement = select(SharedAPIKey).where(
+                    SharedAPIKey.id == subscription.shared_api_key_id
+                )
+                shared_key = session.exec(shared_key_statement).first()
+                if shared_key:
+                    error_detail["provider"] = shared_key.provider
+
+            # Convert to JSON string (as array with single element)
+            try:
+                error_details_json = json.dumps([error_detail])
+            except (TypeError, ValueError) as e:
+                logger.error(f"Failed to serialize error details: {e}")
+                error_details_json = None
+
         # Handle trace-based retry tracking
         if trace_id and consumer:
             from api.services.usage_log_service import find_usage_log_by_trace, update_usage_log_for_retry
@@ -450,7 +486,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
             if existing_log:
                 # Merge with existing record
-                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status)
+                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status, error_details_json)
                 if updated_log is None:
                     # Callback was ignored (duplicate success)
                     logger.info(f"Ignored callback for trace_id={trace_id}")
@@ -480,13 +516,17 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                         unified_api_key_id=unified_api_key_id,
                         unified_api_key_name=unified_api_key_name,
                         kind=kind,
-                        trace_id=trace_id
+                        trace_id=trace_id,
+                        error_details=error_details_json
                     )
                     logger.info(f"Created failure usage log for user {consumer.id}, kind={kind}")
                 except Exception as e:
                     logger.error(f"Failed to create failure usage log: {e}")
                     # Log full callback data for manual recovery
-                    logger.error(f"Lost failure callback data: {json.dumps(callback_data, ensure_ascii=False)}")
+                    try:
+                        logger.error(f"Lost failure callback data: {json.dumps(callback_data, ensure_ascii=False)}")
+                    except:
+                        logger.error(f"Lost failure callback data (unable to serialize)")
                     return False
 
             return True

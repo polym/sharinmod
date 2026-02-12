@@ -184,7 +184,9 @@
     "typeDirect": "Direct",
     "loadMore": "Load More",
     "loadingMore": "Loading...",
-    "retryTimes": "Retried {count} times"
+    "retryTimes": "Retried {count} times",
+    "errorCode": "Error Code",
+    "errorMessage": "Error Message"
   },
   "ModelCard": {
     "tokensUsed": "Tokens Used",

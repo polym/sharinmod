@@ -22,6 +22,7 @@ interface UsageLog {
   ttft: number | null;
   total_duration: number | null;
   num_fails: number;
+  error_details?: string;
 }
 
 interface UsageLogsTableProps {
@@ -52,10 +53,23 @@ const getKindLabelStyle = (kind: string): string => {
   return '';
 };
 
-// 重试次数 Tooltip 组件
-function RetryTooltip({ count, children }: { count: number; children: React.ReactNode }) {
+// 错误信息 Tooltip 组件
+function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; children: React.ReactNode }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const t = useTranslations('usageTable');
+
+  // 解析 error_details JSON
+  const { errors, totalCount } = errorDetails ? (() => {
+    try {
+      const parsed = JSON.parse(errorDetails);
+      const allErrors = Array.isArray(parsed) ? parsed : [];
+      // 限制最多显示5条错误，防止 tooltip 过大
+      return { errors: allErrors.slice(0, 5), totalCount: allErrors.length };
+    } catch (e) {
+      console.error('Failed to parse error_details:', e);
+      return { errors: [], totalCount: 0 };
+    }
+  })() : { errors: [], totalCount: 0 };
 
   return (
     <div
@@ -64,9 +78,28 @@ function RetryTooltip({ count, children }: { count: number; children: React.Reac
       onMouseLeave={() => setShowTooltip(false)}
     >
       {children}
-      {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
-          {t('retryTimes', { count })}
+      {showTooltip && errors.length > 0 && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-gray-900 text-white text-xs rounded z-50 pointer-events-none whitespace-pre-line max-w-xs">
+          {errors.map((error: any, index: number) => (
+            <div key={index}>
+              {error.error_code && (
+                <div>
+                  {t('errorCode')}: {error.error_code}
+                </div>
+              )}
+              {error.error_str && (
+                <div>
+                  {t('errorMessage')}: {error.error_str}
+                </div>
+              )}
+              {index < errors.length - 1 && (
+                <div className="border-t border-gray-700 my-1" />
+              )}
+            </div>
+          ))}
+          {totalCount > 5 && (
+            <div className="text-gray-400 mt-1 text-center">... 还有 {totalCount - 5} 条错误</div>
+          )}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
         </div>
       )}
@@ -149,9 +182,9 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
                   {log.num_fails > 0 && (
-                    <RetryTooltip count={log.num_fails}>
+                    <ErrorTooltip errorDetails={log.error_details}>
                       <AlertTriangle className="ml-1 w-4 h-4 text-amber-600 cursor-help" />
-                    </RetryTooltip>
+                    </ErrorTooltip>
                   )}
                 </TableCell>
                 <TableCell className="text-sm">

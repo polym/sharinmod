@@ -1,6 +1,7 @@
 """
 Service layer for usage log tracking and querying
 """
+import json
 import logging
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
@@ -199,7 +200,8 @@ def create_failure_usage_log(
     unified_api_key_id: Optional[int] = None,
     unified_api_key_name: Optional[str] = None,
     kind: UsageLogKind = UsageLogKind.DIRECT,
-    trace_id: Optional[str] = None
+    trace_id: Optional[str] = None,
+    error_details: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a failure usage log entry
@@ -213,6 +215,8 @@ def create_failure_usage_log(
         unified_api_key_id: Unified API key ID (optional)
         unified_api_key_name: Unified API key name (optional)
         kind: Who provided the API key (default: direct)
+        trace_id: Trace ID for retry tracking (optional)
+        error_details: JSON array of error details (optional)
 
     Returns:
         Created UsageLog record or None if creation fails
@@ -233,7 +237,8 @@ def create_failure_usage_log(
             total_tokens=0,
             request_time=datetime.now(timezone.utc),
             trace_id=trace_id,
-            num_fails=1
+            num_fails=1,
+            error_details=error_details
         )
 
         db.add(usage_log)
@@ -276,15 +281,16 @@ def update_usage_log_for_retry(
     db: Session,
     existing_log: UsageLog,
     callback_data: LiteLLMSpendlogCallbackRequest,
-    new_status: UsageLogStatus
+    new_status: UsageLogStatus,
+    error_details_json: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Update an existing usage log for retry scenarios
 
     Merging logic:
     - Old failure + New success: Update status to success, update token fields, keep num_fails
-    - Old failure + New failure: Increment num_fails
-    - Old success + New failure: Increment num_fails, update status to failure
+    - Old failure + New failure: Increment num_fails, append error_details
+    - Old success + New failure: Increment num_fails, update status to failure, set error_details
     - Old success + New success: Ignore (return None)
 
     Does NOT update request_time (keeps first callback time)
@@ -294,6 +300,7 @@ def update_usage_log_for_retry(
         existing_log: Existing UsageLog record
         callback_data: New callback data
         new_status: New status (success/failure)
+        error_details_json: JSON array of error details (for failure callbacks)
 
     Returns:
         Updated UsageLog record or None (if ignored)
@@ -339,26 +346,44 @@ def update_usage_log_for_retry(
             logger.info(f"Updated failure->success for trace_id={existing_log.trace_id}, num_fails={existing_log.num_fails}")
             return existing_log
 
-        # Case: Old failure + New failure -> increment num_fails
+        # Case: Old failure + New failure -> increment num_fails, append error_details
         if old_status == UsageLogStatus.FAILURE and new_status == UsageLogStatus.FAILURE:
+            # Append new error to existing error_details array
+            updated_error_details = existing_log.error_details
+            if error_details_json:
+                try:
+                    new_errors = json.loads(error_details_json)
+                    if updated_error_details:
+                        # Parse existing array and append
+                        existing_errors = json.loads(updated_error_details)
+                        existing_errors.extend(new_errors)
+                        updated_error_details = json.dumps(existing_errors)
+                    else:
+                        # No existing errors, use new ones
+                        updated_error_details = error_details_json
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.error(f"Failed to parse error_details JSON: {e}")
+                    # Keep existing error_details if parse fails
+                    updated_error_details = existing_log.error_details
+
             db.execute(
-                text("UPDATE usage_logs SET num_fails = num_fails + 1 WHERE id = :log_id"),
-                {"log_id": existing_log.id}
+                text("UPDATE usage_logs SET num_fails = num_fails + 1, error_details = :error_details WHERE id = :log_id"),
+                {"log_id": existing_log.id, "error_details": updated_error_details}
             )
             db.commit()
             db.refresh(existing_log)
             logger.info(f"Updated failure->failure for trace_id={existing_log.trace_id}, num_fails={existing_log.num_fails}")
             return existing_log
 
-        # Case: Old success + New failure -> increment num_fails, update status to failure
+        # Case: Old success + New failure -> increment num_fails, update status to failure, set error_details
         if old_status == UsageLogStatus.SUCCESS and new_status == UsageLogStatus.FAILURE:
             db.execute(
                 text("""
                     UPDATE usage_logs
-                    SET status = :status, num_fails = num_fails + 1
+                    SET status = :status, num_fails = num_fails + 1, error_details = :error_details
                     WHERE id = :log_id
                 """),
-                {"status": new_status.value, "log_id": existing_log.id}
+                {"status": new_status.value, "log_id": existing_log.id, "error_details": error_details_json}
             )
             db.commit()
             db.refresh(existing_log)
