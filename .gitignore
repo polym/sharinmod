@@ -185,3 +185,6 @@ nohup.out
 
 **:memory:**
 .claude/worktrees/
+
+# Git worktrees for isolated development
+.worktrees/
