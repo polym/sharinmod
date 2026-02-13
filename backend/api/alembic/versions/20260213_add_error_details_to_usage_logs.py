@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = '20260213_add_error_details'
-down_revision: Union[str, None] = '20260212_add_is_admin'
+down_revision: Union[str, None] = '20260213_add_provider_configs'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
