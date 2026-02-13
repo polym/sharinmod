@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
-import { apiKeyAPI } from '@/lib/services';
+import { apiKeyAPI, adminAPI } from '@/lib/services';
 import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -28,11 +28,50 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [modelError, setModelError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [enabledProviders, setEnabledProviders] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
+  // Load enabled providers on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadEnabledProviders = async () => {
+      try {
+        setLoadingProviders(true);
+        const response = await adminAPI.getProviders({ enabled_only: true });
+        if (!isMounted) return;
+
+        const enabledMap: Record<string, boolean> = {};
+        response.data.items?.forEach?.((p: any) => {
+          enabledMap[p.provider_key] = true;
+        });
+        setEnabledProviders(enabledMap);
+      } catch (error: any) {
+        if (!isMounted) return;
+        console.error('Failed to load enabled providers:', error);
+        toast({
+          title: tToast('error'),
+          description: tToast('loadProvidersFailed') || 'Failed to load providers',
+          variant: 'destructive',
+        });
+      } finally {
+        if (isMounted) {
+          setLoadingProviders(false);
+        }
+      }
+    };
+
+    loadEnabledProviders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Reset models when provider changes
-  const handleProviderChange = (newProvider: string) => {
-    setProvider(newProvider);
+  const handleProviderChange = (value: string) => {
+    setProvider(value);
     setSelectedModels([]);
     setModelError('');
   };
@@ -104,7 +143,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
               <Label htmlFor="provider">
                 {t('subscriptionPlatform')}
               </Label>
-              <Select value={provider} onValueChange={handleProviderChange}>
+              <Select value={provider} onValueChange={handleProviderChange} disabled={loadingProviders}>
                 <SelectTrigger>
                   {provider ? (
                     <div className="flex items-center gap-2">
@@ -116,7 +155,11 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                   )}
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVIDER_LIST.map((p) => (
+                  {PROVIDER_LIST.filter(p => {
+                    // If enabledProviders is empty (API failed), show all providers
+                    const isEmpty = Object.keys(enabledProviders).length === 0;
+                    return isEmpty || enabledProviders[p.code] ?? false;
+                  }).map((p) => (
                     <SelectItem key={p.code} value={p.code} className="pl-2">
                       <div className="flex items-center gap-2">
                         <Image src={p.logoPath} alt={p.brandName} width={20} height={20} />
