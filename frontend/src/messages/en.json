@@ -186,7 +186,9 @@
     "loadingMore": "Loading...",
     "retryTimes": "Retried {count} times",
     "errorCode": "Error Code",
-    "errorMessage": "Error Message"
+    "errorMessage": "Error Message",
+    "callTime": "Call Time",
+    "provider": "Provider"
   },
   "ModelCard": {
     "tokensUsed": "Tokens Used",

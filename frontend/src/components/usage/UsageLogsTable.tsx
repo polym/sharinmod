@@ -25,6 +25,14 @@ interface UsageLog {
   error_details?: string;
 }
 
+interface ErrorDetail {
+  start_time?: number;
+  error_code?: string;
+  error_str?: string;
+  provider?: string;
+  subscription_id?: number;
+}
+
 interface UsageLogsTableProps {
   logs: UsageLog[];
   hasMore: boolean;
@@ -57,6 +65,24 @@ const getKindLabelStyle = (kind: string): string => {
 function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; children: React.ReactNode }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const t = useTranslations('usageTable');
+  const { locale } = useLocaleStore();
+
+  // 格式化错误时间戳为可读时间
+  const formatErrorTime = (timestamp: number) => {
+    // 处理无效时间戳（0 或负数）
+    if (!timestamp || timestamp < 0) {
+      return '-';
+    }
+    return new Date(timestamp * 1000).toLocaleString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
 
   // 解析 error_details JSON
   const { errors, totalCount } = errorDetails ? (() => {
@@ -79,9 +105,19 @@ function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; child
     >
       {children}
       {showTooltip && errors.length > 0 && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-gray-900 text-white text-xs rounded z-50 pointer-events-none whitespace-pre-line max-w-xs">
-          {errors.map((error: any, index: number) => (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 max-w-md max-h-60 overflow-y-auto px-4 py-3 text-sm bg-gray-900 text-white rounded z-50 pointer-events-none">
+          {errors.map((error: ErrorDetail, index: number) => (
             <div key={index}>
+              {error.start_time && (
+                <div className="text-gray-400">
+                  {t('callTime')}: {formatErrorTime(error.start_time)}
+                </div>
+              )}
+              {error.provider && (
+                <div className="text-gray-400">
+                  {t('provider')}: {error.provider}
+                </div>
+              )}
               {error.error_code && (
                 <div>
                   {t('errorCode')}: {error.error_code}
@@ -93,12 +129,12 @@ function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; child
                 </div>
               )}
               {index < errors.length - 1 && (
-                <div className="border-t border-gray-700 my-1" />
+                <div className="border-t border-gray-700 my-2" />
               )}
             </div>
           ))}
           {totalCount > 5 && (
-            <div className="text-gray-400 mt-1 text-center">... 还有 {totalCount - 5} 条错误</div>
+            <div className="text-gray-400 mt-2 text-center">... 还有 {totalCount - 5} 条错误</div>
           )}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
         </div>

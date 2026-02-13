@@ -165,7 +165,9 @@
     "loadingMore": "加载中...",
     "retryTimes": "重试 {count} 次",
     "errorCode": "错误码",
-    "errorMessage": "错误信息"
+    "errorMessage": "错误信息",
+    "callTime": "调用时间",
+    "provider": "提供商"
   },
   "ModelCard": {
     "tokensUsed": "已使用 Token",
