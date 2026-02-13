@@ -126,7 +126,7 @@ export const modelAPI = {
 
 // Admin API
 export const adminAPI = {
-  getUsers: (params?: { offset?: number; limit?: number }) =>
+  getUsers: (params?: { offset?: number; limit?: number; role_filter?: 'all' | 'admin' | 'user' }) =>
     api.get('/api/admin/users', { params }),
 
   grantAdmin: (userId: number) =>

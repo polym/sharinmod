@@ -1,9 +1,12 @@
 """
 User service layer for business logic
 """
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from datetime import datetime
+from typing import Tuple, Optional, Dict, Any
 from api.models.user import User
+from api.models.subscription import Subscription
+from api.models.usage_log import UsageLog
 from api.schemas.user import UserProfileUpdate
 
 
@@ -61,20 +64,77 @@ def get_user_profile(user: User) -> User:
     return user
 
 
-def get_all_users(db: Session, offset: int = 0, limit: int = 100) -> list[User]:
+def get_all_users(
+    db: Session,
+    offset: int = 0,
+    limit: int = 20,
+    role_filter: Optional[str] = None
+) -> Tuple[list[User], int, Dict[int, Dict[str, Any]]]:
     """
-    Get all users (admin only)
+    Get all users with statistics (admin only)
+
+    Supports:
+    - Pagination via offset/limit
+    - Role filtering (all/admin/user)
+    - Aggregation statistics (subscription_count, last_used_at)
 
     Args:
         db: Database session
         offset: Number of users to skip (for pagination)
         limit: Maximum number of users to return
+        role_filter: Filter by role ('all', 'admin', 'user')
 
     Returns:
-        List of User objects
+        Tuple of (list of User objects, total count, stats dict per user_id)
     """
-    statement = select(User).offset(offset).limit(limit)
-    return list(db.exec(statement).all())
+    # Build base query for users
+    base_query = select(User)
+
+    # Apply role filter
+    if role_filter == 'admin':
+        base_query = base_query.where(User.is_admin == True)
+    elif role_filter == 'user':
+        base_query = base_query.where(User.is_admin == False)
+
+    # Order by created_at descending
+    base_query = base_query.order_by(User.created_at.desc())
+
+    # Get total count (before pagination)
+    count_query = select(func.count()).select_from(User)
+    if role_filter == 'admin':
+        count_query = count_query.where(User.is_admin == True)
+    elif role_filter == 'user':
+        count_query = count_query.where(User.is_admin == False)
+    total = db.exec(count_query).one()
+
+    # Get paginated results
+    paginated_query = base_query.offset(offset).limit(limit)
+    users = db.exec(paginated_query).all()
+
+    # Build stats map for user statistics
+    user_ids = [u.id for u in users]
+    stats_map: Dict[int, Dict[str, Any]] = {uid: {} for uid in user_ids}
+
+    if user_ids:
+        # Get subscription counts
+        sub_counts = db.exec(
+            select(Subscription.user_id, func.count(Subscription.id).label('cnt'))
+            .where(Subscription.user_id.in_(user_ids))
+            .group_by(Subscription.user_id)
+        ).all()
+        for user_id, cnt in sub_counts:
+            stats_map[user_id]['subscription_count'] = cnt
+
+        # Get last used times
+        last_used = db.exec(
+            select(UsageLog.user_id, func.max(UsageLog.request_time).label('max_time'))
+            .where(UsageLog.user_id.in_(user_ids))
+            .group_by(UsageLog.user_id)
+        ).all()
+        for user_id, max_time in last_used:
+            stats_map[user_id]['last_used_at'] = max_time
+
+    return users, total, stats_map
 
 
 def grant_admin_privilege(db: Session, user_id: int) -> User | None:

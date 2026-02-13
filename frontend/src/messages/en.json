@@ -401,5 +401,29 @@
       "modelDeleteFailed": "Failed to delete model",
       "fillRequired": "Please fill in all required fields"
     }
+  },
+  "adminUsers": {
+    "title": "User Management",
+    "description": "View and manage all users",
+    "email": "Email",
+    "role": "Role",
+    "subscriptions": "Subscriptions",
+    "consumedTokens": "Consumed",
+    "contributedTokens": "Contributed",
+    "createdAt": "Created",
+    "lastUsedAt": "Last Used",
+    "actions": "Actions",
+    "roleFilter": {
+      "all": "All",
+      "admin": "Admins",
+      "user": "Users"
+    },
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
+    "noUsers": "No users",
+    "grantSuccess": "Admin granted",
+    "revokeSuccess": "Admin revoked",
+    "grantFailed": "Grant failed",
+    "revokeFailed": "Revoke failed"
   }
 }

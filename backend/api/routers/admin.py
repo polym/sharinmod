@@ -1,7 +1,7 @@
 """
 Admin router for administrative operations
 """
-from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form, Query
 from sqlmodel import Session
 from typing import Annotated, Optional
 from api.database import get_db
@@ -25,7 +25,7 @@ from api.services.provider_config_service import (
     update_provider_models_batch,
     save_logo_upload,
 )
-from api.schemas.user import UserResponse
+from api.schemas.user import UserResponse, UserListResponse, RoleFilter
 from api.schemas.provider_config import (
     ProviderConfigResponse,
     ProviderConfigCreate,
@@ -40,25 +40,46 @@ from api.schemas.provider_config import (
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
 
-@router.get("/users", response_model=list[UserResponse])
+@router.get("/users", response_model=UserListResponse)
 def list_users(
-    offset: int = 0,
-    limit: int = 100,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+    role_filter: Optional[RoleFilter] = Query(default=None, description="Filter by role: 'all', 'admin', 'user'"),
     db: Session = Depends(get_db)
-) -> list[UserResponse]:
+) -> UserListResponse:
     """
-    Get all users (admin only)
+    Get all users with statistics (by role) - admin only
 
     Args:
         offset: Number of users to skip (for pagination)
         limit: Maximum number of users to return
+        role_filter: Filter by role ('all', 'admin', 'user')
         db: Database session
 
     Returns:
-        List of users
+        Paginated user list with total count
     """
-    users = get_all_users(db, offset, limit)
-    return [UserResponse.model_validate(u) for u in users]
+    users, total, stats_map = get_all_users(db, offset, limit, role_filter)
+    from api.schemas.user import UserWithStatsResponse
+    # Build response items with user data + stats from stats_map
+    items = []
+    for u in users:
+        stats = stats_map.get(u.id, {})
+        user_dict = {
+            'id': u.id,
+            'email': u.email,
+            'name': u.name,
+            'bio': u.bio,
+            'avatar_url': u.avatar_url,
+            'created_at': u.created_at,
+            'contributed_tokens': u.contributed_tokens,
+            'consumed_tokens': u.consumed_tokens,
+            'is_admin': u.is_admin,
+            'subscription_count': stats.get('subscription_count', 0),
+            'last_used_at': stats.get('last_used_at'),
+        }
+        items.append(UserWithStatsResponse(**user_dict))
+    return UserListResponse(items=items, total=total)
 
 
 @router.put("/users/{user_id}/grant-admin", response_model=UserResponse)

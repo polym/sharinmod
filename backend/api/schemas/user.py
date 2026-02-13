@@ -3,8 +3,16 @@ User schemas for API request/response validation
 """
 from pydantic import BaseModel, EmailStr, Field, field_validator, computed_field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import re
+from enum import Enum
+
+
+class RoleFilter(str, Enum):
+    """Role filter enum for user list filtering"""
+    ALL = 'all'
+    ADMIN = 'admin'
+    USER = 'user'
 
 
 class UserCreate(BaseModel):
@@ -100,3 +108,26 @@ class UserProfileResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class UserWithStatsResponse(UserResponse):
+    """
+    Extended user response with statistics
+    Inherits all fields from UserResponse and adds:
+    - subscription_count: Number of subscriptions owned by this user
+    - last_used_at: Most recent usage timestamp from usage_logs
+    """
+    subscription_count: int = 0
+    last_used_at: Optional[datetime] = None
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+class UserListResponse(BaseModel):
+    """
+    Paginated user list response
+    """
+    items: List[UserWithStatsResponse]
+    total: int

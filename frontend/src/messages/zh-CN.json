@@ -401,5 +401,29 @@
       "modelDeleteFailed": "模型删除失败",
       "fillRequired": "请填写所有必填字段"
     }
+  },
+  "adminUsers": {
+    "title": "用户管理",
+    "description": "查看和管理所有用户信息",
+    "email": "邮箱",
+    "role": "角色",
+    "subscriptions": "绑定订阅",
+    "consumedTokens": "已使用",
+    "contributedTokens": "已分享",
+    "createdAt": "创建时间",
+    "lastUsedAt": "最近使用",
+    "actions": "操作",
+    "roleFilter": {
+      "all": "全部",
+      "admin": "管理员",
+      "user": "普通用户"
+    },
+    "loadMore": "加载更多",
+    "loadingMore": "加载中...",
+    "noUsers": "暂无用户",
+    "grantSuccess": "已授予管理员权限",
+    "revokeSuccess": "已撤销管理员权限",
+    "grantFailed": "授权失败",
+    "revokeFailed": "撤销失败"
   }
 }

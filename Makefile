@@ -8,8 +8,6 @@ all: build forward
 # 默认目标
 build:
 	docker-compose up -d --build
-	@echo "Waiting for services to be ready..."
-	@sleep 3
 
 _up:
 	docker-compose up -d

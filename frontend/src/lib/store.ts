@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { detectBrowserLanguage, type Locale } from '@/i18n';
 
-interface User {
+export interface User {
   id?: number;
   email: string;
   name?: string;
@@ -12,6 +12,9 @@ interface User {
   contributed_tokens?: number;
   consumed_tokens?: number;
   is_admin?: boolean;
+  subscription_count?: number;
+  last_used_at?: string;
+  created_at?: string;
 }
 
 interface AuthState {
