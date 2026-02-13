@@ -369,3 +369,78 @@ def disable_provider_model_endpoint(
             detail="Model not found"
         )
     return ProviderModelResponse.model_validate(model)
+
+
+@router.post("/providers/{provider_id}/models", response_model=ProviderModelResponse, status_code=status.HTTP_201_CREATED)
+def create_provider_model_endpoint(
+    provider_id: int,
+    model_data: ProviderModelCreate,
+    db: Session = Depends(get_db)
+) -> ProviderModelResponse:
+    """
+    Create a new model for a provider (admin only)
+
+    Args:
+        provider_id: Provider ID
+        model_data: Model configuration data
+        db: Database session
+
+    Returns:
+        Created model
+    """
+    # Verify provider exists
+    provider = get_provider_by_id(db, provider_id)
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Provider not found"
+        )
+
+    model = create_provider_model(db, provider_id, model_data)
+    return ProviderModelResponse.model_validate(model)
+
+
+@router.put("/providers/models/{model_id}", response_model=ProviderModelResponse)
+def update_provider_model_endpoint(
+    model_id: int,
+    model_data: ProviderModelUpdate,
+    db: Session = Depends(get_db)
+) -> ProviderModelResponse:
+    """
+    Update a provider model (admin only)
+
+    Args:
+        model_id: Model ID
+        model_data: Model update data
+        db: Database session
+
+    Returns:
+        Updated model
+    """
+    model = update_provider_model(db, model_id, model_data)
+    if not model:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Model not found"
+        )
+    return ProviderModelResponse.model_validate(model)
+
+
+@router.delete("/providers/models/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_provider_model_endpoint(
+    model_id: int,
+    db: Session = Depends(get_db)
+) -> None:
+    """
+    Delete a provider model (admin only)
+
+    Args:
+        model_id: Model ID
+        db: Database session
+    """
+    success = delete_provider_model(db, model_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Model not found"
+        )

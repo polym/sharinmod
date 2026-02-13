@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { Edit, Trash2, Power, PowerOff, Plus, LayoutGrid } from 'lucide-react';
 import { adminAPI } from '@/lib/services';
@@ -50,8 +51,12 @@ export function AdminProviders() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [modelsDialogOpen, setModelsDialogOpen] = useState(false);
+  const [modelEditDialogOpen, setModelEditDialogOpen] = useState(false);
+  const [deleteModelDialogOpen, setDeleteModelDialogOpen] = useState(false);
 
   const [editProvider, setEditProvider] = useState<ProviderConfig | null>(null);
+  const [editModel, setEditModel] = useState<ProviderModel | null>(null);
+  const [deleteModel, setDeleteModel] = useState<ProviderModel | null>(null);
   const [editModels, setEditModels] = useState<ProviderModel[]>([]);
 
   // Form states
@@ -59,6 +64,19 @@ export function AdminProviders() {
   const [name, setName] = useState('');
   const [website, setWebsite] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+
+  // Model loading state
+  const [isSavingModel, setIsSavingModel] = useState(false);
+
+  // Model form states
+  const [modelKey, setModelKey] = useState('');
+  const [modelDisplayName, setModelDisplayName] = useState('');
+  const [modelDescription, setModelDescription] = useState('');
+  const [contextLength, setContextLength] = useState('');
+  const [maxOutputLength, setMaxOutputLength] = useState('');
+  const [inputTypes, setInputTypes] = useState('');
+  const [outputTypes, setOutputTypes] = useState('');
+  const [codingScore, setCodingScore] = useState('');
 
   const loadProviders = async () => {
     try {
@@ -199,6 +217,109 @@ export function AdminProviders() {
       toast({
         title: tToast('error'),
         description: error.response?.data?.detail || tToast('modelToggleFailed'),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const openCreateModelDialog = () => {
+    setEditModel(null);
+    setModelKey('');
+    setModelDisplayName('');
+    setModelDescription('');
+    setContextLength('');
+    setMaxOutputLength('');
+    setInputTypes('');
+    setOutputTypes('');
+    setCodingScore('');
+    setModelEditDialogOpen(true);
+  };
+
+  const openEditModelDialog = (model: ProviderModel) => {
+    setEditModel(model);
+    setModelKey(model.model_key);
+    setModelDisplayName(model.display_name);
+    setModelDescription(model.description || '');
+    setContextLength(model.context_length);
+    setMaxOutputLength(model.max_output_length);
+    setInputTypes(model.input_types?.join(', ') || '');
+    setOutputTypes(model.output_types?.join(', ') || '');
+    setCodingScore(model.coding_score?.toString() || '');
+    setModelEditDialogOpen(true);
+  };
+
+  const handleSaveModel = async () => {
+    if (!modelKey || !modelDisplayName || !contextLength || !maxOutputLength) {
+      toast({
+        title: tToast('error'),
+        description: tToast('fillRequired'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!editModel && !editProvider) {
+      toast({
+        title: tToast('error'),
+        description: 'Provider not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingModel(true);
+    try {
+      const modelData = {
+        model_key: modelKey,
+        display_name: modelDisplayName,
+        description: modelDescription || undefined,
+        context_length: contextLength,
+        max_output_length: maxOutputLength,
+        input_types: inputTypes ? inputTypes.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        output_types: outputTypes ? outputTypes.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        coding_score: codingScore ? parseInt(codingScore) : undefined,
+      };
+
+      if (editModel) {
+        // Update existing model
+        await adminAPI.updateModel(editModel.id, modelData);
+        toast({ title: tToast('success'), description: tToast('modelUpdateSuccess') });
+      } else {
+        // Create new model
+        await adminAPI.createModel(editProvider!.id, modelData);
+        toast({ title: tToast('success'), description: tToast('modelCreateSuccess') });
+      }
+
+      setModelEditDialogOpen(false);
+      await loadProviders();
+    } catch (error: any) {
+      toast({
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('modelSaveFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingModel(false);
+    }
+  };
+
+  const openDeleteModelDialog = (model: ProviderModel) => {
+    setDeleteModel(model);
+    setDeleteModelDialogOpen(true);
+  };
+
+  const handleDeleteModel = async () => {
+    if (!deleteModel) return;
+
+    try {
+      await adminAPI.deleteModel(deleteModel.id);
+      toast({ title: tToast('success'), description: tToast('modelDeleteSuccess') });
+      setDeleteModelDialogOpen(false);
+      await loadProviders();
+    } catch (error: any) {
+      toast({
+        title: tToast('error'),
+        description: error.response?.data?.detail || tToast('modelDeleteFailed'),
         variant: 'destructive',
       });
     }
@@ -406,30 +527,178 @@ export function AdminProviders() {
       <Dialog open={modelsDialogOpen} onOpenChange={setModelsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t('manageModels')}</DialogTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>{t('manageModels')}</DialogTitle>
+                <DialogDescription>{editProvider?.name}</DialogDescription>
+              </div>
+              <Button onClick={openCreateModelDialog} size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('addModel')}
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editModels.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">{t('noModels')}</div>
+            ) : (
+              editModels.map((model) => (
+                <Card key={model.id}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-semibold">{model.display_name}</div>
+                        <div className="text-sm text-gray-600 font-mono">{model.model_key}</div>
+                        {model.description && (
+                          <div className="text-sm text-gray-500 mt-1">{model.description}</div>
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">
+                          {t('contextLength')}: {model.context_length} | {t('maxOutput')}: {model.max_output_length}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={model.is_enabled}
+                          onCheckedChange={() => handleToggleModel(model)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModelDialog(model)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDeleteModelDialog(model)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Model Edit Dialog */}
+      <Dialog open={modelEditDialogOpen} onOpenChange={setModelEditDialogOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editModel ? t('editModel') : t('addModel')}</DialogTitle>
             <DialogDescription>{editProvider?.name}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {editModels.map((model) => (
-              <Card key={model.id}>
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-semibold">{model.display_name}</div>
-                      <div className="text-sm text-gray-600 font-mono">{model.model_key}</div>
-                      {model.description && (
-                        <div className="text-sm text-gray-500 mt-1">{model.description}</div>
-                      )}
-                    </div>
-                    <Switch
-                      checked={model.is_enabled}
-                      onCheckedChange={() => handleToggleModel(model)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            <div>
+              <Label htmlFor="model-key">{t('modelKey')}</Label>
+              <Input
+                id="model-key"
+                value={modelKey}
+                onChange={(e) => setModelKey(e.target.value)}
+                placeholder="e.g., gpt-4"
+                disabled={!!editModel}
+              />
+            </div>
+            <div>
+              <Label htmlFor="model-display-name">{t('displayName')}</Label>
+              <Input
+                id="model-display-name"
+                value={modelDisplayName}
+                onChange={(e) => setModelDisplayName(e.target.value)}
+                placeholder={t('displayNamePlaceholder')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="model-description">{t('description')}</Label>
+              <Textarea
+                id="model-description"
+                value={modelDescription}
+                onChange={(e) => setModelDescription(e.target.value)}
+                placeholder={t('descriptionPlaceholder')}
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label htmlFor="context-length">{t('contextLength')}</Label>
+              <Input
+                id="context-length"
+                value={contextLength}
+                onChange={(e) => setContextLength(e.target.value)}
+                placeholder="e.g., 128k"
+              />
+            </div>
+            <div>
+              <Label htmlFor="max-output-length">{t('maxOutput')}</Label>
+              <Input
+                id="max-output-length"
+                value={maxOutputLength}
+                onChange={(e) => setMaxOutputLength(e.target.value)}
+                placeholder="e.g., 4k"
+              />
+            </div>
+            <div>
+              <Label htmlFor="input-types">{t('inputTypes')}</Label>
+              <Input
+                id="input-types"
+                value={inputTypes}
+                onChange={(e) => setInputTypes(e.target.value)}
+                placeholder="text, image, audio"
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('commaSeparated')}</p>
+            </div>
+            <div>
+              <Label htmlFor="output-types">{t('outputTypes')}</Label>
+              <Input
+                id="output-types"
+                value={outputTypes}
+                onChange={(e) => setOutputTypes(e.target.value)}
+                placeholder="text, image"
+              />
+              <p className="text-xs text-gray-500 mt-1">{t('commaSeparated')}</p>
+            </div>
+            <div>
+              <Label htmlFor="coding-score">{t('codingScore')}</Label>
+              <Input
+                id="coding-score"
+                type="number"
+                value={codingScore}
+                onChange={(e) => setCodingScore(e.target.value)}
+                placeholder="e.g., 85"
+              />
+            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModelEditDialogOpen(false)} disabled={isSavingModel}>
+              {t('cancel')}
+            </Button>
+            <Button onClick={handleSaveModel} disabled={isSavingModel}>
+              {isSavingModel ? t('loading') : t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Model Confirmation Dialog */}
+      <Dialog open={deleteModelDialogOpen} onOpenChange={setDeleteModelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('deleteModel')}</DialogTitle>
+            <DialogDescription>
+              {t('confirmDeleteModel')}: {deleteModel?.display_name} ({deleteModel?.model_key})
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModelDialogOpen(false)}>
+              {t('cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteModel}>
+              {t('delete')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -193,4 +193,31 @@ export const adminAPI = {
 
   disableProviderModel: (id: number) =>
     api.put(`/api/admin/providers/models/${id}/disable`),
+
+  // Model CRUD API
+  createModel: (providerId: number, data: {
+    model_key: string;
+    display_name: string;
+    description?: string;
+    context_length: string;
+    max_output_length: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+  }) =>
+    api.post(`/api/admin/providers/${providerId}/models`, data),
+
+  updateModel: (modelId: number, data: {
+    display_name?: string;
+    description?: string;
+    context_length?: string;
+    max_output_length?: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+  }) =>
+    api.put(`/api/admin/providers/models/${modelId}`, data),
+
+  deleteModel: (modelId: number) =>
+    api.delete(`/api/admin/providers/models/${modelId}`),
 };
