@@ -134,4 +134,63 @@ export const adminAPI = {
 
   revokeAdmin: (userId: number) =>
     api.put(`/api/admin/users/${userId}/revoke-admin`),
+
+  // Provider configuration API
+  getProviders: (params?: { skip?: number; limit?: number; enabled_only?: boolean }) =>
+    api.get('/api/admin/providers', { params }),
+
+  getProvider: (id: number) =>
+    api.get(`/api/admin/providers/${id}`),
+
+  createProvider: (data: {
+    provider_key: string;
+    name: string;
+    website: string;
+    logo?: File;
+    models?: any[];
+  }) => {
+    const formData = new FormData();
+    formData.append('provider_key', data.provider_key);
+    formData.append('name', data.name);
+    formData.append('website', data.website);
+    if (data.logo) formData.append('logo', data.logo);
+    if (data.models) formData.append('models_json', JSON.stringify(data.models));
+    return api.post('/api/admin/providers', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  updateProvider: (id: number, data: {
+    name?: string;
+    website?: string;
+    logo?: File;
+    is_enabled?: boolean;
+  }) => {
+    const formData = new FormData();
+    if (data.name !== undefined) formData.append('name', data.name);
+    if (data.website !== undefined) formData.append('website', data.website);
+    if (data.is_enabled !== undefined) formData.append('is_enabled', String(data.is_enabled));
+    if (data.logo) formData.append('logo', data.logo);
+    return api.put(`/api/admin/providers/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  deleteProvider: (id: number) =>
+    api.delete(`/api/admin/providers/${id}`),
+
+  enableProvider: (id: number) =>
+    api.put(`/api/admin/providers/${id}/enable`),
+
+  disableProvider: (id: number) =>
+    api.put(`/api/admin/providers/${id}/disable`),
+
+  updateProviderModels: (id: number, models: any[]) =>
+    api.put(`/api/admin/providers/${id}/models`, { models }),
+
+  enableProviderModel: (id: number) =>
+    api.put(`/api/admin/providers/models/${id}/enable`),
+
+  disableProviderModel: (id: number) =>
+    api.put(`/api/admin/providers/models/${id}/disable`),
 };
