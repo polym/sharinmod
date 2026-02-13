@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 interface ModelSelectorProps {
   provider: string;
   selectedModels: string[];
+  enabledModels: string[];  // List of enabled models for this provider
   onChange: (models: string[]) => void;
   error?: string;
 }

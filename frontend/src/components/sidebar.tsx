@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   Settings,
-  Shield
+  Shield,
+  LayoutGrid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -73,7 +74,8 @@ export function Sidebar() {
   ];
 
   const adminNavItems = [
-    { icon: <Users className="w-4 h-4" />, label: '用户管理', href: "/admin/users" },
+    { icon: <Users className="w-4 h-4" />, label: t('adminUsers'), href: "/admin/users" },
+    { icon: <LayoutGrid className="w-4 h-4" />, label: t('adminProviders'), href: "/admin/providers" },
   ];
 
   const SidebarContent = () => (
