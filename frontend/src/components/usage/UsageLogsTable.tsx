@@ -97,6 +97,39 @@ function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; child
     }
   })() : { errors: [], totalCount: 0 };
 
+  // 根据内容动态计算 tooltip 宽度
+  const calculateTooltipWidth = () => {
+    if (errors.length === 0) return 320;
+
+    let maxLineLength = 0;
+    errors.forEach(error => {
+      if (error.start_time) {
+        const timeStr = formatErrorTime(error.start_time);
+        // 计算时间字符串长度（标签 + 值 + 分隔符）
+        maxLineLength = Math.max(maxLineLength, `${t('callTime')}: ${timeStr}`.length);
+      }
+      if (error.provider) {
+        maxLineLength = Math.max(maxLineLength, `${t('provider')}: ${error.provider}`.length);
+      }
+      if (error.error_code) {
+        maxLineLength = Math.max(maxLineLength, `${t('errorCode')}: ${error.error_code}`.length);
+      }
+      if (error.error_str) {
+        // 错误信息通常较长，考虑换行
+        const errorStrLines = error.error_str.length;
+        maxLineLength = Math.max(maxLineLength, `${t('errorMessage')}: `.length + errorStrLines);
+      }
+    });
+
+    // 每个字符约 8px 宽度，加上内边距和最小宽度
+    const charWidth = 8;
+    const paddingAndMin = 64; // px-4 py-3 + 最小宽度
+    const calculatedWidth = Math.max(maxLineLength * charWidth + paddingAndMin, 320);
+
+    // 设置最大宽度上限为 800px，防止过长
+    return Math.min(calculatedWidth, 800);
+  };
+
   return (
     <div
       className="relative inline-block"
@@ -105,7 +138,10 @@ function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; child
     >
       {children}
       {showTooltip && errors.length > 0 && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 max-w-md max-h-60 overflow-y-auto px-4 py-3 text-sm bg-gray-900 text-white rounded z-50 pointer-events-none">
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 max-h-60 overflow-y-auto px-4 py-3 text-sm bg-gray-900 text-white rounded z-50 pointer-events-none"
+          style={{ width: `${calculateTooltipWidth()}px` }}
+        >
           {errors.map((error: ErrorDetail, index: number) => (
             <div key={index}>
               {error.start_time && (
