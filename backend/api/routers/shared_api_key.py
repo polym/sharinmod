@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session, select
 from sqlmodel import Session
 from api.database import get_db
+from api.models.provider_config import ProviderModel
 from api.models.user import User
 from api.dependencies.auth import get_current_user
 from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyUpdate, SharedAPIKeyResponse, SharedAPIKeyList, SharedAPIKeyMetrics
@@ -142,17 +144,21 @@ async def get_api_key_metrics(
 @router.get("/providers/{provider}/models")
 async def get_provider_models(
     provider: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
 ):
     """
     Get supported models for a provider
 
-    Returns the list of supported models for the given provider from PROVIDER_INFO
+    Returns the list of supported models for the given provider from database configuration.
+    Falls back to hardcoded PROVIDER_INFO if database config not found.
     """
     from api.services.shared_api_key_service import PROVIDER_INFO
     from api.models.shared_api_key import APIKeyProvider
+    from api.services.provider_config_service import get_provider_by_key
+    from sqlmodel import select
 
-    # Validate provider
+    # Validate provider enum exists
     try:
         provider_enum = APIKeyProvider(provider)
     except ValueError:
@@ -161,7 +167,22 @@ async def get_provider_models(
             detail=f"Invalid provider: {provider}"
         )
 
-    # Get provider info
+    # Try to get models from database first
+    provider_config = get_provider_by_key(session, provider)
+    if provider_config:
+        # Load models from database
+        models_statement = select(ProviderModel.model_key).where(
+            ProviderModel.provider_config_id == provider_config.id,
+            ProviderModel.is_enabled == True
+        )
+        db_models = session.exec(models_statement).all()
+
+        return {
+            "provider": provider,
+            "supported_models": db_models
+        }
+
+    # Fallback to hardcoded PROVIDER_INFO
     provider_info = PROVIDER_INFO.get(provider_enum)
     if not provider_info:
         raise HTTPException(
@@ -169,7 +190,6 @@ async def get_provider_models(
             detail=f"Provider not found: {provider}"
         )
 
-    # Return supported models
     return {
         "provider": provider,
         "supported_models": provider_info.get("supported_models", [])

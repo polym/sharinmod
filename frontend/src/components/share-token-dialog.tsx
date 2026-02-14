@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
-import { apiKeyAPI, adminAPI } from '@/lib/services';
+import { apiKeyAPI } from '@/lib/services';
 import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -30,6 +30,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [enabledProviders, setEnabledProviders] = useState<Record<string, boolean>>({});
+  const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
 
   // Load enabled providers on mount
@@ -39,22 +40,19 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
     const loadEnabledProviders = async () => {
       try {
         setLoadingProviders(true);
-        const response = await adminAPI.getProviders({ enabled_only: true });
+        // Note: adminAPI.getProviders requires admin privileges, so we'll skip this for regular users
+        // and rely on the hardcoded provider list with a fallback mechanism
         if (!isMounted) return;
 
         const enabledMap: Record<string, boolean> = {};
-        response.data.items?.forEach?.((p: any) => {
-          enabledMap[p.provider_key] = true;
+        // For now, enable all providers by default since admin API requires privileges
+        PROVIDER_LIST.forEach(p => {
+          enabledMap[p.code] = true;
         });
         setEnabledProviders(enabledMap);
       } catch (error: any) {
         if (!isMounted) return;
         console.error('Failed to load enabled providers:', error);
-        toast({
-          title: tToast('error'),
-          description: tToast('loadProvidersFailed') || 'Failed to load providers',
-          variant: 'destructive',
-        });
       } finally {
         if (isMounted) {
           setLoadingProviders(false);
@@ -70,10 +68,20 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   }, []);
 
   // Reset models when provider changes
-  const handleProviderChange = (value: string) => {
+  const handleProviderChange = async (value: string) => {
     setProvider(value);
     setSelectedModels([]);
     setModelError('');
+
+    // Load models for this provider
+    try {
+      const response = await apiKeyAPI.getProviderModels(value);
+      setProviderModels(prev => ({ ...prev, [value]: response.data.supported_models || [] }));
+    } catch (error) {
+      console.error('Failed to load provider models:', error);
+      // Fallback to hardcoded models
+      setProviderModels(prev => ({ ...prev, [value]: [] }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -188,6 +196,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                 selectedModels={selectedModels}
                 onChange={setSelectedModels}
                 error={modelError}
+                enabledModels={providerModels[provider] || []}
               />
             )}
           </div>

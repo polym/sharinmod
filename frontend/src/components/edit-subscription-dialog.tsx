@@ -27,14 +27,25 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [modelError, setModelError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [providerModels, setProviderModels] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Pre-fill data when dialog opens
+  // Load provider models when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedModels(apiKey.supported_models || []);
       setModelError('');
       setNewApiKey('');
+
+      // Fetch models for this provider
+      apiKeyAPI.getProviderModels(apiKey.provider)
+        .then(response => {
+          setProviderModels(response.data.supported_models || []);
+        })
+        .catch(error => {
+          console.error('Failed to load provider models:', error);
+          setProviderModels([]);
+        });
     }
   }, [open, apiKey]);
 
@@ -103,6 +114,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
               selectedModels={selectedModels}
               onChange={setSelectedModels}
               error={modelError}
+              enabledModels={providerModels}
             />
           </div>
           <DialogFooter>

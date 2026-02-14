@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = '20260212_add_is_admin_field'
-down_revision: Union[str, None] = '20250211_add_oauth'
+down_revision: Union[str, None] = '20260211_add_oauth_columns'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

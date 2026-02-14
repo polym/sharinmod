@@ -13,12 +13,16 @@ interface ModelSelectorProps {
   error?: string;
 }
 
-export function ModelSelector({ provider, selectedModels, onChange, error }: ModelSelectorProps) {
+export function ModelSelector({ provider, selectedModels, enabledModels, onChange, error }: ModelSelectorProps) {
   const t = useTranslations('shareDialog');
 
-  // Get supported models for the provider
-  const providerInfo = PROVIDER_INFO[provider as keyof typeof PROVIDER_INFO];
-  const supportedModels = providerInfo?.supported_models || [];
+  // Use enabledModels from props (fetched from API), fallback to hardcoded PROVIDER_INFO
+  const supportedModels = enabledModels && enabledModels.length > 0
+    ? enabledModels
+    : (() => {
+        const providerInfo = PROVIDER_INFO[provider as keyof typeof PROVIDER_INFO];
+        return providerInfo?.supported_models || [];
+      })();
 
   const handleModelToggle = (model: string) => {
     if (selectedModels.includes(model)) {
