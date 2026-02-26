@@ -2,6 +2,7 @@ from sqlmodel import Session, select
 from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
 from api.models.user import User
 from api.models.subscription import Subscription
+from api.models.provider_config import ProviderModel
 from api.utils.encryption import encrypt_token, decrypt_token
 from api.services.api_key_validation_service import validate_api_key
 from api.services.api_key_usage_service import log_api_key_usage
@@ -1156,20 +1157,32 @@ async def update_shared_api_key(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Validate selected models against provider's supported models
-    provider_info = PROVIDER_INFO.get(api_key_obj.provider)
-    if not provider_info:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid provider: {api_key_obj.provider}"
-        )
+    # Validate selected models against provider's supported models from database
+    from api.services.provider_config_service import get_provider_by_key
 
-    supported_models = provider_info.get("supported_models", [])
+    provider_config = get_provider_by_key(session, api_key_obj.provider.value)
+    if not provider_config:
+        # Fallback to hardcoded PROVIDER_INFO if database config not found
+        provider_info = PROVIDER_INFO.get(api_key_obj.provider)
+        if not provider_info:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid provider: {api_key_obj.provider.value}"
+            )
+        supported_models = provider_info.get("supported_models", [])
+    else:
+        # Load enabled models from database
+        models_statement = select(ProviderModel.model_key).where(
+            ProviderModel.provider_config_id == provider_config.id,
+            ProviderModel.is_enabled == True
+        )
+        supported_models = session.exec(models_statement).all()
+
     invalid_models = [m for m in selected_models if m not in supported_models]
     if invalid_models:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid models for provider {api_key_obj.provider.value}: {invalid_models}"
+            detail=f"Invalid models for provider {api_key_obj.provider.value}: {invalid_models}. Supported: {supported_models}"
         )
 
     # Store original data for rollback
