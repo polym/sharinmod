@@ -45,6 +45,9 @@ export const apiKeyAPI = {
   getProviderModels: (provider: string) =>
     api.get(`/api/api-keys/providers/${provider}/models`),
 
+  getProviders: () =>
+    api.get('/api/api-keys/providers'),
+
   updateSharedAPIKey: (apiKeyId: number, data: { api_key?: string; selected_models: string[] }) =>
     api.put(`/api/api-keys/shared/${apiKeyId}`, data),
 

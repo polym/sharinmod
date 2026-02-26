@@ -15,8 +15,40 @@ from api.services.shared_api_key_service import (
     get_shared_api_key_metrics,
     update_shared_api_key
 )
+from api.services.provider_config_service import get_all_providers
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
+
+
+@router.get("/providers")
+async def get_providers(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Get all enabled providers for binding subscriptions
+
+    Returns a list of enabled providers that users can bind their API keys to.
+    This endpoint is accessible to all authenticated users.
+    """
+    from api.schemas.provider_config import ProviderConfigResponse
+
+    providers = get_all_providers(session, skip=0, limit=100, enabled_only=True)
+
+    return {
+        "items": [
+            {
+                "id": p.id,
+                "provider_key": p.provider_key,
+                "name": p.name,
+                "website": p.website,
+                "logo_path": p.logo_path,
+                "is_enabled": p.is_enabled,
+            }
+            for p in providers
+        ],
+        "total": len(providers)
+    }
 
 
 @router.post("/share", response_model=SharedAPIKeyResponse, status_code=status.HTTP_201_CREATED)

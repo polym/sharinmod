@@ -9,13 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
-import { PROVIDER_LIST, getProviderLogo, getProviderBrandName } from '@/lib/providers';
+import { getProviderLogo, getProviderBrandName } from '@/lib/providers';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 interface ShareAPIKeyDialogProps {
   onAPIKeyShared: () => void;
   children?: React.ReactNode;
+}
+
+interface Provider {
+  id: number;
+  provider_key: string;
+  name: string;
+  website: string;
+  logo_path?: string;
+  is_enabled: boolean;
 }
 
 export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialogProps) {
@@ -29,7 +38,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   const [modelError, setModelError] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [enabledProviders, setEnabledProviders] = useState<Record<string, boolean>>({});
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
 
@@ -37,22 +46,17 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   useEffect(() => {
     let isMounted = true;
 
-    const loadEnabledProviders = async () => {
+    const loadProviders = async () => {
       try {
         setLoadingProviders(true);
-        // Note: adminAPI.getProviders requires admin privileges, so we'll skip this for regular users
-        // and rely on the hardcoded provider list with a fallback mechanism
-        if (!isMounted) return;
-
-        const enabledMap: Record<string, boolean> = {};
-        // For now, enable all providers by default since admin API requires privileges
-        PROVIDER_LIST.forEach(p => {
-          enabledMap[p.code] = true;
-        });
-        setEnabledProviders(enabledMap);
+        const response = await apiKeyAPI.getProviders();
+        if (isMounted) {
+          setProviders(response.data.items || []);
+        }
       } catch (error: any) {
-        if (!isMounted) return;
-        console.error('Failed to load enabled providers:', error);
+        if (isMounted) {
+          console.error('Failed to load providers:', error);
+        }
       } finally {
         if (isMounted) {
           setLoadingProviders(false);
@@ -60,7 +64,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       }
     };
 
-    loadEnabledProviders();
+    loadProviders();
 
     return () => {
       isMounted = false;
@@ -153,25 +157,34 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
               </Label>
               <Select value={provider} onValueChange={handleProviderChange} disabled={loadingProviders}>
                 <SelectTrigger>
-                  {provider ? (
-                    <div className="flex items-center gap-2">
-                      <Image src={getProviderLogo(provider)} alt={getProviderBrandName(provider)} width={20} height={20} />
-                      <span>{getProviderBrandName(provider)}</span>
-                    </div>
-                  ) : (
+                  {provider ? (() => {
+                    const selectedProvider = providers.find(p => p.provider_key === provider);
+                    return (
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src={selectedProvider?.logo_path || getProviderLogo(provider)}
+                          alt={selectedProvider?.name || getProviderBrandName(provider)}
+                          width={20}
+                          height={20}
+                        />
+                        <span>{selectedProvider?.name || getProviderBrandName(provider)}</span>
+                      </div>
+                    );
+                  })() : (
                     <SelectValue placeholder={t('selectPlatform')} />
                   )}
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVIDER_LIST.filter(p => {
-                    // If enabledProviders is empty (API failed), show all providers
-                    const isEmpty = Object.keys(enabledProviders).length === 0;
-                    return isEmpty || enabledProviders[p.code] ?? false;
-                  }).map((p) => (
-                    <SelectItem key={p.code} value={p.code} className="pl-2">
+                  {providers.map((p) => (
+                    <SelectItem key={p.provider_key} value={p.provider_key} className="pl-2">
                       <div className="flex items-center gap-2">
-                        <Image src={p.logoPath} alt={p.brandName} width={20} height={20} />
-                        <span>{p.brandName}</span>
+                        <Image
+                          src={p.logo_path || getProviderLogo(p.provider_key)}
+                          alt={p.name}
+                          width={20}
+                          height={20}
+                        />
+                        <span>{p.name}</span>
                       </div>
                     </SelectItem>
                   ))}
