@@ -6,7 +6,7 @@ from api.models.shared_api_key import APIKeyProvider, APIKeyStatus
 
 class SharedAPIKeyCreate(BaseModel):
     """Schema for creating a shared API key"""
-    provider: APIKeyProvider = Field(..., description="API key provider (bigmodel or z.ai)")
+    provider: str = Field(..., description="API key provider (supports dynamic providers from database)")
     api_key: str = Field(..., description="Plain text API key to share")
     api_key_metadata: Optional[str] = Field(None, max_length=1000, description="Optional metadata as JSON string")
     selected_models: Optional[List[str]] = Field(None, description="List of models to bind (if None, bind all supported models)")
@@ -39,7 +39,7 @@ class SharedAPIKeyUpdate(BaseModel):
 class SharedAPIKeyResponse(BaseModel):
     """Shared API key response (never includes decrypted API key)"""
     id: int
-    provider: APIKeyProvider
+    provider: str  # Changed from APIKeyProvider enum to str to support dynamic providers
     status: APIKeyStatus
     created_at: datetime
     updated_at: datetime

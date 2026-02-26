@@ -42,7 +42,7 @@ class SharedAPIKey(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
-    provider: APIKeyProvider = Field(index=True)
+    provider: str = Field(index=True, max_length=100)  # Changed from enum to str to support dynamic providers
     encrypted_api_key: str = Field(max_length=500)  # Encrypted value
     status: APIKeyStatus = Field(default=APIKeyStatus.ACTIVE, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)

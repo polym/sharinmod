@@ -190,16 +190,7 @@ async def get_provider_models(
     from api.services.provider_config_service import get_provider_by_key
     from sqlmodel import select
 
-    # Validate provider enum exists
-    try:
-        provider_enum = APIKeyProvider(provider)
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid provider: {provider}"
-        )
-
-    # Try to get models from database first
+    # Try to get models from database first (supports dynamic providers)
     provider_config = get_provider_by_key(session, provider)
     if provider_config:
         # Load models from database
@@ -214,7 +205,15 @@ async def get_provider_models(
             "supported_models": db_models
         }
 
-    # Fallback to hardcoded PROVIDER_INFO
+    # Fallback: validate provider enum and use hardcoded PROVIDER_INFO
+    try:
+        provider_enum = APIKeyProvider(provider)
+    except ValueError:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Provider not found: {provider}"
+        )
+
     provider_info = PROVIDER_INFO.get(provider_enum)
     if not provider_info:
         raise HTTPException(

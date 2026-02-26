@@ -122,10 +122,18 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         # 获取该模型的第一个提供商（用于获取模型配置）
         # 优先使用 bigmodel，否则使用第一个提供商
         providers_list = list(data["providers"])
-        first_provider = next((p for p in providers_list if p.value == "bigmodel"), providers_list[0])
+        first_provider = next((p for p in providers_list if p == "bigmodel"), providers_list[0])
 
-        # 从 PROVIDER_INFO 获取模型元数据
-        provider_config = PROVIDER_INFO.get(first_provider)
+        # 从 PROVIDER_INFO 获取模型元数据（provider 现在是 str 类型）
+        # 需要尝试转换为 APIKeyProvider 枚举
+        from api.models.shared_api_key import APIKeyProvider
+        try:
+            provider_enum = APIKeyProvider(first_provider)
+            provider_config = PROVIDER_INFO.get(provider_enum)
+        except ValueError:
+            # 动态供应商，不在 PROVIDER_INFO 中
+            provider_config = None
+
         models_config = provider_config.get("models", {}) if provider_config else {}
         model_config = models_config.get(model_name, {})
 
@@ -135,12 +143,23 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         # 构建提供商列表
         provider_infos = []
         for provider in providers_list:
-            p_config = PROVIDER_INFO.get(provider)
-            if p_config:
-                provider_infos.append(ProviderInfo(
-                    code=provider.value,
-                    logo_path=p_config.get("logo_path", "")
-                ))
+            try:
+                provider_enum = APIKeyProvider(provider)
+                p_config = PROVIDER_INFO.get(provider_enum)
+                if p_config:
+                    provider_infos.append(ProviderInfo(
+                        code=provider,  # provider 现在是 str，直接使用
+                        logo_path=p_config.get("logo_path", "")
+                    ))
+            except ValueError:
+                # 动态供应商，尝试从数据库获取配置
+                from api.services.provider_config_service import get_provider_by_key
+                db_provider = get_provider_by_key(db, provider)
+                if db_provider:
+                    provider_infos.append(ProviderInfo(
+                        code=provider,
+                        logo_path=db_provider.logo_path or ""
+                    ))
 
         # 获取 Coding 评分
         coding_score = model_config.get("coding_score")
@@ -152,7 +171,7 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         model_info = ModelInfo(
             display_name=display_name,
             model_name=model_name,  # 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
-            provider=first_provider.value,  # 使用第一个提供商作为主提供商
+            provider=first_provider,  # 使用第一个提供商作为主提供商（现在是 str 类型）
             description=model_config.get("description", "暂无描述"),
             input_types=model_config.get("input_types", ["Text"]),
             output_types=model_config.get("output_types", ["Text"]),

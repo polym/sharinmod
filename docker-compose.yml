@@ -38,6 +38,7 @@ services:
       - WEBSITE_BASE_URL=${WEBSITE_BASE_URL}
     volumes:
       - ./backend:/app
+      - ./frontend/public:/app/frontend/public
 
   # Consumer for LiteLLM callback processing
   litellm-callback-consumer:

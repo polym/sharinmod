@@ -278,7 +278,7 @@ PROVIDER_INFO = {
 }
 
 
-def check_provider_api_key_exists(session: Session, user_id: int, provider: APIKeyProvider) -> bool:
+def check_provider_api_key_exists(session: Session, user_id: int, provider: str) -> bool:
     """
     Check if user already has an API key for this provider
     
@@ -298,7 +298,7 @@ def check_provider_api_key_exists(session: Session, user_id: int, provider: APIK
     return result is not None
 
 
-async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, selected_models: Optional[List[str]] = None) -> Dict[str, str]:
+async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_models: Optional[List[str]] = None) -> Dict[str, str]:
     """
     Sync shared API key to LiteLLM by creating credential and all supported models
 
@@ -315,24 +315,31 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
         Exception: If LiteLLM API calls fail
     """
     # Prepare credential and model data
-    credential_name = f"{provider.value}/{user.email}"
-    api_base = settings.VENDOR_BASE_URLS.get(provider.value)
+    credential_name = f"{provider}/{user.email}"
+
+    # Try to convert provider string to APIKeyProvider enum for accessing PROVIDER_INFO
+    try:
+        provider_enum = APIKeyProvider(provider)
+        api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
+        supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
+        custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
+    except ValueError:
+        # Dynamic provider - skip LiteLLM sync and return empty model_ids
+        # Dynamic providers cannot be synced to LiteLLM as they require static configuration
+        print(f"[SYNC_TO_LITELLM] Provider {provider} is a dynamic provider - skipping LiteLLM sync")
+        # Return empty dict so the calling code can continue
+        # Subscriptions and models will be created from database config instead
+        return {}
 
     if not api_base:
-        raise ValueError(f"No API base URL configured for provider: {provider.value}")
+        raise ValueError(f"No API base URL configured for provider: {provider}")
 
     # Verify user has LiteLLM user ID
     if not user.litellm_user_id:
         raise ValueError(f"User {user.email} does not have a LiteLLM user ID")
 
-    # Get supported models for this provider
-    supported_models = PROVIDER_INFO[provider]["supported_models"]
     if not supported_models:
-        raise ValueError(f"No supported models configured for provider: {provider.value}")
-
-    # Determine the custom_llm_provider based on vendor type
-    # OpenRouter uses its own provider type, others use anthropic
-    custom_provider = "openrouter" if provider == APIKeyProvider.OPENROUTER else "anthropic"
+        raise ValueError(f"No supported models configured for provider: {provider}")
 
     # Use selected models if provided, otherwise use all supported models
     models_to_create = selected_models if selected_models else supported_models
@@ -340,7 +347,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
     # Validate selected models
     invalid_models = [m for m in models_to_create if m not in supported_models]
     if invalid_models:
-        raise ValueError(f"Invalid models for provider {provider.value}: {invalid_models}")
+        raise ValueError(f"Invalid models for provider {provider}: {invalid_models}")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         # Step 1: Check if credential exists, update if exists, create if not
@@ -390,7 +397,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
         model_ids = {}
         for model_name in models_to_create:
             # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-            litellm_model = f"openrouter/openrouter/{model_name}" if provider == APIKeyProvider.OPENROUTER else model_name
+            litellm_model = f"openrouter/openrouter/{model_name}" if provider == "openrouter" else model_name
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
@@ -420,7 +427,7 @@ async def _sync_to_litellm(user: User, provider: APIKeyProvider, api_key: str, s
 
 async def _create_models_for_credential(
     user: User,
-    provider: APIKeyProvider,
+    provider: str,
     credential_name: str
 ) -> Dict[str, str]:
     """
@@ -437,18 +444,22 @@ async def _create_models_for_credential(
     Raises:
         Exception: If LiteLLM API calls fail
     """
-    supported_models = PROVIDER_INFO[provider]["supported_models"]
-    if not supported_models:
-        raise ValueError(f"No supported models configured for provider: {provider.value}")
+    # Try to convert provider string to APIKeyProvider enum
+    try:
+        provider_enum = APIKeyProvider(provider)
+        supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
+        custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
+    except ValueError:
+        raise ValueError(f"Provider {provider} is not a supported static provider")
 
-    # Determine the custom_llm_provider based on vendor type
-    custom_provider = "openrouter" if provider == APIKeyProvider.OPENROUTER else "anthropic"
+    if not supported_models:
+        raise ValueError(f"No supported models configured for provider: {provider}")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         model_ids = {}
         for model_name in supported_models:
             # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-            litellm_model = f"openrouter/openrouter/{model_name}" if provider == APIKeyProvider.OPENROUTER else model_name
+            litellm_model = f"openrouter/openrouter/{model_name}" if provider == "openrouter" else model_name
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
@@ -479,7 +490,7 @@ async def _create_models_for_credential(
 async def create_shared_api_key(
     session: Session,
     user: User,
-    provider: APIKeyProvider,
+    provider: str,
     api_key: str,
     api_key_metadata: Optional[str] = None,
     selected_models: Optional[List[str]] = None
@@ -505,7 +516,7 @@ async def create_shared_api_key(
     if check_provider_api_key_exists(session, user.id, provider):
         raise HTTPException(
             status_code=400,
-            detail=f"You already have an API key for {provider.value}. Each account can only add one API key per provider."
+            detail=f"You already have an API key for {provider}. Each account can only add one API key per provider."
         )
 
     # Validate API key with provider API
@@ -537,24 +548,64 @@ async def create_shared_api_key(
     if not settings.TESTING:
         try:
             model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
-            # Store all model IDs as JSON
-            shared_api_key.litellm_model_ids = json.dumps(model_ids)
-            # Keep first model ID for backward compatibility
-            first_model = list(model_ids.keys())[0]
-            shared_api_key.litellm_model_id = model_ids[first_model]
-            session.add(shared_api_key)
-            session.commit()
-            session.refresh(shared_api_key)
 
-            # Create subscriptions for all models
-            for model_name, model_id in model_ids.items():
-                subscription = Subscription(
-                    model_id=model_id,
-                    shared_api_key_id=shared_api_key.id,
-                    user_id=user.id
-                )
-                session.add(subscription)
-            session.commit()
+            # Handle dynamic providers (model_ids is empty)
+            if not model_ids:
+                # For dynamic providers, get models from database and create subscriptions
+                from api.services.provider_config_service import get_provider_by_key
+                from sqlmodel import select
+                from api.models.provider_config import ProviderModel
+
+                provider_config = get_provider_by_key(session, provider)
+                if provider_config:
+                    # Get enabled models from database
+                    models_statement = select(ProviderModel.model_key).where(
+                        ProviderModel.provider_config_id == provider_config.id,
+                        ProviderModel.is_enabled == True
+                    )
+                    db_models = session.exec(models_statement).all()
+
+                    # Filter by selected_models if provided
+                    if selected_models:
+                        db_models = [m for m in db_models if m in selected_models]
+
+                    # Create subscriptions for each model (using model_key as model_id for dynamic providers)
+                    for model_key in db_models:
+                        subscription = Subscription(
+                            model_id=model_key,  # Use model_key directly for dynamic providers
+                            shared_api_key_id=shared_api_key.id,
+                            user_id=user.id
+                        )
+                        session.add(subscription)
+                    session.commit()
+
+                    # Store model keys in litellm_model_ids for tracking
+                    shared_api_key.litellm_model_ids = json.dumps({m: m for m in db_models})
+                    if db_models:
+                        shared_api_key.litellm_model_id = db_models[0]
+                    session.add(shared_api_key)
+                    session.commit()
+                    session.refresh(shared_api_key)
+            else:
+                # Static provider - use LiteLLM model IDs
+                # Store all model IDs as JSON
+                shared_api_key.litellm_model_ids = json.dumps(model_ids)
+                # Keep first model ID for backward compatibility
+                first_model = list(model_ids.keys())[0]
+                shared_api_key.litellm_model_id = model_ids[first_model]
+                session.add(shared_api_key)
+                session.commit()
+                session.refresh(shared_api_key)
+
+                # Create subscriptions for all models
+                for model_name, model_id in model_ids.items():
+                    subscription = Subscription(
+                        model_id=model_id,
+                        shared_api_key_id=shared_api_key.id,
+                        user_id=user.id
+                    )
+                    session.add(subscription)
+                session.commit()
 
         except Exception as e:
             # Rollback local API key creation if LiteLLM sync fails
@@ -585,7 +636,7 @@ async def create_shared_api_key(
         user_id=user.id,
         api_key_id=str(shared_api_key.id),
         action=APIKeyAction.SHARED,
-        details=f"Shared {provider.value} API key"
+        details=f"Shared {provider} API key"
     )
 
     return {
@@ -615,7 +666,23 @@ def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     api_keys = []
     for api_key in results:
         api_key_dict = api_key.model_dump()
-        provider_info = PROVIDER_INFO.get(api_key.provider, {})
+        # Try to get provider info from PROVIDER_INFO (for static providers)
+        try:
+            provider_enum = APIKeyProvider(api_key.provider)
+            provider_info = PROVIDER_INFO.get(provider_enum, {})
+        except ValueError:
+            # Dynamic provider - get info from database
+            from api.services.provider_config_service import get_provider_by_key
+            provider_config = get_provider_by_key(session, api_key.provider)
+            if provider_config:
+                provider_info = {
+                    "name": provider_config.name,
+                    "website": provider_config.website,
+                    "logo_path": provider_config.logo_path,
+                    "supported_models": []  # Will be loaded from database separately
+                }
+            else:
+                provider_info = {}
 
         # Get actual bound models from litellm_model_ids
         bound_models = []
@@ -755,7 +822,7 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
         user_id=user_id,
         api_key_id=str(api_key_id),
         action=APIKeyAction.SHARED,
-        details=f"Disabled {api_key.provider.value} API key"
+        details=f"Disabled {api_key.provider} API key"
     )
     
     return api_key
@@ -820,7 +887,7 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
     # Sync with LiteLLM - recreate all models (skip in testing)
     if not settings.TESTING:
         try:
-            credential_name = f"{api_key.provider.value}/{user.email}"
+            credential_name = f"{api_key.provider}/{user.email}"
             try:
                 model_ids = await _create_models_for_credential(user, api_key.provider, credential_name)
             except Exception as credential_error:
@@ -866,7 +933,7 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
         user_id=user_id,
         api_key_id=str(api_key_id),
         action=APIKeyAction.SHARED,
-        details=f"Enabled {api_key.provider.value} API key"
+        details=f"Enabled {api_key.provider} API key"
     )
     
     return api_key
@@ -914,7 +981,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
     # NOTE: Delete models FIRST, then credential to avoid orphaned models
     if not settings.TESTING:
         try:
-            credential_name = f"{api_key.provider.value}/{user.email}"
+            credential_name = f"{api_key.provider}/{user.email}"
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Step 1: Delete all models FIRST
@@ -969,7 +1036,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
         user_id=user_id,
         api_key_id=str(api_key_id),
         action=APIKeyAction.SHARED,
-        details=f"Deleted {api_key.provider.value} API key"
+        details=f"Deleted {api_key.provider} API key"
     )
     
     # Delete related subscriptions first
@@ -1160,14 +1227,14 @@ async def update_shared_api_key(
     # Validate selected models against provider's supported models from database
     from api.services.provider_config_service import get_provider_by_key
 
-    provider_config = get_provider_by_key(session, api_key_obj.provider.value)
+    provider_config = get_provider_by_key(session, api_key_obj.provider)
     if not provider_config:
         # Fallback to hardcoded PROVIDER_INFO if database config not found
         provider_info = PROVIDER_INFO.get(api_key_obj.provider)
         if not provider_info:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid provider: {api_key_obj.provider.value}"
+                detail=f"Invalid provider: {api_key_obj.provider}"
             )
         supported_models = provider_info.get("supported_models", [])
     else:
@@ -1182,7 +1249,7 @@ async def update_shared_api_key(
     if invalid_models:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid models for provider {api_key_obj.provider.value}: {invalid_models}. Supported: {supported_models}"
+            detail=f"Invalid models for provider {api_key_obj.provider}: {invalid_models}. Supported: {supported_models}"
         )
 
     # Store original data for rollback
@@ -1217,16 +1284,20 @@ async def update_shared_api_key(
 
         # Step 3: Sync with LiteLLM (skip in testing)
         if not settings.TESTING:
-            credential_name = f"{api_key_obj.provider.value}/{user.email}"
+            credential_name = f"{api_key_obj.provider}/{user.email}"
 
             # If new API key provided, update credential
             if new_api_key:
-                api_base = settings.VENDOR_BASE_URLS.get(api_key_obj.provider.value)
-                if not api_base:
-                    raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider.value}")
+                # Try to convert provider string to APIKeyProvider enum for accessing VENDOR_BASE_URLS
+                try:
+                    provider_enum = APIKeyProvider(api_key_obj.provider)
+                    api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
+                    custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
+                except ValueError:
+                    raise ValueError(f"Provider {api_key_obj.provider} is not a supported static provider for LiteLLM sync")
 
-                # Determine the custom_llm_provider based on vendor type
-                custom_provider = "openrouter" if api_key_obj.provider == APIKeyProvider.OPENROUTER else "anthropic"
+                if not api_base:
+                    raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider}")
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     # Update credential with new API key
@@ -1271,13 +1342,17 @@ async def update_shared_api_key(
             # Add new models
             if models_to_add:
                 # Determine the custom_llm_provider based on vendor type
-                custom_provider = "openrouter" if api_key_obj.provider == APIKeyProvider.OPENROUTER else "anthropic"
+                try:
+                    provider_enum = APIKeyProvider(api_key_obj.provider)
+                    custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
+                except ValueError:
+                    raise ValueError(f"Provider {api_key_obj.provider} is not a supported static provider for LiteLLM sync")
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
-                    credential_name = f"{api_key_obj.provider.value}/{user.email}"
+                    credential_name = f"{api_key_obj.provider}/{user.email}"
                     for model_name in models_to_add:
                         # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-                        litellm_model = f"openrouter/openrouter/{model_name}" if api_key_obj.provider == APIKeyProvider.OPENROUTER else model_name
+                        litellm_model = f"openrouter/openrouter/{model_name}" if api_key_obj.provider == "openrouter" else model_name
                         model_payload = {
                             "model_name": model_name,
                             "litellm_params": {

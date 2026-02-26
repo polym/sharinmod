@@ -45,14 +45,14 @@ PROVIDER_CONFIGS = {
 }
 
 
-async def validate_api_key(provider: APIKeyProvider, api_key: str) -> Dict[str, any]:
+async def validate_api_key(provider: str, api_key: str) -> Dict[str, any]:
     """
     Validate API key by making a test API call to provider
-    
+
     Args:
-        provider: API key provider (bigmodel or z.ai)
+        provider: API key provider (supports dynamic providers from database)
         api_key: Plain text API key to validate
-        
+
     Returns:
         Dict with validation result:
         {
@@ -60,14 +60,29 @@ async def validate_api_key(provider: APIKeyProvider, api_key: str) -> Dict[str, 
             "message": str,
             "provider_info": Optional[Dict]
         }
-        
+
     Raises:
         ValueError: If provider is not supported
     """
-    if provider not in PROVIDER_CONFIGS:
-        raise ValueError(f"Unsupported provider: {provider}")
-    
-    config = PROVIDER_CONFIGS[provider]
+    # Try to convert provider string to APIKeyProvider enum
+    try:
+        provider_enum = APIKeyProvider(provider)
+        if provider_enum not in PROVIDER_CONFIGS:
+            raise ValueError(f"Unsupported provider: {provider}")
+        config = PROVIDER_CONFIGS[provider_enum]
+    except ValueError:
+        # Dynamic provider - skip validation for now
+        # In the future, could fetch validation config from database
+        return {
+            "valid": True,
+            "message": f"Provider {provider} is a dynamic provider - skipping API validation",
+            "provider_info": {
+                "provider": provider,
+                "status_code": 200
+            }
+        }
+
+    config = PROVIDER_CONFIGS[provider_enum]
     url = f"{config['base_url']}{config['test_endpoint']}"
     
     # Prepare authorization header
