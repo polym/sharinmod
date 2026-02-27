@@ -33,6 +33,8 @@ interface ProviderConfig {
   name: string;
   website: string;
   logo_path?: string;
+  base_url?: string;
+  custom_llm_provider?: string;
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -63,6 +65,8 @@ export function AdminProviders() {
   const [providerKey, setProviderKey] = useState('');
   const [name, setName] = useState('');
   const [website, setWebsite] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [customLlmProvider, setCustomLlmProvider] = useState('openai');
   const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // Model loading state
@@ -99,7 +103,7 @@ export function AdminProviders() {
   }, []);
 
   const handleCreateProvider = async () => {
-    if (!providerKey || !name || !website) {
+    if (!providerKey || !name || !website || !baseUrl) {
       toast({
         title: tToast('error'),
         description: tToast('fillRequired'),
@@ -113,6 +117,8 @@ export function AdminProviders() {
         provider_key: providerKey,
         name,
         website,
+        base_url: baseUrl,
+        custom_llm_provider: customLlmProvider,
         logo: logoFile || undefined,
         models: [],
       });
@@ -126,6 +132,8 @@ export function AdminProviders() {
       setProviderKey('');
       setName('');
       setWebsite('');
+      setBaseUrl('');
+      setCustomLlmProvider('openai');
       setLogoFile(null);
       loadProviders();
     } catch (error: any) {
@@ -144,6 +152,8 @@ export function AdminProviders() {
       await adminAPI.updateProvider(editProvider.id, {
         name: name || editProvider.name,
         website: website || editProvider.website,
+        base_url: baseUrl || undefined,
+        custom_llm_provider: customLlmProvider || undefined,
         logo: logoFile || undefined,
         is_enabled: undefined,
       });
@@ -156,6 +166,8 @@ export function AdminProviders() {
       setEditDialogOpen(false);
       setName('');
       setWebsite('');
+      setBaseUrl('');
+      setCustomLlmProvider('openai');
       setLogoFile(null);
       loadProviders();
     } catch (error: any) {
@@ -329,6 +341,8 @@ export function AdminProviders() {
     setEditProvider(provider);
     setName(provider.name);
     setWebsite(provider.website);
+    setBaseUrl(provider.base_url || '');
+    setCustomLlmProvider(provider.custom_llm_provider || 'openai');
     setLogoFile(null);
     setEditDialogOpen(true);
   };
@@ -354,6 +368,8 @@ export function AdminProviders() {
                   setProviderKey('');
                   setName('');
                   setWebsite('');
+                  setBaseUrl('');
+                  setCustomLlmProvider('openai');
                   setLogoFile(null);
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
@@ -392,6 +408,28 @@ export function AdminProviders() {
                       onChange={(e) => setWebsite(e.target.value)}
                       placeholder="https://example.com"
                     />
+                  </div>
+                  <div>
+                    <Label htmlFor="base-url">Base URL *</Label>
+                    <Input
+                      id="base-url"
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder="https://api.example.com/v1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="custom-llm-provider">LiteLLM Provider Type</Label>
+                    <select
+                      id="custom-llm-provider"
+                      value={customLlmProvider}
+                      onChange={(e) => setCustomLlmProvider(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="openai">openai</option>
+                      <option value="anthropic">anthropic</option>
+                      <option value="openrouter">openrouter</option>
+                    </select>
                   </div>
                   <div>
                     <Label htmlFor="logo">{t('logo')}</Label>
@@ -506,6 +544,28 @@ export function AdminProviders() {
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
               />
+            </div>
+            <div>
+              <Label htmlFor="edit-base-url">Base URL</Label>
+              <Input
+                id="edit-base-url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.example.com/v1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-custom-llm-provider">LiteLLM Provider Type</Label>
+              <select
+                id="edit-custom-llm-provider"
+                value={customLlmProvider}
+                onChange={(e) => setCustomLlmProvider(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="openai">openai</option>
+                <option value="anthropic">anthropic</option>
+                <option value="openrouter">openrouter</option>
+              </select>
             </div>
             <div>
               <Label htmlFor="edit-logo">{t('logo')}</Label>

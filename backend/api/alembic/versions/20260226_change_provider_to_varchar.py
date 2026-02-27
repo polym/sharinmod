@@ -14,7 +14,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = '20260226_change_provider_to_varchar'
-down_revision: Union[str, None] = '20260213_add_error_details_to_usage_logs'
+down_revision: Union[str, None] = '20260213_add_error_details'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

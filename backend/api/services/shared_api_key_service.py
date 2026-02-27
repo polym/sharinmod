@@ -324,12 +324,23 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
         custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
     except ValueError:
-        # Dynamic provider - skip LiteLLM sync and return empty model_ids
-        # Dynamic providers cannot be synced to LiteLLM as they require static configuration
-        print(f"[SYNC_TO_LITELLM] Provider {provider} is a dynamic provider - skipping LiteLLM sync")
-        # Return empty dict so the calling code can continue
-        # Subscriptions and models will be created from database config instead
-        return {}
+        # Dynamic provider — look up from database
+        from api.services.provider_config_service import get_provider_by_key
+        from api.models.provider_config import ProviderModel as ProviderModelDB
+        from api.database import engine
+        from sqlmodel import Session as SyncSession
+        with SyncSession(engine) as _db:
+            provider_config = get_provider_by_key(_db, provider)
+            if not provider_config or not provider_config.base_url:
+                print(f"[SYNC_TO_LITELLM] Dynamic provider {provider} has no base_url configured, skipping LiteLLM sync")
+                return {}
+            api_base = provider_config.base_url
+            custom_provider = provider_config.custom_llm_provider or "openai"
+            db_models_q = select(ProviderModelDB.model_key).where(
+                ProviderModelDB.provider_config_id == provider_config.id,
+                ProviderModelDB.is_enabled == True
+            )
+            supported_models = list(_db.exec(db_models_q).all())
 
     if not api_base:
         raise ValueError(f"No API base URL configured for provider: {provider}")
@@ -896,6 +907,8 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
                 plain_api_key = decrypt_token(api_key.encrypted_api_key)
                 model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key)
             # Store all model IDs as JSON
+            if not model_ids:
+                raise ValueError(f"No models were created for provider: {api_key.provider}")
             api_key.litellm_model_ids = json.dumps(model_ids)
             # Keep first model ID for backward compatibility
             first_model = list(model_ids.keys())[0]
@@ -1294,7 +1307,16 @@ async def update_shared_api_key(
                     api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
                     custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
                 except ValueError:
-                    raise ValueError(f"Provider {api_key_obj.provider} is not a supported static provider for LiteLLM sync")
+                    # Dynamic provider — look up from database
+                    from api.services.provider_config_service import get_provider_by_key
+                    from api.database import engine
+                    from sqlmodel import Session as SyncSession
+                    with SyncSession(engine) as _db:
+                        _pc = get_provider_by_key(_db, api_key_obj.provider)
+                    if not _pc or not _pc.base_url:
+                        raise ValueError(f"Dynamic provider {api_key_obj.provider} has no base_url configured")
+                    api_base = _pc.base_url
+                    custom_provider = _pc.custom_llm_provider or "openai"
 
                 if not api_base:
                     raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider}")
@@ -1346,7 +1368,13 @@ async def update_shared_api_key(
                     provider_enum = APIKeyProvider(api_key_obj.provider)
                     custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
                 except ValueError:
-                    raise ValueError(f"Provider {api_key_obj.provider} is not a supported static provider for LiteLLM sync")
+                    # Dynamic provider — look up from database
+                    from api.services.provider_config_service import get_provider_by_key
+                    from api.database import engine
+                    from sqlmodel import Session as SyncSession
+                    with SyncSession(engine) as _db:
+                        _pc2 = get_provider_by_key(_db, api_key_obj.provider)
+                    custom_provider = (_pc2.custom_llm_provider or "openai") if _pc2 else "openai"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     credential_name = f"{api_key_obj.provider}/{user.email}"

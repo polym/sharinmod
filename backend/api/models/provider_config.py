@@ -30,12 +30,17 @@ class ProviderConfig(SQLModel, table=True):
     name: str = Field(max_length=200)
     website: str = Field(max_length=500)
     logo_path: Optional[str] = Field(default=None, max_length=500)
+    base_url: Optional[str] = Field(default=None, max_length=500, description="API endpoint base URL (e.g. https://api.example.com/v1)")
+    custom_llm_provider: str = Field(default="openai", max_length=50, description="LiteLLM provider type: openai / anthropic / openrouter")
     is_enabled: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Relationship to models
-    models: List["ProviderModel"] = Relationship(back_populates="provider")
+    models: List["ProviderModel"] = Relationship(
+        back_populates="provider",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
 
 class ProviderModel(SQLModel, table=True):

@@ -21,7 +21,7 @@ from api.schemas.provider_config import (
 
 # ==================== File Upload Handling ====================
 
-PROVIDERS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', '..', 'frontend', 'public', 'providers')
+PROVIDERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'frontend', 'public', 'providers'))
 MAX_LOGO_SIZE = 1 * 1024 * 1024  # 1MB
 ALLOWED_LOGO_TYPES = {'image/png', 'image/jpeg', 'image/jpg'}
 
@@ -201,6 +201,8 @@ def create_provider(
         provider_key=provider_data.provider_key,
         name=provider_data.name,
         website=provider_data.website,
+        base_url=provider_data.base_url,
+        custom_llm_provider=provider_data.custom_llm_provider,
         is_enabled=True
     )
     db.add(provider)
@@ -255,6 +257,10 @@ def update_provider(
         provider.name = provider_data.name
     if provider_data.website is not None:
         provider.website = provider_data.website
+    if provider_data.base_url is not None:
+        provider.base_url = provider_data.base_url
+    if provider_data.custom_llm_provider is not None:
+        provider.custom_llm_provider = provider_data.custom_llm_provider
     if provider_data.is_enabled is not None:
         provider.is_enabled = provider_data.is_enabled
 
