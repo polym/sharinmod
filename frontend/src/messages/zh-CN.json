@@ -54,6 +54,7 @@
       "unblockSuccess": "API Key 已启用",
       "deleteSuccess": "API Key 删除成功",
       "regenerateSuccess": "API Key 已重新生成",
+      "success": "成功",
       "error": "错误",
       "enterName": "请输入名称",
       "confirmDisable": "确认要停用此 API Key？停用后将无法使用该密钥调用 API。",
