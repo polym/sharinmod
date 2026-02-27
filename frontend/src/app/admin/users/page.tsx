@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Shield, ShieldOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuthStore } from '@/lib/store';
@@ -229,7 +228,6 @@ export default function AdminUsersPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>{t('email')}</TableHead>
-                      <TableHead>{t('role')}</TableHead>
                       <TableHead className="text-right">{t('subscriptions')}</TableHead>
                       <TableHead className="text-right">{t('consumedTokens')}</TableHead>
                       <TableHead className="text-right">{t('contributedTokens')}</TableHead>
@@ -243,21 +241,21 @@ export default function AdminUsersPage() {
                       <TableRow key={u.id}>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-medium">{u.email}</span>
+                            <span className="font-medium flex items-center gap-1.5">
+                              {u.email}
+                              {u.is_admin && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500 text-white flex-shrink-0">
+                                  Admin
+                                </span>
+                              )}
+                            </span>
                             {u.name && (
                               <span className="text-xs text-gray-500">{u.name}</span>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {u.is_admin ? (
-                            <Badge variant="default">Admin</Badge>
-                          ) : (
-                            <Badge variant="secondary">User</Badge>
-                          )}
-                        </TableCell>
                         <TableCell className="text-right">
-                          {u.subscription_count ?? 0}
+                          {u.active_subscription_count ?? 0}/{u.subscription_count ?? 0}
                         </TableCell>
                         <TableCell className="text-right">
                           {formatTokens(u.consumed_tokens || 0)}

@@ -76,6 +76,7 @@ def list_users(
             'consumed_tokens': u.consumed_tokens,
             'is_admin': u.is_admin,
             'subscription_count': stats.get('subscription_count', 0),
+            'active_subscription_count': stats.get('active_subscription_count', 0),
             'last_used_at': stats.get('last_used_at'),
         }
         items.append(UserWithStatsResponse(**user_dict))

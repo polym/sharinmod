@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 from api.models.user import User
 from api.models.subscription import Subscription
+from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.models.usage_log import UsageLog
 from api.schemas.user import UserProfileUpdate
 
@@ -116,14 +117,24 @@ def get_all_users(
     stats_map: Dict[int, Dict[str, Any]] = {uid: {} for uid in user_ids}
 
     if user_ids:
-        # Get subscription counts
-        sub_counts = db.exec(
-            select(Subscription.user_id, func.count(Subscription.id).label('cnt'))
-            .where(Subscription.user_id.in_(user_ids))
-            .group_by(Subscription.user_id)
+        # Get SharedAPIKey counts (total) per user
+        key_counts = db.exec(
+            select(SharedAPIKey.user_id, func.count(SharedAPIKey.id).label('cnt'))
+            .where(SharedAPIKey.user_id.in_(user_ids))
+            .group_by(SharedAPIKey.user_id)
         ).all()
-        for user_id, cnt in sub_counts:
+        for user_id, cnt in key_counts:
             stats_map[user_id]['subscription_count'] = cnt
+
+        # Get SharedAPIKey counts (ACTIVE only) per user
+        active_key_counts = db.exec(
+            select(SharedAPIKey.user_id, func.count(SharedAPIKey.id).label('cnt'))
+            .where(SharedAPIKey.user_id.in_(user_ids))
+            .where(SharedAPIKey.status == APIKeyStatus.ACTIVE)
+            .group_by(SharedAPIKey.user_id)
+        ).all()
+        for user_id, cnt in active_key_counts:
+            stats_map[user_id]['active_subscription_count'] = cnt
 
         # Get last used times
         last_used = db.exec(

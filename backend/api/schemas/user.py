@@ -1,8 +1,8 @@
 """
 User schemas for API request/response validation
 """
-from pydantic import BaseModel, EmailStr, Field, field_validator, computed_field
-from datetime import datetime
+from pydantic import BaseModel, EmailStr, Field, field_validator, computed_field, field_serializer
+from datetime import datetime, timezone
 from typing import Optional, List
 import re
 from enum import Enum
@@ -73,6 +73,12 @@ class UserResponse(BaseModel):
         """
         return self.contributed_tokens - self.consumed_tokens
 
+    @field_serializer('created_at')
+    def serialize_created_at(self, dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
     model_config = {
         "from_attributes": True
     }
@@ -118,7 +124,16 @@ class UserWithStatsResponse(UserResponse):
     - last_used_at: Most recent usage timestamp from usage_logs
     """
     subscription_count: int = 0
+    active_subscription_count: int = 0
     last_used_at: Optional[datetime] = None
+
+    @field_serializer('last_used_at')
+    def serialize_last_used_at(self, dt: Optional[datetime]) -> Optional[str]:
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     model_config = {
         "from_attributes": True
