@@ -6,7 +6,8 @@
     "usage": "Usage",
     "settings": "Settings",
     "adminProviders": "Provider Config",
-    "adminUsers": "User Management"
+    "adminUsers": "User Management",
+    "adminModels": "Model Config"
   },
   "topbar": {
     "settings": "Settings",
@@ -425,5 +426,51 @@
     "revokeSuccess": "Admin revoked",
     "grantFailed": "Grant failed",
     "revokeFailed": "Revoke failed"
+  },
+  "adminModelConfig": {
+    "title": "Model Config",
+    "description": "Manage supported models. Enabling/disabling affects marketplace display and subscription options.",
+    "loading": "Loading...",
+    "columns": {
+      "provider": "Provider",
+      "modelKey": "Model ID",
+      "displayName": "Display Name",
+      "contextLength": "Context",
+      "maxOutput": "Max Output",
+      "source": "Source",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "source": {
+      "db": "Custom",
+      "builtin": "Built-in"
+    },
+    "filter": {
+      "allProviders": "All Providers",
+      "allStatus": "All Status",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "editDialog": {
+      "title": "Edit Model Config",
+      "description": "Modify parameters for {modelKey}",
+      "displayName": "Display Name",
+      "description": "Model Description",
+      "contextLength": "Context Length",
+      "maxOutput": "Max Output",
+      "codingScore": "Coding Score",
+      "inputTypes": "Input Types (comma-separated)",
+      "outputTypes": "Output Types (comma-separated)",
+      "save": "Save",
+      "saving": "Saving..."
+    },
+    "toast": {
+      "error": "Error",
+      "toggleSuccess": "Model status updated",
+      "toggleFailed": "Update failed",
+      "updateSuccess": "Model config saved",
+      "updateFailed": "Save failed",
+      "loadFailed": "Failed to load model list"
+    }
   }
 }

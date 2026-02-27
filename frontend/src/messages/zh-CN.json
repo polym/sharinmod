@@ -6,7 +6,8 @@
     "usage": "使用情况",
     "settings": "设置",
     "adminProviders": "订阅配置",
-    "adminUsers": "用户管理"
+    "adminUsers": "用户管理",
+    "adminModels": "模型配置"
   },
   "topbar": {
     "settings": "设置",
@@ -425,5 +426,51 @@
     "revokeSuccess": "已撤销管理员权限",
     "grantFailed": "授权失败",
     "revokeFailed": "撤销失败"
+  },
+  "adminModelConfig": {
+    "title": "模型配置",
+    "description": "管理系统支持的模型，启用/禁用将影响广场展示和订阅可选范围",
+    "loading": "加载中...",
+    "columns": {
+      "provider": "提供商",
+      "modelKey": "模型标识",
+      "displayName": "显示名称",
+      "contextLength": "上下文",
+      "maxOutput": "最大输出",
+      "source": "来源",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "source": {
+      "db": "自定义",
+      "builtin": "内置"
+    },
+    "filter": {
+      "allProviders": "全部提供商",
+      "allStatus": "全部状态",
+      "enabled": "已启用",
+      "disabled": "已禁用"
+    },
+    "editDialog": {
+      "title": "编辑模型配置",
+      "description": "修改 {modelKey} 的参数配置",
+      "displayName": "显示名称",
+      "description": "模型描述",
+      "contextLength": "上下文长度",
+      "maxOutput": "最大输出",
+      "codingScore": "Coding 评分",
+      "inputTypes": "输入类型（逗号分隔）",
+      "outputTypes": "输出类型（逗号分隔）",
+      "save": "保存",
+      "saving": "保存中..."
+    },
+    "toast": {
+      "error": "错误",
+      "toggleSuccess": "模型状态已更新",
+      "toggleFailed": "更新失败",
+      "updateSuccess": "模型配置已保存",
+      "updateFailed": "保存失败",
+      "loadFailed": "加载模型列表失败"
+    }
   }
 }

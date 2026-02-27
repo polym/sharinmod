@@ -54,6 +54,7 @@ class ProviderModelCreate(BaseModel):
     input_types: Optional[List[str]] = None
     output_types: Optional[List[str]] = None
     coding_score: Optional[int] = Field(None, ge=0)
+    is_enabled: Optional[bool] = Field(default=True)
 
 
 class ProviderConfigCreate(BaseModel):
@@ -95,6 +96,20 @@ class ProviderConfigUpdate(BaseModel):
 class ProviderModelsUpdateRequest(BaseModel):
     """Schema for batch updating provider models"""
     models: List[ProviderModelUpdate]
+
+
+class ModelCatalogOverrideRequest(BaseModel):
+    """Schema for overriding (create or update) a model catalog entry"""
+    provider_key: str
+    model_key: str
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    context_length: Optional[str] = None
+    max_output_length: Optional[str] = None
+    input_types: Optional[List[str]] = None
+    output_types: Optional[List[str]] = None
+    coding_score: Optional[int] = None
+    is_enabled: Optional[bool] = None
 
 
 # ==================== List Response ====================

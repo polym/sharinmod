@@ -180,48 +180,35 @@ async def get_provider_models(
     session: Session = Depends(get_db)
 ):
     """
-    Get supported models for a provider
+    Get supported models for a provider from the unified model catalog.
 
-    Returns the list of supported models for the given provider from database configuration.
-    Falls back to hardcoded PROVIDER_INFO if database config not found.
+    Returns enabled models only (built-in + DB, DB takes priority).
+    Disabled models (either via DB override or DB record) are excluded.
     """
-    from api.services.shared_api_key_service import PROVIDER_INFO
+    from api.services.provider_config_service import get_unified_model_catalog, get_provider_by_key
     from api.models.shared_api_key import APIKeyProvider
-    from api.services.provider_config_service import get_provider_by_key
-    from sqlmodel import select
+    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
 
-    # Try to get models from database first (supports dynamic providers)
-    provider_config = get_provider_by_key(session, provider)
-    if provider_config:
-        # Load models from database
-        models_statement = select(ProviderModel.model_key).where(
-            ProviderModel.provider_config_id == provider_config.id,
-            ProviderModel.is_enabled == True
-        )
-        db_models = session.exec(models_statement).all()
+    catalog = get_unified_model_catalog(session, provider_key=provider, enabled_only=True)
 
-        return {
-            "provider": provider,
-            "supported_models": db_models
-        }
+    # If catalog is empty, verify the provider actually exists before returning 404
+    if not catalog:
+        provider_config = get_provider_by_key(session, provider)
+        try:
+            provider_enum = APIKeyProvider(provider)
+        except ValueError:
+            provider_enum = None
 
-    # Fallback: validate provider enum and use hardcoded PROVIDER_INFO
-    try:
-        provider_enum = APIKeyProvider(provider)
-    except ValueError:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Provider not found: {provider}"
-        )
-
-    provider_info = PROVIDER_INFO.get(provider_enum)
-    if not provider_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Provider not found: {provider}"
-        )
+        if not provider_config and (
+            provider_enum is None or provider_enum not in BUILTIN_PROVIDER_INFO
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Provider not found: {provider}"
+            )
 
     return {
         "provider": provider,
-        "supported_models": provider_info.get("supported_models", [])
+        "supported_models": [item["model_key"] for item in catalog],
+        "models": catalog,
     }

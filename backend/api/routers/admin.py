@@ -24,6 +24,7 @@ from api.services.provider_config_service import (
     disable_provider_model,
     update_provider_models_batch,
     save_logo_upload,
+    get_unified_model_catalog,
 )
 from api.schemas.user import UserResponse, UserListResponse, RoleFilter
 from api.schemas.provider_config import (
@@ -35,6 +36,7 @@ from api.schemas.provider_config import (
     ProviderModelUpdate,
     ProviderModelsUpdateRequest,
     ProviderConfigListResponse,
+    ModelCatalogOverrideRequest,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -474,3 +476,93 @@ def delete_provider_model_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Model not found"
         )
+
+
+# ==================== Model Catalog Routes ====================
+
+
+@router.get("/model-catalog")
+def get_model_catalog(
+    provider_key: Optional[str] = Query(default=None),
+    enabled_only: bool = Query(default=False),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Get merged model catalog (built-in + DB).  Admin only.
+
+    Args:
+        provider_key: Optional filter by provider key
+        enabled_only: If True, only return enabled models
+        db: Database session
+
+    Returns:
+        Dict with items list and total count
+    """
+    items = get_unified_model_catalog(db, provider_key=provider_key, enabled_only=enabled_only)
+    return {"items": items, "total": len(items)}
+
+
+@router.post("/model-catalog/override", response_model=ProviderModelResponse)
+def override_model_config(
+    data: ModelCatalogOverrideRequest,
+    db: Session = Depends(get_db),
+) -> ProviderModelResponse:
+    """
+    Create or update a DB model record for a given provider+model_key.
+    Used to override built-in models or update existing DB models.
+    Admin only.
+
+    Args:
+        data: Override request with provider_key, model_key, and optional fields
+        db: Database session
+
+    Returns:
+        Created or updated ProviderModel
+    """
+    from sqlmodel import select as sql_select
+    from api.models.provider_config import ProviderModel as ProviderModelDB
+
+    provider = get_provider_by_key(db, data.provider_key)
+    if not provider:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Provider '{data.provider_key}' not found in DB. "
+                "Please create the provider first via /api/admin/providers."
+            ),
+        )
+
+    existing = db.exec(
+        sql_select(ProviderModelDB).where(
+            ProviderModelDB.provider_config_id == provider.id,
+            ProviderModelDB.model_key == data.model_key,
+        )
+    ).first()
+
+    if existing:
+        update_data = ProviderModelUpdate(
+            display_name=data.display_name,
+            description=data.description,
+            context_length=data.context_length,
+            max_output_length=data.max_output_length,
+            input_types=data.input_types,
+            output_types=data.output_types,
+            coding_score=data.coding_score,
+            is_enabled=data.is_enabled,
+        )
+        model = update_provider_model(db, existing.id, update_data)
+        return ProviderModelResponse.model_validate(model)
+    else:
+        create_data = ProviderModelCreate(
+            model_key=data.model_key,
+            display_name=data.display_name or data.model_key,
+            description=data.description,
+            context_length=data.context_length or "N/A",
+            max_output_length=data.max_output_length or "N/A",
+            input_types=data.input_types,
+            output_types=data.output_types,
+            coding_score=data.coding_score,
+            is_enabled=data.is_enabled if data.is_enabled is not None else True,
+        )
+        model = create_provider_model(db, provider.id, create_data)
+        return ProviderModelResponse.model_validate(model)

@@ -232,3 +232,38 @@ export const adminAPI = {
   deleteModel: (modelId: number) =>
     api.delete(`/api/admin/providers/models/${modelId}`),
 };
+
+// Model Config API - unified model catalog management
+export const modelConfigAPI = {
+  getModelCatalog: (params?: { provider_key?: string; enabled_only?: boolean }) =>
+    api.get('/api/admin/model-catalog', { params }),
+
+  overrideModel: (data: {
+    provider_key: string;
+    model_key: string;
+    display_name?: string;
+    description?: string;
+    context_length?: string;
+    max_output_length?: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+    is_enabled?: boolean;
+  }) => api.post('/api/admin/model-catalog/override', data),
+
+  enableModel: (id: number) =>
+    api.put(`/api/admin/providers/models/${id}/enable`),
+
+  disableModel: (id: number) =>
+    api.put(`/api/admin/providers/models/${id}/disable`),
+
+  updateModel: (id: number, data: {
+    display_name?: string;
+    description?: string;
+    context_length?: string;
+    max_output_length?: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+  }) => api.put(`/api/admin/providers/models/${id}`, data),
+};

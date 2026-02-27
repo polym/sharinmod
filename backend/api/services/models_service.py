@@ -3,6 +3,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from api.models.subscription import Subscription
 from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.services.shared_api_key_service import PROVIDER_INFO
+from api.services.provider_config_service import get_unified_model_catalog
 from api.models.user import User
 from api.models.usage_log import UsageLog
 from api.schemas.models import ModelInfo, SharedBy, ProviderInfo
@@ -118,7 +119,15 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     # 构建返回的 ModelInfo 列表
     model_info_list = []
 
+    # 过滤：只保留模型配置中已启用的模型
+    enabled_catalog = get_unified_model_catalog(db, enabled_only=True)
+    enabled_model_keys = {item["model_key"] for item in enabled_catalog}
+
     for model_name, data in models_dict.items():
+        # 跳过模型配置中已禁用的模型
+        if model_name not in enabled_model_keys:
+            continue
+
         # 获取该模型的第一个提供商（用于获取模型配置）
         # 优先使用 bigmodel，否则使用第一个提供商
         providers_list = list(data["providers"])

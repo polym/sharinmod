@@ -377,6 +377,7 @@ def create_provider_model(
             detail=f"Model with key '{model_data.model_key}' already exists for this provider"
         )
 
+    is_enabled_val = model_data.is_enabled if model_data.is_enabled is not None else True
     model = ProviderModel(
         provider_config_id=provider_config_id,
         model_key=model_data.model_key,
@@ -387,7 +388,7 @@ def create_provider_model(
         input_types=model_data.input_types,
         output_types=model_data.output_types,
         coding_score=model_data.coding_score,
-        is_enabled=True
+        is_enabled=is_enabled_val
     )
     db.add(model)
     db.commit()
@@ -458,6 +459,95 @@ def disable_provider_model(db: Session, model_id: int) -> Optional[ProviderModel
         db.commit()
         db.refresh(model)
     return model
+
+
+def get_unified_model_catalog(
+    db: Session,
+    provider_key: Optional[str] = None,
+    enabled_only: bool = False,
+) -> List[dict]:
+    """
+    Return a merged model catalog combining DB records and BUILTIN_PROVIDER_INFO.
+
+    Merge strategy:
+    - DB records take priority over built-in defaults (same provider_key + model_key).
+    - Built-in models absent from DB are included with source="builtin" and is_enabled=True.
+    - DB models have source="db" and use their actual is_enabled value.
+
+    Args:
+        db: Database session
+        provider_key: Optional filter by provider key string (e.g. "bigmodel")
+        enabled_only: If True, only return models where is_enabled=True
+
+    Returns:
+        List of dicts with keys:
+          db_id, provider_key, provider_name, model_key, display_name, description,
+          context_length, max_output_length, input_types, output_types,
+          coding_score, is_enabled, source
+    """
+    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
+
+    # --- Step 1: Load DB models ---
+    stmt = (
+        select(ProviderModel, ProviderConfig)
+        .join(ProviderConfig, ProviderModel.provider_config_id == ProviderConfig.id)
+    )
+    if provider_key:
+        stmt = stmt.where(ProviderConfig.provider_key == provider_key)
+
+    rows = db.exec(stmt).all()
+
+    # Build lookup map: (provider_key, model_key) -> catalog entry
+    catalog_map: dict = {}
+    for pm, pc in rows:
+        k = (pc.provider_key, pm.model_key)
+        catalog_map[k] = {
+            "db_id": pm.id,
+            "provider_key": pc.provider_key,
+            "provider_name": pc.name,
+            "model_key": pm.model_key,
+            "display_name": pm.display_name,
+            "description": pm.description,
+            "context_length": pm.context_length,
+            "max_output_length": pm.max_output_length,
+            "input_types": pm.input_types,
+            "output_types": pm.output_types,
+            "coding_score": pm.coding_score,
+            "is_enabled": pm.is_enabled,
+            "source": "db",
+        }
+
+    # --- Step 2: Fill missing built-in models ---
+    for provider_enum, pinfo in BUILTIN_PROVIDER_INFO.items():
+        pkey = provider_enum.value  # e.g. "bigmodel"
+        if provider_key and pkey != provider_key:
+            continue
+        pname = pinfo.get("name", pkey)
+        for mkey, mdata in pinfo.get("models", {}).items():
+            k = (pkey, mkey)
+            if k not in catalog_map:
+                catalog_map[k] = {
+                    "db_id": None,
+                    "provider_key": pkey,
+                    "provider_name": pname,
+                    "model_key": mkey,
+                    "display_name": mdata.get("display_name", mkey),
+                    "description": mdata.get("description"),
+                    "context_length": mdata.get("context_length", "N/A"),
+                    "max_output_length": mdata.get("max_output_length", "N/A"),
+                    "input_types": mdata.get("input_types"),
+                    "output_types": mdata.get("output_types"),
+                    "coding_score": mdata.get("coding_score"),
+                    "is_enabled": True,
+                    "source": "builtin",
+                }
+
+    items = list(catalog_map.values())
+
+    if enabled_only:
+        items = [item for item in items if item["is_enabled"]]
+
+    return items
 
 
 def update_provider_models_batch(

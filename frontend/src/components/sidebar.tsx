@@ -14,7 +14,8 @@ import {
   X,
   Settings,
   Shield,
-  LayoutGrid
+  LayoutGrid,
+  Cpu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,7 @@ export function Sidebar() {
   const adminNavItems = [
     { icon: <Users className="w-4 h-4" />, label: t('adminUsers'), href: "/admin/users" },
     { icon: <LayoutGrid className="w-4 h-4" />, label: t('adminProviders'), href: "/admin/providers" },
+    { icon: <Cpu className="w-4 h-4" />, label: t('adminModels'), href: "/admin/models" },
   ];
 
   const SidebarContent = () => (
