@@ -13,6 +13,8 @@ import { Edit, Trash2, Power, PowerOff, Plus, LayoutGrid } from 'lucide-react';
 import { adminAPI } from '@/lib/services';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { getProviderLogo, getProviderDefaults } from '@/lib/providers';
 
 interface ProviderModel {
   id: number;
@@ -338,11 +340,12 @@ export function AdminProviders() {
   };
 
   const openEditDialog = (provider: ProviderConfig) => {
+    const defaults = getProviderDefaults(provider.provider_key);
     setEditProvider(provider);
     setName(provider.name);
     setWebsite(provider.website);
-    setBaseUrl(provider.base_url || '');
-    setCustomLlmProvider(provider.custom_llm_provider || 'openai');
+    setBaseUrl(provider.base_url || defaults?.base_url || '');
+    setCustomLlmProvider(provider.custom_llm_provider || defaults?.custom_llm_provider || 'openai');
     setLogoFile(null);
     setEditDialogOpen(true);
   };
@@ -410,16 +413,7 @@ export function AdminProviders() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="base-url">Base URL *</Label>
-                    <Input
-                      id="base-url"
-                      value={baseUrl}
-                      onChange={(e) => setBaseUrl(e.target.value)}
-                      placeholder="https://api.example.com/v1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="custom-llm-provider">LiteLLM Provider Type</Label>
+                    <Label htmlFor="custom-llm-provider">接口规范</Label>
                     <select
                       id="custom-llm-provider"
                       value={customLlmProvider}
@@ -430,6 +424,15 @@ export function AdminProviders() {
                       <option value="anthropic">anthropic</option>
                       <option value="openrouter">openrouter</option>
                     </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="base-url">Base URL *</Label>
+                    <Input
+                      id="base-url"
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder="https://api.example.com/v1"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="logo">{t('logo')}</Label>
@@ -458,6 +461,7 @@ export function AdminProviders() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">Logo</TableHead>
                     <TableHead>{t('providerKey')}</TableHead>
                     <TableHead>{t('name')}</TableHead>
                     <TableHead>{t('website')}</TableHead>
@@ -469,6 +473,16 @@ export function AdminProviders() {
                 <TableBody>
                   {providers.map((provider) => (
                     <TableRow key={provider.id}>
+                      <TableCell>
+                        <Image
+                          src={provider.logo_path || getProviderLogo(provider.provider_key)}
+                          alt={provider.name}
+                          width={24}
+                          height={24}
+                          className="rounded-sm object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono text-sm">{provider.provider_key}</TableCell>
                       <TableCell>{provider.name}</TableCell>
                       <TableCell>
@@ -546,16 +560,7 @@ export function AdminProviders() {
               />
             </div>
             <div>
-              <Label htmlFor="edit-base-url">Base URL</Label>
-              <Input
-                id="edit-base-url"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.example.com/v1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-custom-llm-provider">LiteLLM Provider Type</Label>
+              <Label htmlFor="edit-custom-llm-provider">接口规范</Label>
               <select
                 id="edit-custom-llm-provider"
                 value={customLlmProvider}
@@ -566,6 +571,15 @@ export function AdminProviders() {
                 <option value="anthropic">anthropic</option>
                 <option value="openrouter">openrouter</option>
               </select>
+            </div>
+            <div>
+              <Label htmlFor="edit-base-url">Base URL</Label>
+              <Input
+                id="edit-base-url"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.example.com/v1"
+              />
             </div>
             <div>
               <Label htmlFor="edit-logo">{t('logo')}</Label>

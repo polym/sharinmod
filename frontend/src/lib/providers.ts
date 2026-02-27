@@ -96,6 +96,49 @@ export function getModelLogo(modelName: string): string {
 }
 
 /**
+ * Built-in provider default connection config
+ * Used to pre-fill edit form when db values are null (legacy records before 20260226 migration)
+ */
+export interface ProviderConnectionDefaults {
+  base_url: string;
+  custom_llm_provider: string;
+}
+
+export const BUILTIN_PROVIDER_DEFAULTS: Partial<Record<string, ProviderConnectionDefaults>> = {
+  bigmodel: {
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
+    custom_llm_provider: 'anthropic',
+  },
+  'z.ai': {
+    base_url: 'https://api.z.ai/v1',
+    custom_llm_provider: 'anthropic',
+  },
+  volcengine: {
+    base_url: 'https://ark.cn-beijing.volces.com/api/v3',
+    custom_llm_provider: 'anthropic',
+  },
+  moonshot: {
+    base_url: 'https://api.moonshot.cn/v1',
+    custom_llm_provider: 'anthropic',
+  },
+  minimax: {
+    base_url: 'https://api.minimax.chat/v1',
+    custom_llm_provider: 'anthropic',
+  },
+  openrouter: {
+    base_url: 'https://openrouter.ai/api/v1',
+    custom_llm_provider: 'openrouter',
+  },
+};
+
+/**
+ * Get provider default connection config by provider_key
+ */
+export function getProviderDefaults(providerKey: string): ProviderConnectionDefaults | undefined {
+  return BUILTIN_PROVIDER_DEFAULTS[providerKey];
+}
+
+/**
  * Provider info with supported models
  */
 export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }> = {
