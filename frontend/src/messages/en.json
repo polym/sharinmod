@@ -432,8 +432,7 @@
     "description": "Manage supported models. Enabling/disabling affects marketplace display and subscription options.",
     "loading": "Loading...",
     "columns": {
-      "provider": "Provider",
-      "modelKey": "Model ID",
+      "model": "Model",
       "displayName": "Display Name",
       "contextLength": "Context",
       "maxOutput": "Max Output",
@@ -446,23 +445,24 @@
       "builtin": "Built-in"
     },
     "filter": {
-      "allProviders": "All Providers",
-      "allStatus": "All Status",
-      "enabled": "Enabled",
-      "disabled": "Disabled"
+      "searchPlaceholder": "Search models...",
+      "batchEdit": "Batch Edit ({count})"
     },
     "editDialog": {
       "title": "Edit Model Config",
       "description": "Modify parameters for {modelKey}",
+      "batchEditNote": "{count} models selected. Filled fields will be applied to all selected models.",
       "displayName": "Display Name",
-      "description": "Model Description",
+      "modelDescription": "Model Description",
       "contextLength": "Context Length",
       "maxOutput": "Max Output",
       "codingScore": "Coding Score",
-      "inputTypes": "Input Types (comma-separated)",
-      "outputTypes": "Output Types (comma-separated)",
+      "inputTypesLabel": "Input Types",
+      "outputTypesLabel": "Output Types",
+      "conflictHint": "⚠ Values differ across selected models — cleared, please re-enter",
       "save": "Save",
       "saving": "Saving..."
+
     },
     "toast": {
       "error": "Error",
