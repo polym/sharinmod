@@ -11,12 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { Edit, Cpu } from 'lucide-react';
-import { modelConfigAPI } from '@/lib/services';
+import { Edit, Cpu, Trash2 } from 'lucide-react';
+import { modelConfigAPI, globalModelAPI } from '@/lib/services';
 import { getProviderLogo } from '@/lib/providers';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export interface ModelCatalogItem {
   db_id: number | null;
@@ -44,7 +46,41 @@ interface EditForm {
   output_types: string[];
 }
 
-export function AdminModelConfig() {
+// ==================== Global Model Types ====================
+
+interface SupportedProviderInfo {
+  provider_key: string;
+  name: string;
+  logo_path: string | null;
+}
+
+interface GlobalModelItem {
+  id: number;
+  model_key: string;
+  display_name: string;
+  description?: string;
+  context_length: string;
+  max_output_length: string;
+  input_types?: string[];
+  output_types?: string[];
+  coding_score?: number;
+  supported_providers: SupportedProviderInfo[];
+}
+
+interface GlobalModelForm {
+  model_key: string;
+  display_name: string;
+  description: string;
+  context_length: string;
+  max_output_length: string;
+  coding_score: string;
+  input_types: string[];
+  output_types: string[];
+}
+
+// ==================== Provider Model Tab ====================
+
+function ProviderModelTab() {
   const t = useTranslations('adminModelConfig');
   const { toast } = useToast();
 
@@ -210,14 +246,8 @@ export function AdminModelConfig() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Cpu className="w-5 h-5 text-purple-600" />
-          <CardTitle>{t('title')}</CardTitle>
-        </div>
-        <CardDescription>{t('description')}</CardDescription>
-      </CardHeader>
+    <>
+      <CardDescription className="px-6 pt-2">{t('description')}</CardDescription>
 
       <CardContent>
         {/* 搜索 + 批量编辑按钮 */}
@@ -297,8 +327,7 @@ export function AdminModelConfig() {
                           className="object-contain rounded-sm"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
-                        <span className="font-mono text-sm text-gray-500">{model.provider_key}/</span>
-                        <span className="font-mono text-sm font-medium">{model.model_key}</span>
+                        <span className="font-mono text-sm"><span className="text-gray-500">{model.provider_key}/</span><span className="font-medium">{model.model_key}</span></span>
                       </div>
                     </TableCell>
                     <TableCell>{model.display_name}</TableCell>
@@ -463,7 +492,7 @@ export function AdminModelConfig() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={isSaving}>
-              Cancel
+              {t('editDialog.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? t('editDialog.saving') : t('editDialog.save')}
@@ -471,6 +500,392 @@ export function AdminModelConfig() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+}
+
+// ==================== Global Model Tab ====================
+
+function GlobalModelTab() {
+  const t = useTranslations('adminGlobalModel');
+  const { toast } = useToast();
+
+  const [models, setModels] = useState<GlobalModelItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<GlobalModelItem | null>(null);
+  const [editTarget, setEditTarget] = useState<GlobalModelItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState<GlobalModelForm>({
+    model_key: '',
+    display_name: '',
+    description: '',
+    context_length: '',
+    max_output_length: '',
+    coding_score: '',
+    input_types: [],
+    output_types: [],
+  });
+
+  const loadModels = async () => {
+    setLoading(true);
+    try {
+      const resp = await globalModelAPI.list();
+      setModels(resp.data || []);
+    } catch {
+      toast({ title: t('toast.loadFailed'), variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const openAddDialog = () => {
+    setEditTarget(null);
+    setForm({ model_key: '', display_name: '', description: '', context_length: '', max_output_length: '', coding_score: '', input_types: [], output_types: [] });
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (item: GlobalModelItem) => {
+    setEditTarget(item);
+    setForm({
+      model_key: item.model_key,
+      display_name: item.display_name,
+      description: item.description || '',
+      context_length: item.context_length,
+      max_output_length: item.max_output_length,
+      coding_score: item.coding_score != null ? String(item.coding_score) : '',
+      input_types: item.input_types || [],
+      output_types: item.output_types || [],
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        model_key: form.model_key,
+        display_name: form.display_name,
+        description: form.description || undefined,
+        context_length: form.context_length,
+        max_output_length: form.max_output_length,
+        coding_score: form.coding_score ? parseInt(form.coding_score, 10) : undefined,
+        input_types: form.input_types.length > 0 ? form.input_types : undefined,
+        output_types: form.output_types.length > 0 ? form.output_types : undefined,
+      };
+
+      if (editTarget) {
+        await globalModelAPI.update(editTarget.id, payload);
+        toast({ description: t('toast.updateSuccess') });
+      } else {
+        await globalModelAPI.create(payload);
+        toast({ description: t('toast.createSuccess') });
+      }
+      setDialogOpen(false);
+      await loadModels();
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast({
+        title: editTarget ? t('toast.updateFailed') : t('toast.createFailed'),
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = (item: GlobalModelItem) => {
+    setDeleteTarget(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await globalModelAPI.delete(deleteTarget.id);
+      toast({ description: t('toast.deleteSuccess') });
+      setDeleteTarget(null);
+      await loadModels();
+    } catch {
+      toast({ title: t('toast.deleteFailed'), variant: 'destructive' });
+    }
+  };
+
+  return (
+    <>
+      <CardContent>
+        <div className="flex justify-end mb-4">
+          <Button size="sm" onClick={openAddDialog}>
+            {t('addButton')}
+          </Button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">{t('loading')}</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('columns.model')}</TableHead>
+                <TableHead>{t('columns.supportedProviders')}</TableHead>
+                <TableHead>{t('columns.contextLength')}</TableHead>
+                <TableHead>{t('columns.maxOutput')}</TableHead>
+                <TableHead>{t('columns.inputTypes')}</TableHead>
+                <TableHead>{t('columns.outputTypes')}</TableHead>
+                <TableHead>{t('columns.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {models.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div>
+                        <div className="font-medium text-sm">{item.display_name}</div>
+                        <div className="font-mono text-xs text-gray-500">{item.model_key}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {item.supported_providers.length === 0 ? (
+                      <span className="text-xs text-gray-400">{t('noProviders')}</span>
+                    ) : (
+                      <div className="flex items-center">
+                        {item.supported_providers.slice(0, 5).map((p, i) => (
+                          <div
+                            key={p.provider_key}
+                            className={cn('w-6 h-6 rounded-full border border-white overflow-hidden bg-white', i > 0 && '-ml-2')}
+                            title={p.name}
+                          >
+                            <Image
+                              src={getProviderLogo(p.provider_key)}
+                              alt={p.name}
+                              width={24}
+                              height={24}
+                              className="object-contain"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          </div>
+                        ))}
+                        {item.supported_providers.length > 5 && (
+                          <span className="ml-1 text-xs text-gray-500">+{item.supported_providers.length - 5}</span>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{item.context_length}</TableCell>
+                  <TableCell>{item.max_output_length}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(item.input_types || []).map((type) => (
+                        <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(item.output_types || []).map((type) => (
+                        <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(item)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <span title={item.supported_providers.length > 0 ? t('deleteTooltip') : undefined}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={item.supported_providers.length > 0}
+                          onClick={() => handleDelete(item)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {models.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">—</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editTarget ? t('dialog.editTitle') : t('dialog.addTitle')}</DialogTitle>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>{t('dialog.modelKey')}</Label>
+              <Input
+                value={form.model_key}
+                onChange={(e) => setForm((f) => ({ ...f, model_key: e.target.value }))}
+                placeholder={t('dialog.modelKeyPlaceholder')}
+                readOnly={!!editTarget}
+                className={editTarget ? 'bg-gray-50 cursor-not-allowed' : ''}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.displayName')}</Label>
+              <Input
+                value={form.display_name}
+                onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.description')}</Label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                rows={2}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>{t('dialog.contextLength')}</Label>
+                <Input
+                  value={form.context_length}
+                  onChange={(e) => setForm((f) => ({ ...f, context_length: e.target.value }))}
+                  placeholder="128k"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('dialog.maxOutput')}</Label>
+                <Input
+                  value={form.max_output_length}
+                  onChange={(e) => setForm((f) => ({ ...f, max_output_length: e.target.value }))}
+                  placeholder="4k"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.codingScore')}</Label>
+              <Input
+                type="number"
+                value={form.coding_score}
+                onChange={(e) => setForm((f) => ({ ...f, coding_score: e.target.value }))}
+                placeholder="1400"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.inputTypes')}</Label>
+              <div className="flex flex-wrap gap-3">
+                {['Text', 'Image', 'Audio', 'Video'].map((type) => (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <Checkbox
+                      id={`gm-input-${type}`}
+                      checked={form.input_types.includes(type)}
+                      onCheckedChange={(checked) => {
+                        setForm((f) => ({
+                          ...f,
+                          input_types: checked ? [...f.input_types, type] : f.input_types.filter((v) => v !== type),
+                        }));
+                      }}
+                    />
+                    <Label htmlFor={`gm-input-${type}`} className="font-normal cursor-pointer">{type}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.outputTypes')}</Label>
+              <div className="flex flex-wrap gap-3">
+                {['Text', 'Image', 'Audio', 'Video'].map((type) => (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <Checkbox
+                      id={`gm-output-${type}`}
+                      checked={form.output_types.includes(type)}
+                      onCheckedChange={(checked) => {
+                        setForm((f) => ({
+                          ...f,
+                          output_types: checked ? [...f.output_types, type] : f.output_types.filter((v) => v !== type),
+                        }));
+                      }}
+                    />
+                    <Label htmlFor={`gm-output-${type}`} className="font-normal cursor-pointer">{type}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>
+              {t('dialog.cancel')}
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? t('dialog.saving') : t('dialog.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('deleteDialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {deleteTarget && t('deleteConfirm', { modelKey: deleteTarget.model_key })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              {t('dialog.cancel')}
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>
+              {t('deleteConfirmButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ==================== Main Component ====================
+
+export function AdminModelConfig() {
+  const t = useTranslations('adminModelConfig');
+
+  return (
+    <Card>
+      <CardHeader className="pb-0">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-5 h-5 text-purple-600" />
+          <CardTitle>{t('title')}</CardTitle>
+        </div>
+      </CardHeader>
+      <Tabs defaultValue="provider">
+        <div className="px-6 pt-3 pb-0">
+          <TabsList>
+            <TabsTrigger value="provider">{t('tabs.provider')}</TabsTrigger>
+            <TabsTrigger value="global">{t('tabs.global')}</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="provider">
+          <ProviderModelTab />
+        </TabsContent>
+        <TabsContent value="global">
+          <GlobalModelTab />
+        </TabsContent>
+      </Tabs>
     </Card>
   );
 }

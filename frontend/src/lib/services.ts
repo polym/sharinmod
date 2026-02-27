@@ -267,3 +267,33 @@ export const modelConfigAPI = {
     coding_score?: number;
   }) => api.put(`/api/admin/providers/models/${id}`, data),
 };
+
+// Global Model API
+export const globalModelAPI = {
+  list: () =>
+    api.get('/api/admin/global-models'),
+
+  create: (data: {
+    model_key: string;
+    display_name: string;
+    description?: string;
+    context_length: string;
+    max_output_length: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+  }) => api.post('/api/admin/global-models', data),
+
+  update: (id: number, data: {
+    display_name?: string;
+    description?: string;
+    context_length?: string;
+    max_output_length?: string;
+    input_types?: string[];
+    output_types?: string[];
+    coding_score?: number;
+  }) => api.put(`/api/admin/global-models/${id}`, data),
+
+  delete: (id: number) =>
+    api.delete(`/api/admin/global-models/${id}`),
+};

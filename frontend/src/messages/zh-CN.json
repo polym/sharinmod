@@ -461,7 +461,8 @@
       "outputTypesLabel": "输出类型",
       "conflictHint": "⚠ 所选模型此字段值不一致，已清空，请重新输入",
       "save": "保存",
-      "saving": "保存中..."
+      "saving": "保存中...",
+      "cancel": "取消"
     },
     "toast": {
       "error": "错误",
@@ -470,6 +471,55 @@
       "updateSuccess": "模型配置已保存",
       "updateFailed": "保存失败",
       "loadFailed": "加载模型列表失败"
+    },
+    "tabs": {
+      "provider": "供应商模型",
+      "global": "全局模型"
+    }
+  },
+  "adminGlobalModel": {
+    "title": "全局模型",
+    "description": "管理平台支持的基础模型，新模型上线后在此录入",
+    "addButton": "添加模型",
+    "loading": "加载中...",
+    "columns": {
+      "model": "模型",
+      "supportedProviders": "支持供应商",
+      "contextLength": "上下文",
+      "maxOutput": "最大输出",
+      "inputTypes": "输入类型",
+      "outputTypes": "输出类型",
+      "actions": "操作"
+    },
+    "noProviders": "暂无供应商支持",
+    "dialog": {
+      "addTitle": "添加全局模型",
+      "editTitle": "编辑全局模型",
+      "modelKey": "模型标识",
+      "modelKeyPlaceholder": "如 glm-4.7",
+      "displayName": "显示名称",
+      "description": "描述",
+      "contextLength": "上下文长度",
+      "maxOutput": "最大输出",
+      "codingScore": "Coding 评分",
+      "inputTypes": "输入类型",
+      "outputTypes": "输出类型",
+      "save": "保存",
+      "saving": "保存中...",
+      "cancel": "取消"
+    },
+    "deleteTooltip": "请先解除所有供应商绑定再删除",
+    "deleteDialogTitle": "确认删除",
+    "deleteConfirm": "确定要删除模型「{modelKey}」吗？此操作不可撤销。",
+    "deleteConfirmButton": "删除",
+    "toast": {
+      "loadFailed": "加载全局模型失败",
+      "createSuccess": "模型已添加",
+      "createFailed": "添加失败",
+      "updateSuccess": "模型已更新",
+      "updateFailed": "更新失败",
+      "deleteSuccess": "模型已删除",
+      "deleteFailed": "删除失败"
     }
   }
 }

@@ -461,8 +461,8 @@
       "outputTypesLabel": "Output Types",
       "conflictHint": "⚠ Values differ across selected models — cleared, please re-enter",
       "save": "Save",
-      "saving": "Saving..."
-
+      "saving": "Saving...",
+      "cancel": "Cancel"
     },
     "toast": {
       "error": "Error",
@@ -471,6 +471,55 @@
       "updateSuccess": "Model config saved",
       "updateFailed": "Save failed",
       "loadFailed": "Failed to load model list"
+    },
+    "tabs": {
+      "provider": "Provider Models",
+      "global": "Global Models"
+    }
+  },
+  "adminGlobalModel": {
+    "title": "Global Models",
+    "description": "Manage base models supported by the platform. Register new models here when they launch.",
+    "addButton": "Add Model",
+    "loading": "Loading...",
+    "columns": {
+      "model": "Model",
+      "supportedProviders": "Supported Providers",
+      "contextLength": "Context",
+      "maxOutput": "Max Output",
+      "inputTypes": "Input Types",
+      "outputTypes": "Output Types",
+      "actions": "Actions"
+    },
+    "noProviders": "No providers",
+    "dialog": {
+      "addTitle": "Add Global Model",
+      "editTitle": "Edit Global Model",
+      "modelKey": "Model Key",
+      "modelKeyPlaceholder": "e.g. glm-4.7",
+      "displayName": "Display Name",
+      "description": "Description",
+      "contextLength": "Context Length",
+      "maxOutput": "Max Output",
+      "codingScore": "Coding Score",
+      "inputTypes": "Input Types",
+      "outputTypes": "Output Types",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "deleteTooltip": "Remove all provider bindings before deleting",
+    "deleteDialogTitle": "Confirm Delete",
+    "deleteConfirm": "Are you sure you want to delete model \"{modelKey}\"? This action cannot be undone.",
+    "deleteConfirmButton": "Delete",
+    "toast": {
+      "loadFailed": "Failed to load global models",
+      "createSuccess": "Model added",
+      "createFailed": "Failed to add model",
+      "updateSuccess": "Model updated",
+      "updateFailed": "Failed to update model",
+      "deleteSuccess": "Model deleted",
+      "deleteFailed": "Failed to delete model"
     }
   }
 }

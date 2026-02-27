@@ -2,7 +2,7 @@
 
 This module contains request and response schemas for the provider config API.
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -118,3 +118,53 @@ class ProviderConfigListResponse(BaseModel):
     """Response schema for list of providers"""
     items: List[ProviderConfigResponse]
     total: int
+
+
+# ==================== Global Model Schemas ====================
+
+class GlobalModelCreate(BaseModel):
+    """Schema for creating a new global model"""
+    model_key: str = Field(..., min_length=1, max_length=100)
+    display_name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    context_length: str = Field(..., min_length=1, max_length=50)
+    max_output_length: str = Field(..., min_length=1, max_length=50)
+    input_types: Optional[List[str]] = None
+    output_types: Optional[List[str]] = None
+    coding_score: Optional[int] = Field(None, ge=0)
+
+
+class GlobalModelUpdate(BaseModel):
+    """Schema for updating a global model"""
+    display_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=1000)
+    context_length: Optional[str] = Field(None, min_length=1, max_length=50)
+    max_output_length: Optional[str] = Field(None, min_length=1, max_length=50)
+    input_types: Optional[List[str]] = None
+    output_types: Optional[List[str]] = None
+    coding_score: Optional[int] = Field(None, ge=0)
+
+
+class SupportedProviderInfo(BaseModel):
+    """Info about a provider that supports a global model"""
+    provider_key: str
+    name: str
+    logo_path: Optional[str] = None
+
+
+class GlobalModelResponse(BaseModel):
+    """Response schema for a global model with supported providers"""
+    id: int
+    model_key: str
+    display_name: str
+    description: Optional[str] = None
+    context_length: str
+    max_output_length: str
+    input_types: Optional[List[str]] = None
+    output_types: Optional[List[str]] = None
+    coding_score: Optional[int] = None
+    supported_providers: List[SupportedProviderInfo] = []
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

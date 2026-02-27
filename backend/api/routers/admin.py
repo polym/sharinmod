@@ -3,7 +3,8 @@ Admin router for administrative operations
 """
 from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form, Query
 from sqlmodel import Session
-from typing import Annotated, Optional
+from sqlalchemy.exc import IntegrityError
+from typing import Annotated, Optional, List
 from api.database import get_db
 from api.dependencies.auth import require_admin
 from api.services.user_service import get_all_users, grant_admin_privilege, revoke_admin_privilege
@@ -25,6 +26,11 @@ from api.services.provider_config_service import (
     update_provider_models_batch,
     save_logo_upload,
     get_unified_model_catalog,
+    list_global_models,
+    create_global_model,
+    update_global_model,
+    delete_global_model,
+    get_supported_providers_for_model,
 )
 from api.schemas.user import UserResponse, UserListResponse, RoleFilter
 from api.schemas.provider_config import (
@@ -37,6 +43,10 @@ from api.schemas.provider_config import (
     ProviderModelsUpdateRequest,
     ProviderConfigListResponse,
     ModelCatalogOverrideRequest,
+    GlobalModelCreate,
+    GlobalModelUpdate,
+    GlobalModelResponse,
+    SupportedProviderInfo,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -566,3 +576,59 @@ def override_model_config(
         )
         model = create_provider_model(db, provider.id, create_data)
         return ProviderModelResponse.model_validate(model)
+
+
+# ==================== Global Model Routes ====================
+
+@router.get("/global-models", response_model=List[GlobalModelResponse])
+def list_global_models_route(
+    db: Session = Depends(get_db),
+) -> List[GlobalModelResponse]:
+    """列出所有全局模型，含支持的供应商信息"""
+    return list_global_models(db)
+
+
+@router.post("/global-models", response_model=GlobalModelResponse, status_code=201)
+def create_global_model_route(
+    data: GlobalModelCreate,
+    db: Session = Depends(get_db),
+) -> GlobalModelResponse:
+    """新增全局模型"""
+    try:
+        model = create_global_model(db, data)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"model_key '{data.model_key}' 已存在")
+    providers = get_supported_providers_for_model(db, model.model_key)
+    resp = GlobalModelResponse.model_validate(model)
+    resp.supported_providers = [
+        SupportedProviderInfo(provider_key=p.provider_key, name=p.name, logo_path=p.logo_path)
+        for p in providers
+    ]
+    return resp
+
+
+@router.put("/global-models/{model_id}", response_model=GlobalModelResponse)
+def update_global_model_route(
+    model_id: int,
+    data: GlobalModelUpdate,
+    db: Session = Depends(get_db),
+) -> GlobalModelResponse:
+    """修改全局模型"""
+    model = update_global_model(db, model_id, data)
+    providers = get_supported_providers_for_model(db, model.model_key)
+    resp = GlobalModelResponse.model_validate(model)
+    resp.supported_providers = [
+        SupportedProviderInfo(provider_key=p.provider_key, name=p.name, logo_path=p.logo_path)
+        for p in providers
+    ]
+    return resp
+
+
+@router.delete("/global-models/{model_id}", status_code=204)
+def delete_global_model_route(
+    model_id: int,
+    db: Session = Depends(get_db),
+) -> None:
+    """删除全局模型（需先解除供应商绑定）"""
+    delete_global_model(db, model_id)

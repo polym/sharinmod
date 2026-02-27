@@ -4,18 +4,23 @@ This module contains business logic for provider and model CRUD operations.
 """
 from sqlmodel import Session, select, and_
 from sqlmodel.sql.expression import SelectOfScalar
+from sqlalchemy import func
 from typing import Optional, List
 from fastapi import UploadFile, HTTPException, status
 import os
 import aiofiles
 from datetime import datetime, timezone
 
-from api.models.provider_config import ProviderConfig, ProviderModel
+from api.models.provider_config import ProviderConfig, ProviderModel, GlobalModel
 from api.schemas.provider_config import (
     ProviderConfigCreate,
     ProviderConfigUpdate,
     ProviderModelCreate,
     ProviderModelUpdate,
+    GlobalModelCreate,
+    GlobalModelUpdate,
+    GlobalModelResponse,
+    SupportedProviderInfo,
 )
 
 
@@ -598,3 +603,99 @@ def update_provider_models_batch(
 
     db.commit()
     return updated_models
+
+
+# ==================== Global Model CRUD ====================
+
+def get_supported_providers_for_model(db: Session, model_key: str) -> List[ProviderConfig]:
+    """返回 DB 中 provider_models.model_key = model_key 的所有 ProviderConfig"""
+    return db.exec(
+        select(ProviderConfig)
+        .join(ProviderModel, ProviderModel.provider_config_id == ProviderConfig.id)
+        .where(ProviderModel.model_key == model_key)
+        .distinct()
+    ).all()
+
+
+def list_global_models(db: Session) -> List[GlobalModelResponse]:
+    """返回所有 GlobalModel，含 supported_providers（批量查询，无 N+1）"""
+    from collections import defaultdict
+    models = db.exec(select(GlobalModel).order_by(GlobalModel.created_at)).all()
+    if not models:
+        return []
+
+    model_keys = [m.model_key for m in models]
+    # 批量查询所有相关 ProviderModel
+    provider_model_rows = db.exec(
+        select(ProviderModel).where(ProviderModel.model_key.in_(model_keys))
+    ).all()
+
+    providers_by_key: dict = defaultdict(list)
+    if provider_model_rows:
+        provider_ids = list({pm.provider_config_id for pm in provider_model_rows})
+        provider_configs = db.exec(
+            select(ProviderConfig).where(ProviderConfig.id.in_(provider_ids))
+        ).all()
+        provider_map = {p.id: p for p in provider_configs}
+
+        seen: set = set()
+        for pm in provider_model_rows:
+            pc = provider_map.get(pm.provider_config_id)
+            if pc:
+                dedup = (pm.model_key, pc.id)
+                if dedup not in seen:
+                    seen.add(dedup)
+                    providers_by_key[pm.model_key].append(pc)
+
+    result = []
+    for m in models:
+        resp = GlobalModelResponse.model_validate(m)
+        resp.supported_providers = [
+            SupportedProviderInfo(provider_key=p.provider_key, name=p.name, logo_path=p.logo_path)
+            for p in providers_by_key.get(m.model_key, [])
+        ]
+        result.append(resp)
+    return result
+
+
+def create_global_model(db: Session, data: GlobalModelCreate) -> GlobalModel:
+    """创建新的全局模型"""
+    model = GlobalModel(**data.model_dump())
+    db.add(model)
+    db.commit()
+    db.refresh(model)
+    return model
+
+
+def update_global_model(db: Session, model_id: int, data: GlobalModelUpdate) -> GlobalModel:
+    """更新全局模型"""
+    model = db.get(GlobalModel, model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Global model not found")
+    update_data = data.model_dump(exclude_unset=True)
+    for k, v in update_data.items():
+        setattr(model, k, v)
+    model.updated_at = datetime.now(timezone.utc)
+    db.add(model)
+    db.commit()
+    db.refresh(model)
+    return model
+
+
+def delete_global_model(db: Session, model_id: int) -> None:
+    """删除全局模型（需先解除供应商绑定）"""
+    model = db.get(GlobalModel, model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Global model not found")
+    # 检查是否有供应商绑定
+    count = db.exec(
+        select(func.count(ProviderModel.id))
+        .where(ProviderModel.model_key == model.model_key)
+    ).one()
+    if count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"该模型已被 {count} 个供应商使用，请先在供应商模型中删除对应记录"
+        )
+    db.delete(model)
+    db.commit()

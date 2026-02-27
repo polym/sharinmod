@@ -86,3 +86,35 @@ class ProviderModel(SQLModel, table=True):
 
     # Relationship to provider
     provider: ProviderConfig = Relationship(back_populates="models")
+
+
+class GlobalModel(SQLModel, table=True):
+    """
+    Global model prototype stored in database
+
+    Attributes:
+        id: Primary key
+        model_key: Unique model identifier (e.g., 'glm-4.7')
+        display_name: Human-readable model name
+        description: Model description
+        context_length: Maximum context window (e.g., '128k')
+        max_output_length: Maximum output tokens (e.g., '4k')
+        input_types: JSON array of supported input types
+        output_types: JSON array of supported output types
+        coding_score: Coding benchmark score (nullable)
+        created_at: When the model was created
+        updated_at: Last update time
+    """
+    __tablename__ = "global_models"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    model_key: str = Field(unique=True, index=True, max_length=100)
+    display_name: str = Field(max_length=200)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    context_length: str = Field(max_length=50)
+    max_output_length: str = Field(max_length=50)
+    input_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    output_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    coding_score: Optional[int] = Field(default=None)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
