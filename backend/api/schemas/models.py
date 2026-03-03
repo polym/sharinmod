@@ -26,11 +26,13 @@ class ProviderInfo(BaseModel):
         json_schema_extra={
             "example": {
                 "code": "bigmodel",
+                "name": "智谱 AI",
                 "logo_path": "/providers/bigmodel-logo.png"
             }
         }
     )
     code: str = Field(description="提供商代码，如 'bigmodel'")
+    name: str = Field(default="", description="提供商显示名称")
     logo_path: str = Field(description="提供商 Logo 路径")
 
 
@@ -86,6 +88,7 @@ class ModelInfo(BaseModel):
     coding_score: Optional[int] = Field(default=None, description="Coding 评分")
     providers: List[ProviderInfo] = Field(default_factory=list, description="可用提供商列表（code 和 logo_path）")
     subscription_platform_count: int = Field(default=0, description="订阅平台数量")
+    model_logo_url: Optional[str] = Field(default=None, description="模型 Logo URL（来自全局模型配置）")
 
 
 class ModelDiscoveryList(BaseModel):

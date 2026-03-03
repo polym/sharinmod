@@ -13,12 +13,20 @@ import { useToast } from '@/components/ui/toast';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { Edit, Cpu, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Type, Image as ImageIcon, Video, Mic, File, Upload } from 'lucide-react';
 import { modelConfigAPI, globalModelAPI } from '@/lib/services';
-import { getProviderLogo } from '@/lib/providers';
+import { getProviderLogo, getModelLogo } from '@/lib/providers';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  'Text': Type,
+  'Image': ImageIcon,
+  'Video': Video,
+  'Audio': Mic,
+  'File': File,
+};
 
 export interface ModelCatalogItem {
   db_id: number | null;
@@ -64,6 +72,7 @@ interface GlobalModelItem {
   input_types?: string[];
   output_types?: string[];
   coding_score?: number;
+  logo_url?: string;
   supported_providers: SupportedProviderInfo[];
 }
 
@@ -76,6 +85,8 @@ interface GlobalModelForm {
   coding_score: string;
   input_types: string[];
   output_types: string[];
+  logo_file: File | null;
+  logo_preview: string;
 }
 
 // ==================== Provider Model Tab ====================
@@ -102,11 +113,12 @@ function ProviderModelTab() {
     output_types: [],
   });
 
-  // Derived: filtered model list — fuzzy search on provider_key or model_key
+  // Derived: filtered model list — fuzzy search on provider_key or model_key, sorted by provider then model
   const filteredModels = useMemo(() => {
-    if (!filterQuery.trim()) return models;
+    const sorted = [...models].sort((a, b) => a.provider_key.localeCompare(b.provider_key) || a.model_key.localeCompare(b.model_key));
+    if (!filterQuery.trim()) return sorted;
     const q = filterQuery.toLowerCase().trim();
-    return models.filter(
+    return sorted.filter(
       (m) => m.provider_key.toLowerCase().includes(q) || m.model_key.toLowerCase().includes(q)
     );
   }, [models, filterQuery]);
@@ -247,9 +259,6 @@ function ProviderModelTab() {
 
   return (
     <>
-      <CardDescription className="px-6 pt-2">{t('description')}</CardDescription>
-
-      <CardContent>
         {/* 搜索 + 批量编辑按钮 */}
         <div className="flex gap-3 mb-4 items-center">
           <Input
@@ -292,9 +301,7 @@ function ProviderModelTab() {
                   />
                 </TableHead>
                 <TableHead>{t('columns.model')}</TableHead>
-                <TableHead>{t('columns.displayName')}</TableHead>
-                <TableHead>{t('columns.contextLength')}</TableHead>
-                <TableHead>{t('columns.maxOutput')}</TableHead>
+                <TableHead>{t('columns.contextMaxOutput')}</TableHead>
                 <TableHead>{t('columns.source')}</TableHead>
                 <TableHead>{t('columns.status')}</TableHead>
                 <TableHead>{t('columns.actions')}</TableHead>
@@ -322,17 +329,20 @@ function ProviderModelTab() {
                         <Image
                           src={logoPath}
                           alt={model.provider_key}
-                          width={16}
-                          height={16}
-                          className="object-contain rounded-sm"
+                          width={20}
+                          height={20}
+                          className="object-contain rounded-sm shrink-0"
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
-                        <span className="font-mono text-sm"><span className="text-gray-500">{model.provider_key}/</span><span className="font-medium">{model.model_key}</span></span>
+                        <div>
+                          <div className="font-mono text-sm"><span className="text-gray-500">{model.provider_key}/</span><span className="font-medium">{model.model_key}</span></div>
+                          <div className="text-xs text-gray-500">{model.display_name}</div>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{model.display_name}</TableCell>
-                    <TableCell>{model.context_length}</TableCell>
-                    <TableCell>{model.max_output_length}</TableCell>
+                    <TableCell>
+                      <span className="text-sm">{model.context_length} / {model.max_output_length}</span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={model.source === 'db' ? 'default' : 'secondary'}>
                         {t(`source.${model.source}`)}
@@ -358,7 +368,7 @@ function ProviderModelTab() {
               })}
               {filteredModels.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
                     —
                   </TableCell>
                 </TableRow>
@@ -366,7 +376,6 @@ function ProviderModelTab() {
             </TableBody>
           </Table>
         )}
-      </CardContent>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -512,6 +521,7 @@ function GlobalModelTab() {
 
   const [models, setModels] = useState<GlobalModelItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterQuery, setFilterQuery] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<GlobalModelItem | null>(null);
   const [editTarget, setEditTarget] = useState<GlobalModelItem | null>(null);
@@ -546,7 +556,7 @@ function GlobalModelTab() {
 
   const openAddDialog = () => {
     setEditTarget(null);
-    setForm({ model_key: '', display_name: '', description: '', context_length: '', max_output_length: '', coding_score: '', input_types: [], output_types: [] });
+    setForm({ model_key: '', display_name: '', description: '', context_length: '', max_output_length: '', coding_score: '', input_types: [], output_types: [], logo_file: null, logo_preview: '' });
     setDialogOpen(true);
   };
 
@@ -561,6 +571,8 @@ function GlobalModelTab() {
       coding_score: item.coding_score != null ? String(item.coding_score) : '',
       input_types: item.input_types || [],
       output_types: item.output_types || [],
+      logo_file: null,
+      logo_preview: item.logo_url || '',
     });
     setDialogOpen(true);
   };
@@ -577,13 +589,14 @@ function GlobalModelTab() {
         coding_score: form.coding_score ? parseInt(form.coding_score, 10) : undefined,
         input_types: form.input_types.length > 0 ? form.input_types : undefined,
         output_types: form.output_types.length > 0 ? form.output_types : undefined,
+        logo: form.logo_file || undefined,
       };
 
       if (editTarget) {
         await globalModelAPI.update(editTarget.id, payload);
         toast({ description: t('toast.updateSuccess') });
       } else {
-        await globalModelAPI.create(payload);
+        await globalModelAPI.create(payload as Parameters<typeof globalModelAPI.create>[0]);
         toast({ description: t('toast.createSuccess') });
       }
       setDialogOpen(false);
@@ -604,6 +617,15 @@ function GlobalModelTab() {
     setDeleteTarget(item);
   };
 
+  const filteredModels = useMemo(() => {
+    const sorted = [...models].sort((a, b) => a.model_key.localeCompare(b.model_key));
+    if (!filterQuery.trim()) return sorted;
+    const q = filterQuery.toLowerCase().trim();
+    return sorted.filter(
+      (m) => m.model_key.toLowerCase().includes(q) || m.display_name.toLowerCase().includes(q)
+    );
+  }, [models, filterQuery]);
+
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -618,8 +640,13 @@ function GlobalModelTab() {
 
   return (
     <>
-      <CardContent>
-        <div className="flex justify-end mb-4">
+        <div className="flex gap-3 mb-4 items-center">
+          <Input
+            className="w-64"
+            placeholder={t('filter.searchPlaceholder')}
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+          />
           <Button size="sm" onClick={openAddDialog}>
             {t('addButton')}
           </Button>
@@ -633,19 +660,34 @@ function GlobalModelTab() {
               <TableRow>
                 <TableHead>{t('columns.model')}</TableHead>
                 <TableHead>{t('columns.supportedProviders')}</TableHead>
-                <TableHead>{t('columns.contextLength')}</TableHead>
-                <TableHead>{t('columns.maxOutput')}</TableHead>
+                <TableHead>{t('columns.contextMaxOutput')}</TableHead>
+                <TableHead>{t('columns.codingScore')}</TableHead>
                 <TableHead>{t('columns.inputTypes')}</TableHead>
                 <TableHead>{t('columns.outputTypes')}</TableHead>
                 <TableHead>{t('columns.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {models.map((item) => (
+              {filteredModels.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Cpu className="w-4 h-4 text-gray-400 shrink-0" />
+                      <div className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                        <Image
+                          src={item.logo_url || getModelLogo(item.model_key)}
+                          alt={item.display_name}
+                          width={32}
+                          height={32}
+                          className="object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            if (target.parentElement) {
+                              target.parentElement.innerHTML = `<span class="text-xs font-bold text-gray-400">${item.model_key.charAt(0).toUpperCase()}</span>`;
+                            }
+                          }}
+                        />
+                      </div>
                       <div>
                         <div className="font-medium text-sm">{item.display_name}</div>
                         <div className="font-mono text-xs text-gray-500">{item.model_key}</div>
@@ -679,20 +721,38 @@ function GlobalModelTab() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell>{item.context_length}</TableCell>
-                  <TableCell>{item.max_output_length}</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(item.input_types || []).map((type) => (
-                        <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                      ))}
+                    <span className="text-sm">{item.context_length} / {item.max_output_length}</span>
+                  </TableCell>
+                  <TableCell>
+                    {item.coding_score != null ? (
+                      <span className="text-sm font-mono">{item.coding_score}</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {(item.input_types || []).map((type) => {
+                        const Icon = TYPE_ICONS[type];
+                        return Icon ? (
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                        ) : null;
+                      })}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(item.output_types || []).map((type) => (
-                        <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>
-                      ))}
+                    <div className="flex items-center gap-1">
+                      {(item.output_types || []).map((type) => {
+                        const Icon = TYPE_ICONS[type];
+                        return Icon ? (
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300">
+                            <Icon className="w-3.5 h-3.5" />
+                          </div>
+                        ) : null;
+                      })}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -714,15 +774,14 @@ function GlobalModelTab() {
                   </TableCell>
                 </TableRow>
               ))}
-              {models.length === 0 && (
+              {filteredModels.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">—</TableCell>
+                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">—</TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
         )}
-      </CardContent>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -741,6 +800,55 @@ function GlobalModelTab() {
                 readOnly={!!editTarget}
                 className={editTarget ? 'bg-gray-50 cursor-not-allowed' : ''}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label>{t('dialog.logo')}</Label>
+              <div className="flex items-center gap-3">
+                {form.logo_preview && (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <Image
+                      src={form.logo_preview}
+                      alt="Logo preview"
+                      width={48}
+                      height={48}
+                      className="object-contain w-full h-full"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                    <Upload className="w-3.5 h-3.5" />
+                    {t('dialog.logoUpload')}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setForm((f) => ({
+                            ...f,
+                            logo_file: file,
+                            logo_preview: URL.createObjectURL(file),
+                          }));
+                        }
+                      }}
+                    />
+                  </label>
+                  <span className="text-xs text-gray-400">{t('dialog.logoHint')}</span>
+                </div>
+                {form.logo_preview && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-red-500 hover:text-red-600"
+                    onClick={() => setForm((f) => ({ ...f, logo_file: null, logo_preview: '' }))}
+                  >
+                    {t('dialog.logoRemove')}
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>{t('dialog.displayName')}</Label>
@@ -865,27 +973,29 @@ export function AdminModelConfig() {
   const t = useTranslations('adminModelConfig');
 
   return (
-    <Card>
-      <CardHeader className="pb-0">
-        <div className="flex items-center gap-2">
-          <Cpu className="w-5 h-5 text-purple-600" />
-          <CardTitle>{t('title')}</CardTitle>
-        </div>
-      </CardHeader>
-      <Tabs defaultValue="provider">
-        <div className="px-6 pt-3 pb-0">
-          <TabsList>
-            <TabsTrigger value="provider">{t('tabs.provider')}</TabsTrigger>
-            <TabsTrigger value="global">{t('tabs.global')}</TabsTrigger>
-          </TabsList>
-        </div>
-        <TabsContent value="provider">
-          <ProviderModelTab />
-        </TabsContent>
-        <TabsContent value="global">
-          <GlobalModelTab />
-        </TabsContent>
-      </Tabs>
-    </Card>
+    <Tabs defaultValue="provider">
+      <Card>
+        <CardHeader className="p-6">
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col space-y-1.5">
+              <CardTitle>{t('title')}</CardTitle>
+              <CardDescription>{t('description')}</CardDescription>
+            </div>
+            <TabsList>
+              <TabsTrigger value="provider">{t('tabs.provider')}</TabsTrigger>
+              <TabsTrigger value="global">{t('tabs.global')}</TabsTrigger>
+            </TabsList>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <TabsContent value="provider" className="mt-0">
+            <ProviderModelTab />
+          </TabsContent>
+          <TabsContent value="global" className="mt-0">
+            <GlobalModelTab />
+          </TabsContent>
+        </CardContent>
+      </Card>
+    </Tabs>
   );
 }

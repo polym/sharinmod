@@ -3,7 +3,7 @@
  * Maps provider codes to brand names and logos
  */
 
-export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot' | 'minimax' | 'openrouter';
+export type ProviderCode = 'bigmodel' | 'z.ai' | 'volcengine' | 'moonshot' | 'minimax' | 'openrouter' | 'bailian';
 
 export interface ProviderConfig {
   code: ProviderCode;
@@ -42,6 +42,11 @@ export const PROVIDERS: Record<ProviderCode, ProviderConfig> = {
     brandName: 'OpenRouter',
     logoPath: '/providers/openrouter-logo.png',
   },
+  bailian: {
+    code: 'bailian',
+    brandName: '阿里云百炼',
+    logoPath: '/providers/bailian-logo.png',
+  },
 };
 
 export const PROVIDER_LIST = Object.values(PROVIDERS);
@@ -62,9 +67,10 @@ export function getProviderBrandName(code: string): string {
 
 /**
  * Get provider logo path by code
+ * Falls back to /providers/{code}-logo.png for unregistered providers
  */
 export function getProviderLogo(code: string): string {
-  return getProvider(code)?.logoPath || '/providers/default-logo.png';
+  return getProvider(code)?.logoPath || `/providers/${code}-logo.png`;
 }
 
 /**

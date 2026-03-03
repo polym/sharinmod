@@ -123,6 +123,11 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     enabled_catalog = get_unified_model_catalog(db, enabled_only=True)
     enabled_model_keys = {item["model_key"] for item in enabled_catalog}
 
+    # 批量查询 GlobalModel 获取 logo_url 映射
+    from api.models.provider_config import GlobalModel
+    global_models = db.exec(select(GlobalModel.model_key, GlobalModel.logo_url)).all()
+    global_logo_map = {gm.model_key: gm.logo_url for gm in global_models if gm.logo_url}
+
     for model_name, data in models_dict.items():
         # 跳过模型配置中已禁用的模型
         if model_name not in enabled_model_keys:
@@ -157,7 +162,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
                 p_config = PROVIDER_INFO.get(provider_enum)
                 if p_config:
                     provider_infos.append(ProviderInfo(
-                        code=provider,  # provider 现在是 str，直接使用
+                        code=provider,
+                        name=p_config.get("name", provider),
                         logo_path=p_config.get("logo_path", "")
                     ))
             except ValueError:
@@ -167,6 +173,7 @@ def get_available_models(db: Session) -> List[ModelInfo]:
                 if db_provider:
                     provider_infos.append(ProviderInfo(
                         code=provider,
+                        name=db_provider.name or provider,
                         logo_path=db_provider.logo_path or ""
                     ))
 
@@ -191,7 +198,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             used_tokens=tokens_dict.get(model_name, 0),
             coding_score=coding_score,
             providers=provider_infos,
-            subscription_platform_count=len(providers_list)
+            subscription_platform_count=len(providers_list),
+            model_logo_url=global_logo_map.get(model_name),
         )
         model_info_list.append(model_info)
 

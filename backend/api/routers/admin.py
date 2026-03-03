@@ -25,6 +25,7 @@ from api.services.provider_config_service import (
     disable_provider_model,
     update_provider_models_batch,
     save_logo_upload,
+    save_model_logo_upload,
     get_unified_model_catalog,
     list_global_models,
     create_global_model,
@@ -589,16 +590,60 @@ def list_global_models_route(
 
 
 @router.post("/global-models", response_model=GlobalModelResponse, status_code=201)
-def create_global_model_route(
-    data: GlobalModelCreate,
+async def create_global_model_route(
+    model_key: str = Form(...),
+    display_name: str = Form(...),
+    description: Optional[str] = Form(None),
+    context_length: str = Form(...),
+    max_output_length: str = Form(...),
+    coding_score: Optional[int] = Form(None),
+    input_types_json: Optional[str] = Form(None),
+    output_types_json: Optional[str] = Form(None),
+    logo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ) -> GlobalModelResponse:
-    """新增全局模型"""
+    """新增全局模型（multipart form，支持 logo 上传）"""
+    import json as json_lib
+
+    input_types = None
+    if input_types_json:
+        try:
+            input_types = json_lib.loads(input_types_json)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid input_types_json")
+
+    output_types = None
+    if output_types_json:
+        try:
+            output_types = json_lib.loads(output_types_json)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid output_types_json")
+
+    data = GlobalModelCreate(
+        model_key=model_key,
+        display_name=display_name,
+        description=description,
+        context_length=context_length,
+        max_output_length=max_output_length,
+        coding_score=coding_score,
+        input_types=input_types,
+        output_types=output_types,
+    )
+
     try:
         model = create_global_model(db, data)
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"model_key '{data.model_key}' 已存在")
+
+    # Handle logo upload
+    if logo and logo.filename:
+        logo_url = await save_model_logo_upload(logo, model_key)
+        model.logo_url = logo_url
+        db.add(model)
+        db.commit()
+        db.refresh(model)
+
     providers = get_supported_providers_for_model(db, model.model_key)
     resp = GlobalModelResponse.model_validate(model)
     resp.supported_providers = [
@@ -609,13 +654,54 @@ def create_global_model_route(
 
 
 @router.put("/global-models/{model_id}", response_model=GlobalModelResponse)
-def update_global_model_route(
+async def update_global_model_route(
     model_id: int,
-    data: GlobalModelUpdate,
+    display_name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    context_length: Optional[str] = Form(None),
+    max_output_length: Optional[str] = Form(None),
+    coding_score: Optional[int] = Form(None),
+    input_types_json: Optional[str] = Form(None),
+    output_types_json: Optional[str] = Form(None),
+    logo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ) -> GlobalModelResponse:
-    """修改全局模型"""
+    """修改全局模型（multipart form，支持 logo 上传）"""
+    import json as json_lib
+
+    update_fields: dict = {}
+    if display_name is not None:
+        update_fields['display_name'] = display_name
+    if description is not None:
+        update_fields['description'] = description
+    if context_length is not None:
+        update_fields['context_length'] = context_length
+    if max_output_length is not None:
+        update_fields['max_output_length'] = max_output_length
+    if coding_score is not None:
+        update_fields['coding_score'] = coding_score
+    if input_types_json is not None:
+        try:
+            update_fields['input_types'] = json_lib.loads(input_types_json)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid input_types_json")
+    if output_types_json is not None:
+        try:
+            update_fields['output_types'] = json_lib.loads(output_types_json)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid output_types_json")
+
+    data = GlobalModelUpdate(**update_fields)
     model = update_global_model(db, model_id, data)
+
+    # Handle logo upload
+    if logo and logo.filename:
+        logo_url = await save_model_logo_upload(logo, model.model_key)
+        model.logo_url = logo_url
+        db.add(model)
+        db.commit()
+        db.refresh(model)
+
     providers = get_supported_providers_for_model(db, model.model_key)
     resp = GlobalModelResponse.model_validate(model)
     resp.supported_providers = [

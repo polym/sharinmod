@@ -11,6 +11,7 @@ from api.models.shared_api_key import SharedAPIKey  # noqa: F401
 from api.models.unified_api_key import UnifiedAPIKey  # noqa: F401
 from api.models.subscription import Subscription  # noqa: F401
 from api.models.usage_log import UsageLog  # noqa: F401
+from api.models.provider_config import GlobalModel, ProviderConfig, ProviderModel  # noqa: F401
 
 # connect_args = {"check_same_thread": False}
 
@@ -26,11 +27,10 @@ def get_db():
         yield session
 
 
-# TODO: Replace with sharinmod-specific initialization (users, tokens)
-# This function will be updated when implementing user and token management
 def initialize_sharinmod_data(db: Session):
     """
-    Initialize sharinmod-specific data structures.
-    Currently a placeholder - will be implemented in future stories.
+    Initialize sharinmod-specific data on startup.
+    - Sync global models from built-in catalog
     """
-    pass
+    from api.services.provider_config_service import sync_global_models_from_catalog
+    sync_global_models_from_catalog(db)

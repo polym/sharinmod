@@ -116,5 +116,6 @@ class GlobalModel(SQLModel, table=True):
     input_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     output_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     coding_score: Optional[int] = Field(default=None)
+    logo_url: Optional[str] = Field(default=None, max_length=500)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

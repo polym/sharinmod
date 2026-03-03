@@ -282,7 +282,22 @@ export const globalModelAPI = {
     input_types?: string[];
     output_types?: string[];
     coding_score?: number;
-  }) => api.post('/api/admin/global-models', data),
+    logo?: File;
+  }) => {
+    const formData = new FormData();
+    formData.append('model_key', data.model_key);
+    formData.append('display_name', data.display_name);
+    if (data.description) formData.append('description', data.description);
+    formData.append('context_length', data.context_length);
+    formData.append('max_output_length', data.max_output_length);
+    if (data.coding_score != null) formData.append('coding_score', String(data.coding_score));
+    if (data.input_types && data.input_types.length > 0) formData.append('input_types_json', JSON.stringify(data.input_types));
+    if (data.output_types && data.output_types.length > 0) formData.append('output_types_json', JSON.stringify(data.output_types));
+    if (data.logo) formData.append('logo', data.logo);
+    return api.post('/api/admin/global-models', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 
   update: (id: number, data: {
     display_name?: string;
@@ -292,7 +307,21 @@ export const globalModelAPI = {
     input_types?: string[];
     output_types?: string[];
     coding_score?: number;
-  }) => api.put(`/api/admin/global-models/${id}`, data),
+    logo?: File;
+  }) => {
+    const formData = new FormData();
+    if (data.display_name != null) formData.append('display_name', data.display_name);
+    if (data.description != null) formData.append('description', data.description);
+    if (data.context_length != null) formData.append('context_length', data.context_length);
+    if (data.max_output_length != null) formData.append('max_output_length', data.max_output_length);
+    if (data.coding_score != null) formData.append('coding_score', String(data.coding_score));
+    if (data.input_types) formData.append('input_types_json', JSON.stringify(data.input_types));
+    if (data.output_types) formData.append('output_types_json', JSON.stringify(data.output_types));
+    if (data.logo) formData.append('logo', data.logo);
+    return api.put(`/api/admin/global-models/${id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 
   delete: (id: number) =>
     api.delete(`/api/admin/global-models/${id}`),

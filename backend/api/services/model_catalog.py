@@ -185,21 +185,4 @@ BUILTIN_PROVIDER_INFO = {
             }
         }
     },
-    APIKeyProvider.OPENROUTER: {
-        "name": "OpenRouter Coding Plan",
-        "website": "https://openrouter.ai",
-        "supported_models": ["pony-alpha"],
-        "logo_path": "/providers/openrouter-logo.png",
-        "models": {
-            "pony-alpha": {
-                "display_name": "Pony Alpha",
-                "description": "OpenRouter 高性能大语言模型",
-                "context_length": "200k",
-                "max_output_length": "131k",
-                "input_types": ["Text"],
-                "output_types": ["Text"],
-                "coding_score": None
-            }
-        }
-    }
 }

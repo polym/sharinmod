@@ -26,7 +26,7 @@ interface ModelCardProps {
     provider: string;
     used_tokens?: number;
     coding_score?: number | null;
-    providers?: Array<{ code: string; logo_path: string }>;
+    providers?: Array<{ code: string; name: string; logo_path: string }>;
     subscription_platform_count?: number;
   };
   onQuickCall?: (modelName: string) => void;
@@ -43,26 +43,6 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 
 // 所有支持的类型
 const ALL_TYPES = ['Text', 'Image', 'Video', 'Audio', 'File'] as const;
-
-// 提供商代码到翻译 key 的映射（处理特殊字符）
-const PROVIDER_CODE_TO_KEY: Record<string, string> = {
-  'bigmodel': 'bigmodel',
-  'z.ai': 'zai',
-  'volcengine': 'volcengine',
-  'minimax': 'minimax',
-  'moonshot': 'moonshot',
-  'openrouter': 'openrouter',
-};
-
-// 提供商显示名称（回退到代码）
-const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
-  'bigmodel': '智谱',
-  'zai': 'Z.AI',
-  'volcengine': '火山引擎',
-  'moonshot': '月之暗面',
-  'minimax': 'MiniMax',
-  'openrouter': 'OpenRouter',
-};
 
 // 提供商 Logo Tooltip 组件
 function ProviderLogoTooltip({ provider, children, providerName }: { provider: { code: string; logo_path: string }; children: React.ReactNode; providerName: string }) {
@@ -122,6 +102,7 @@ interface ModelCardProps {
     coding_score?: number | null;
     providers?: Array<{ code: string; logo_path: string }>;
     subscription_platform_count?: number;
+    model_logo_url?: string;
   };
   onQuickCall?: (modelName: string) => void;
 }
@@ -204,11 +185,13 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div
               key={type}
               title={TYPE_LABELS[type] || type}
-              className="inline-flex"
+              className={`inline-flex items-center justify-center w-5 h-5 rounded border ${
+                isSupported
+                  ? 'border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 opacity-50'
+              }`}
             >
-              <IconComponent
-                className={`w-3 h-3 ${isSupported ? 'text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600 opacity-50'}`}
-              />
+              <IconComponent className="w-3 h-3" />
             </div>
           );
         })}
@@ -225,16 +208,12 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   const visibleProviders = providers.slice(0, 3);
   const extraProvidersCount = Math.max(0, providers.length - 3);
 
-  // 获取提供商显示名称
-  const getProviderDisplayName = (code: string): string => {
-    const key = PROVIDER_CODE_TO_KEY[code] || code;
-    const displayName = t(`providerNames.${key}`);
-
-    // 如果翻译返回的是 key 本身（翻译不存在），使用回退名称
-    if (displayName === `providerNames.${key}`) {
-      return PROVIDER_DISPLAY_NAMES[code] || code;
+  // 获取提供商显示名称：直接使用 API 返回的 name，去掉 Coding Plan 后缀
+  const getProviderDisplayName = (provider: { code: string; name: string }): string => {
+    if (provider.name) {
+      return provider.name.replace(/\s*Coding Plan$/i, '');
     }
-    return displayName;
+    return provider.code;
   };
 
   return (
@@ -250,7 +229,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
               </div>
             ) : (
               <Image
-                src={getModelLogo(model.model_name)}
+                src={model.model_logo_url || getModelLogo(model.model_name)}
                 alt={model.model_name}
                 width={40}
                 height={40}
@@ -313,23 +292,23 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
         {/* 模型规格 */}
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('inputSupport')}:</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('inputSupport')}</span>
             <span className="font-medium flex items-center gap-1">
               {renderTypeIcons(model.input_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('outputSupport')}:</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('outputSupport')}</span>
             <span className="font-medium flex items-center gap-1">
               {renderTypeIcons(model.output_types)}
             </span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('context')}:</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('context')}</span>
             <span className="font-medium">{model.context_length}</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('maxOutput')}:</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('maxOutput')}</span>
             <span className="font-medium">{model.max_output_length}</span>
           </div>
         </div>
@@ -344,7 +323,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div className="flex justify-start">
               <div className="flex -space-x-1">
                 {visibleProviders.map((provider) => (
-                  <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider.code)}>
+                  <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider)}>
                     <div className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-white hover:scale-110 transition-transform cursor-default">
                       <Image
                         src={provider.logo_path}

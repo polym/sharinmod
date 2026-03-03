@@ -436,6 +436,7 @@
       "displayName": "Display Name",
       "contextLength": "Context",
       "maxOutput": "Max Output",
+      "contextMaxOutput": "Context / Max Output",
       "source": "Source",
       "status": "Status",
       "actions": "Actions"
@@ -480,15 +481,20 @@
   "adminGlobalModel": {
     "title": "Global Models",
     "description": "Manage base models supported by the platform. Register new models here when they launch.",
-    "addButton": "Add Model",
+    "addButton": "Add",
     "loading": "Loading...",
+    "filter": {
+      "searchPlaceholder": "Search models..."
+    },
     "columns": {
       "model": "Model",
-      "supportedProviders": "Supported Providers",
+      "supportedProviders": "Providers",
       "contextLength": "Context",
       "maxOutput": "Max Output",
-      "inputTypes": "Input Types",
-      "outputTypes": "Output Types",
+      "contextMaxOutput": "Context / Max Output",
+      "codingScore": "Coding",
+      "inputTypes": "Input",
+      "outputTypes": "Output",
       "actions": "Actions"
     },
     "noProviders": "No providers",
@@ -504,6 +510,10 @@
       "codingScore": "Coding Score",
       "inputTypes": "Input Types",
       "outputTypes": "Output Types",
+      "logo": "Model Logo",
+      "logoUpload": "Upload Logo",
+      "logoHint": "PNG/JPEG, max 1MB",
+      "logoRemove": "Remove",
       "save": "Save",
       "saving": "Saving...",
       "cancel": "Cancel"

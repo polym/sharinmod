@@ -163,6 +163,7 @@ class GlobalModelResponse(BaseModel):
     input_types: Optional[List[str]] = None
     output_types: Optional[List[str]] = None
     coding_score: Optional[int] = None
+    logo_url: Optional[str] = None
     supported_providers: List[SupportedProviderInfo] = []
     created_at: datetime
     updated_at: datetime

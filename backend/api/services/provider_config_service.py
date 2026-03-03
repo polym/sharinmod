@@ -27,6 +27,7 @@ from api.schemas.provider_config import (
 # ==================== File Upload Handling ====================
 
 PROVIDERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'frontend', 'public', 'providers'))
+MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'frontend', 'public', 'models'))
 MAX_LOGO_SIZE = 1 * 1024 * 1024  # 1MB
 ALLOWED_LOGO_TYPES = {'image/png', 'image/jpeg', 'image/jpg'}
 
@@ -73,6 +74,50 @@ async def save_logo_upload(file: UploadFile, provider_key: str) -> str:
 
     # Return relative path for frontend
     return f"/providers/{filename}"
+
+
+async def save_model_logo_upload(file: UploadFile, model_key: str) -> str:
+    """
+    Save uploaded model logo file to models directory
+
+    Args:
+        file: Uploaded file from FastAPI
+        model_key: Model identifier for filename
+
+    Returns:
+        Relative path to saved logo file
+
+    Raises:
+        HTTPException: If file type or size is invalid
+    """
+    # Validate file type
+    if file.content_type not in ALLOWED_LOGO_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_LOGO_TYPES)}"
+        )
+
+    # Ensure models directory exists
+    os.makedirs(MODELS_DIR, exist_ok=True)
+
+    # Generate filename (use PNG extension for consistency)
+    filename = f"{model_key}-logo.png"
+    filepath = os.path.join(MODELS_DIR, filename)
+
+    # Read and validate file size
+    content = await file.read()
+    if len(content) > MAX_LOGO_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size: {MAX_LOGO_SIZE / 1024 / 1024}MB"
+        )
+
+    # Save file
+    async with aiofiles.open(filepath, 'wb') as f:
+        await f.write(content)
+
+    # Return relative path for frontend
+    return f"/models/{filename}"
 
 
 def delete_logo_file(logo_path: str) -> None:
@@ -699,3 +744,58 @@ def delete_global_model(db: Session, model_id: int) -> None:
         )
     db.delete(model)
     db.commit()
+
+
+# ==================== Startup Sync ====================
+
+def sync_global_models_from_catalog(db: Session) -> int:
+    """从 BUILTIN_PROVIDER_INFO 同步全局模型到 global_models 表。
+
+    幂等操作：只插入 model_key 不存在的记录，不更新已有记录。
+    同一 model_key 跨多个 provider 时取首次出现的元数据。
+
+    Returns:
+        新增的全局模型数量
+    """
+    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
+
+    # 提取所有唯一 model_key 及其元数据（首次出现优先）
+    unique_models: dict = {}
+    for _provider_enum, pinfo in BUILTIN_PROVIDER_INFO.items():
+        for mkey, mdata in pinfo.get("models", {}).items():
+            if mkey not in unique_models:
+                unique_models[mkey] = mdata
+
+    if not unique_models:
+        return 0
+
+    # 查询已存在的 model_key
+    existing_keys = set(
+        db.exec(select(GlobalModel.model_key)).all()
+    )
+
+    # 批量创建缺失的全局模型
+    created = 0
+    for mkey, mdata in unique_models.items():
+        if mkey in existing_keys:
+            continue
+        gm = GlobalModel(
+            model_key=mkey,
+            display_name=mdata.get("display_name", mkey),
+            description=mdata.get("description"),
+            context_length=mdata.get("context_length", "N/A"),
+            max_output_length=mdata.get("max_output_length", "N/A"),
+            input_types=mdata.get("input_types"),
+            output_types=mdata.get("output_types"),
+            coding_score=mdata.get("coding_score"),
+        )
+        db.add(gm)
+        created += 1
+
+    if created > 0:
+        db.commit()
+        print(f"✓ Synced {created} global models from built-in catalog")
+    else:
+        print("✓ Global models already up-to-date")
+
+    return created
