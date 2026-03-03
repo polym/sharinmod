@@ -2,32 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Claymorphism Design System - Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
+
 /* Dark mode support removed: @media (prefers-color-scheme: dark) was deleted to keep styles fixed to light theme, ignoring browser dark mode setting. */
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 245, 243, 255;
-  --background-end-rgb: 255, 255, 255;
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  /* Claymorphism Color Scheme */
+  --foreground-rgb: 30, 27, 75;
+  --background-start-rgb: 238, 242, 255;
+  --background-end-rgb: 238, 242, 255;
+
+  /* Theme Colors - Vibrant Indigo + Orange */
+  --background: 229 100% 96%;
+  --foreground: 252.2 60% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 252.2 60% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 262 83% 58%;
+  --popover-foreground: 252.2 60% 10%;
+
+  /* Primary - Indigo-600 (#4F46E5) */
+  --primary: 239 82% 60%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 262 90% 97%;
-  --secondary-foreground: 262 52% 47%;
-  --muted: 262 30% 96%;
+
+  /* Secondary - Indigo-400 (#818CF8) */
+  --secondary: 239 88% 75%;
+  --secondary-foreground: 252.2 60% 10%;
+
+  /* Muted */
+  --muted: 229 100% 96%;
   --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 262 83% 58%;
+
+  /* Accent - Orange-500 (#F97316) */
+  --accent: 25 95% 53%;
   --accent-foreground: 0 0% 100%;
+
+  /* Destructive */
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 262 83% 58%;
-  --radius: 0.5rem;
+
+  /* Border - Soft indigo */
+  --border: 239 82% 80%;
+  --input: 239 82% 80%;
+  --ring: 239 82% 60%;
+
+  /* Claymorphism larger radius for chunky feel */
+  --radius: 1rem;
 }
 
 body {
@@ -38,9 +58,89 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  font-family: 'Nunito', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Fredoka', sans-serif;
+}
+
+/* Claymorphism Utilities */
+.clay-card {
+  background: white;
+  border-radius: 1.25rem;
+  border: 3px solid #E0E7FF;
+  box-shadow:
+    8px 8px 16px rgba(79, 70, 229, 0.1),
+    -4px -4px 12px rgba(255, 255, 255, 0.9),
+    inset 2px 2px 4px rgba(79, 70, 229, 0.05);
+  transition: all 200ms ease-out;
+}
+
+.clay-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    12px 12px 20px rgba(79, 70, 229, 0.15),
+    -6px -6px 16px rgba(255, 255, 255, 0.95),
+    inset 2px 2px 4px rgba(79, 70, 229, 0.05);
+}
+
+.clay-button {
+  background: linear-gradient(145deg, #6366F1, #4F46E5);
+  border: 3px solid #4338CA;
+  border-radius: 1rem;
+  box-shadow:
+    6px 6px 12px rgba(79, 70, 229, 0.3),
+    inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+    inset 2px 2px 6px rgba(255, 255, 255, 0.2);
+  transition: all 200ms ease-out;
+}
+
+.clay-button:hover {
+  background: linear-gradient(145deg, #7C3AED, #6D28D9);
+  transform: translateY(-1px);
+}
+
+.clay-button:active {
+  transform: translateY(2px);
+  box-shadow:
+    2px 2px 6px rgba(79, 70, 229, 0.4),
+    inset 2px 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.clay-input {
+  background: #F8FAFC;
+  border: 3px solid #E0E7FF;
+  border-radius: 1rem;
+  box-shadow:
+    inset 4px 4px 8px rgba(79, 70, 229, 0.08),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.9);
+  transition: all 200ms ease-out;
+}
+
+.clay-input:focus {
+  border-color: #818CF8;
+  box-shadow:
+    inset 4px 4px 8px rgba(79, 70, 229, 0.08),
+    inset -2px -2px 6px rgba(255, 255, 255, 0.9),
+    0 0 0 4px rgba(129, 140, 248, 0.2);
 }
 
 /* Tooltip transition animation for bar charts */
 .tooltip-transition {
   transition: transform 0.1s ease-out;
+}
+
+/* Claymorphism Tooltip */
+.clay-tooltip {
+  background: linear-gradient(145deg, #1E1B4B, #312E81);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow:
+    0 4px 12px rgba(79, 70, 229, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
 }

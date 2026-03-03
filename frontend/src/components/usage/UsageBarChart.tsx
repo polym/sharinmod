@@ -107,13 +107,13 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
   const safeLength = Math.max(chartData.length - 1, 1);
 
   return (
-    <div className="flex flex-col h-full py-0.5">
+    <div className="flex flex-col h-full py-1">
       {/* Chart bars */}
-      <div ref={containerRef} className="flex items-end flex-1 border-b border-gray-200 relative px-3 justify-between">
+      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-indigo-200/50 relative px-3 justify-between gap-px">
         {chartData.map((value, idx) => (
           <div
             key={idx}
-            className="w-3 bg-green-400 hover:bg-green-500 transition-colors cursor-pointer shrink-0"
+            className="clay-chart-bar w-3 bg-gradient-to-t from-indigo-400 to-purple-400 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 cursor-pointer shrink-0"
             style={{
               height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
             }}
@@ -145,10 +145,10 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
               transform: getTooltipTransform(tooltipFlip)
             }}
           >
-            <div className="bg-gray-900 text-white text-[10px] rounded py-0.5 px-2 whitespace-nowrap shadow-md">
-              <span className="font-semibold">{chartData[hoverIndex]} tokens</span>
+            <div className="clay-tooltip">
+              <span className="font-semibold text-sm">{chartData[hoverIndex]} tokens</span>
               <br />
-              <span className="text-gray-300 text-[9px]">
+              <span className="text-indigo-200 text-xs">
                 {sortedData[hoverIndex].hour}:00
               </span>
             </div>
@@ -156,7 +156,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
         )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-3 relative">
+      <div className="flex justify-between text-[10px] text-indigo-400 font-medium mt-1 px-3 relative">
         {labelIndices.map((idx) => {
           // Calculate position as percentage, but clamp first and last labels
           // to prevent them from being cut off at the edges

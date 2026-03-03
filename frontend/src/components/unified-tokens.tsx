@@ -327,52 +327,52 @@ export function UnifiedAPIKeys() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
-            <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
+            <div className="flex flex-col space-y-2">
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">{t('title')}</h3>
+              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">
+                <Button className="clay-btn-cta">
                   {t('create')}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] border-2 border-indigo-200/50 rounded-2xl">
                 <DialogHeader>
-                  <DialogTitle>{t('create')}</DialogTitle>
+                  <DialogTitle className="text-xl font-bold text-indigo-900">{t('create')}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
+                    <Label htmlFor="name" className="text-right text-indigo-700 font-medium">
                       {t('name')}
                     </Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 clay-input border-2 border-indigo-200/50"
                       placeholder={t('namePlaceholder')}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">
+                    <Label htmlFor="description" className="text-right text-indigo-700 font-medium">
                       {t('description')}
                     </Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="col-span-3"
+                      className="col-span-3 clay-input border-2 border-indigo-200/50"
                       placeholder={t('descriptionPlaceholder')}
                       rows={3}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleCreateUnifiedAPIKey}>
+                  <Button onClick={handleCreateUnifiedAPIKey} className="clay-btn-primary">
                     {tButtons('create')}
                   </Button>
                 </DialogFooter>
@@ -382,33 +382,33 @@ export function UnifiedAPIKeys() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">{tCommon('loading')}</div>
+            <div className="text-center py-8 text-indigo-600 font-medium">{tCommon('loading')}</div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-indigo-600 font-medium">
               {t('noKeys')}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+              <Table className="clay-table border-2 border-indigo-200/50 rounded-2xl overflow-hidden">
+                <TableHeader className="clay-table-header bg-gradient-to-br from-indigo-100 to-purple-100">
                   <TableRow>
-                    <TableHead>{t('name')}</TableHead>
-                    <TableHead>API Key</TableHead>
-                    <TableHead>{t('status')}</TableHead>
-                    <TableHead>{t('createdAt')}</TableHead>
-                    <TableHead>{t('lastUsedAt')}</TableHead>
-                    <TableHead>{t('actions')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('name')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">API Key</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('status')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('createdAt')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('lastUsedAt')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {apiKeys.map((apiKey) => (
-                    <TableRow key={apiKey.id}>
+                    <TableRow key={apiKey.id} className="clay-table-row hover:bg-indigo-50/50">
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{apiKey.api_key_name || t('unnamed')}</span>
+                          <span className="font-semibold text-indigo-900">{apiKey.api_key_name || t('unnamed')}</span>
                           {apiKey.description && (
                             <span
-                              className="text-xs text-gray-400 line-clamp-2 break-words"
+                              className="text-xs text-indigo-400 line-clamp-2 break-words"
                               title={apiKey.description}
                             >
                               {apiKey.description}
@@ -420,7 +420,7 @@ export function UnifiedAPIKeys() {
                         <div className="flex items-center gap-2">
                           {apiKey.litellm_key ? (
                             <>
-                              <span className="font-mono bg-gray-100 p-1 rounded text-sm">
+                              <span className="font-mono bg-indigo-100 px-2 py-1 rounded-lg text-sm text-indigo-800 border border-indigo-200/50">
                                 {apiKey.litellm_key.length > 10
                                   ? `${apiKey.litellm_key.substring(0, 6)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
                                   : apiKey.litellm_key}
@@ -431,39 +431,35 @@ export function UnifiedAPIKeys() {
                                   size="sm"
                                   onClick={() => handleCopyAPIKey(apiKey.litellm_key!, apiKey.id)}
                                   aria-label={t('copied')}
-                                  className="h-6 w-6 p-0"
+                                  className="h-7 w-7 p-0 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600"
                                 >
                                   {copiedKeyId === apiKey.id ? (
-                                    <Check className="h-3 w-3 text-purple-600" />
+                                    <Check className="h-3.5 w-3.5" />
                                   ) : (
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-3.5 w-3.5" />
                                   )}
                                 </Button>
                                 {copiedKeyId === apiKey.id && (
-                                  <span className="text-xs text-purple-600 ml-1 inline-block w-16">
+                                  <span className="text-xs text-indigo-600 ml-1 inline-block w-16 font-medium">
                                     {t('copied')}
                                   </span>
                                 )}
                               </div>
                             </>
                           ) : (
-                            <span className="text-gray-500">{t('noKey')}</span>
+                            <span className="text-indigo-400">{t('noKey')}</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          apiKey.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
                           {apiKey.status === 'active' ? t('statusActive') : t('statusRevoked')}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-indigo-700">
                         {formatDate(apiKey.created_at)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-indigo-700">
                         {apiKey.last_used_at
                           ? formatDate(apiKey.last_used_at)
                           : '-'}
@@ -476,6 +472,7 @@ export function UnifiedAPIKeys() {
                             onClick={() => handleEditAPIKey(apiKey)}
                             aria-label={t('edit')}
                             disabled={loadingKeys.has(apiKey.id)}
+                            className="h-8 w-8 p-0 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -485,6 +482,7 @@ export function UnifiedAPIKeys() {
                             onClick={() => handleDeleteUnifiedAPIKey(apiKey.id)}
                             aria-label={tCommon('delete')}
                             disabled={loadingKeys.has(apiKey.id)}
+                            className="h-8 w-8 p-0 rounded-xl bg-red-100 hover:bg-red-200 text-red-600"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -501,38 +499,38 @@ export function UnifiedAPIKeys() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] border-2 border-indigo-200/50 rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{t('edit')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-indigo-900">{t('edit')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
+              <Label htmlFor="edit-name" className="text-right text-indigo-700 font-medium">
                 {t('name')}
               </Label>
               <Input
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 clay-input border-2 border-indigo-200/50"
                 placeholder={t('namePlaceholder')}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-description" className="text-right">
+              <Label htmlFor="edit-description" className="text-right text-indigo-700 font-medium">
                 {t('description')}
               </Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 clay-input border-2 border-indigo-200/50"
                 placeholder={t('optionalDescription')}
                 rows={3}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-enabled" className="text-right">
+              <Label htmlFor="edit-enabled" className="text-right text-indigo-700 font-medium">
                 {t('status')}
               </Label>
               <div className="col-span-3 flex items-center gap-2">
@@ -541,17 +539,17 @@ export function UnifiedAPIKeys() {
                   checked={editEnabled}
                   onCheckedChange={setEditEnabled}
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-indigo-600 font-medium">
                   {editEnabled ? t('statusEnabled') : t('statusDisabled')}
                 </span>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="clay-btn-secondary">
               {tButtons('cancel')}
             </Button>
-            <Button onClick={handleSaveEdit}>
+            <Button onClick={handleSaveEdit} className="clay-btn-primary">
               {tButtons('save')}
             </Button>
           </DialogFooter>

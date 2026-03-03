@@ -16,7 +16,7 @@ export default function ApiKeysPage() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    
+
     if (!isAuthenticated) {
       setShowLoginDialog(true);
       return;
@@ -25,8 +25,8 @@ export default function ApiKeysPage() {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-indigo-600 font-medium">加载中...</div>
       </div>
     );
   }

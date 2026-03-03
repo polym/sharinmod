@@ -28,6 +28,8 @@ interface ModelCardProps {
     coding_score?: number | null;
     providers?: Array<{ code: string; name: string; logo_path: string }>;
     subscription_platform_count?: number;
+    model_logo?: string;
+    model_logo_url?: string;
   };
   onQuickCall?: (modelName: string) => void;
 }
@@ -56,9 +58,9 @@ function ProviderLogoTooltip({ provider, children, providerName }: { provider: {
     >
       {children}
       {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+        <div className="clay-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none whitespace-nowrap">
           {providerName}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-indigo-900/90" />
         </div>
       )}
     </div>
@@ -77,34 +79,13 @@ function SharerAvatarTooltip({ name, children }: { name: string; children: React
     >
       {children}
       {showTooltip && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50 pointer-events-none">
+        <div className="clay-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none whitespace-nowrap">
           {name}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-indigo-900/90" />
         </div>
       )}
     </div>
   );
-}
-
-interface ModelCardProps {
-  model: {
-    display_name: string;
-    model_name: string;
-    description: string;
-    input_types: string[];
-    output_types: string[];
-    context_length: string;
-    max_output_length: string;
-    available_subscriptions: number;
-    shared_by: SharedBy[];
-    provider: string;
-    used_tokens?: number;
-    coding_score?: number | null;
-    providers?: Array<{ code: string; logo_path: string }>;
-    subscription_platform_count?: number;
-    model_logo_url?: string;
-  };
-  onQuickCall?: (modelName: string) => void;
 }
 
 // 输入/输出类型中文标签映射
@@ -177,7 +158,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   // 渲染类型图标组
   const renderTypeIcons = (types: string[]) => {
     return (
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         {ALL_TYPES.map((type) => {
           const isSupported = types.includes(type);
           const IconComponent = TYPE_ICONS[type] || Type;
@@ -185,13 +166,13 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div
               key={type}
               title={TYPE_LABELS[type] || type}
-              className={`inline-flex items-center justify-center w-5 h-5 rounded border ${
+              className={`inline-flex items-center justify-center w-6 h-6 rounded-xl border-2 transition-all ${
                 isSupported
-                  ? 'border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300'
-                  : 'border-gray-200 dark:border-gray-700 text-gray-300 dark:text-gray-600 opacity-50'
+                  ? 'border-indigo-300 bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 shadow-sm'
+                  : 'border-gray-200 bg-gray-50 text-gray-400 opacity-50'
               }`}
             >
-              <IconComponent className="w-3 h-3" />
+              <IconComponent className="w-3.5 h-3.5" />
             </div>
           );
         })}
@@ -217,40 +198,42 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   };
 
   return (
-    <Card className="group hover:shadow-md transition-shadow relative">
-      <CardHeader className="pb-3">
+    <Card className="clay-card group relative overflow-hidden border-[3px] border-indigo-100">
+      <CardHeader className="pb-3 bg-gradient-to-br from-white/50 to-indigo-50/50">
         <div className="flex items-start justify-between gap-3">
           {/* 左侧：头像 + 模型信息 */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {imageError ? (
               // 默认模型图标（首字母占位符）
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg border-2 border-white/50">
                 {model.model_name.charAt(0).toUpperCase()}
               </div>
             ) : (
-              <Image
-                src={model.model_logo_url || getModelLogo(model.model_name)}
-                alt={model.model_name}
-                width={40}
-                height={40}
-                className="flex-shrink-0 rounded-lg object-contain"
-                onError={handleImageError}
-              />
+              <div className="w-12 h-12 rounded-2xl flex-shrink-0 overflow-hidden shadow-lg border-2 border-white/50 bg-white p-1">
+                <Image
+                  src={model.model_logo_url || getModelLogo(model.model_name)}
+                  alt={model.model_name}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-contain"
+                  onError={handleImageError}
+                />
+              </div>
             )}
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-lg truncate">{model.display_name}</CardTitle>
-              <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                <span className="font-mono text-xs">{model.model_name}</span>
+              <CardTitle className="text-lg font-semibold text-indigo-900 truncate">{model.display_name}</CardTitle>
+              <div className="flex items-center gap-2 text-sm text-indigo-600 mt-1">
+                <span className="font-mono text-xs bg-indigo-100 px-2 py-0.5 rounded-lg">{model.model_name}</span>
                 <button
                   onClick={handleCopy}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-1.5 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600 transition-all hover:scale-110 active:scale-95"
                   aria-label={copied ? t('ariaLabels.copied') : t('ariaLabels.copyModelName')}
                   type="button"
                 >
                   {copied ? (
-                    <Check className="w-3 h-3 text-purple-600" />
+                    <Check className="w-4 h-4" />
                   ) : (
-                    <Copy className="w-3 h-3 text-gray-500" />
+                    <Copy className="w-4 h-4" />
                   )}
                 </button>
               </div>
@@ -261,82 +244,83 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
           {onQuickCall && (
             <Button
               onClick={() => onQuickCall(model.model_name)}
-              className="h-10 w-10 p-0 rounded-full bg-purple-500 hover:bg-purple-600 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md flex-shrink-0"
+              className="clay-btn-primary h-11 w-11 p-0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex-shrink-0"
               aria-label={t('ariaLabels.apiCall')}
               type="button"
             >
-              <Code2 className="w-4 h-4" />
+              <Code2 className="w-5 h-5" />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 bg-gradient-to-br from-white to-indigo-50/30 pt-4">
         {/* 已使用 Token 和 Coding 评分 - 合并为同一行，两列布局 */}
         <div className="grid grid-cols-2 gap-3">
           {/* 已使用 Token */}
-          <div className="py-2 px-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 rounded-lg">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('tokensUsed')}</div>
-            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          <div className="py-3 px-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200/50 shadow-sm">
+            <div className="text-xs font-medium text-indigo-600 mb-1">{t('tokensUsed')}</div>
+            <div className="text-xl font-bold text-indigo-900">
               {model.used_tokens?.toLocaleString() || '0'}
             </div>
           </div>
           {/* Coding 评分 */}
-          <div className="py-2 px-3 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 rounded-lg">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('codingScore')}</div>
-            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          <div className="py-3 px-4 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200/50 shadow-sm">
+            <div className="text-xs font-medium text-purple-600 mb-1">{t('codingScore')}</div>
+            <div className="text-xl font-bold text-purple-900">
               {model.coding_score || t('noScore')}
             </div>
           </div>
         </div>
 
         {/* 模型规格 */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('inputSupport')}</span>
-            <span className="font-medium flex items-center gap-1">
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
+            <span className="font-medium text-indigo-900">{t('inputSupport')}</span>
+            <span className="flex items-center gap-1.5">
               {renderTypeIcons(model.input_types)}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('outputSupport')}</span>
-            <span className="font-medium flex items-center gap-1">
+          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
+            <span className="font-medium text-indigo-900">{t('outputSupport')}</span>
+            <span className="flex items-center gap-1.5">
               {renderTypeIcons(model.output_types)}
             </span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('context')}</span>
-            <span className="font-medium">{model.context_length}</span>
+          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
+            <span className="font-medium text-indigo-900">{t('context')}</span>
+            <span className="font-semibold text-indigo-700">{model.context_length}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-gray-500 dark:text-gray-400">{t('maxOutput')}</span>
-            <span className="font-medium">{model.max_output_length}</span>
+          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
+            <span className="font-medium text-indigo-900">{t('maxOutput')}</span>
+            <span className="font-semibold text-indigo-700">{model.max_output_length}</span>
           </div>
         </div>
 
         {/* 订阅信息 - 2行2列布局 */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs">
+        <div className="grid grid-cols-2 gap-3 pt-3 border-t-2 border-indigo-100/50 text-xs">
           {/* 左侧：订阅平台 */}
           <div>
-            <div className="text-gray-500 dark:text-gray-400 mb-2">
-              {t('subscriptionPlatforms')}: {model.subscription_platform_count || 0}
+            <div className="font-medium text-indigo-600 mb-2.5">
+              {t('subscriptionPlatforms')}: <span className="text-indigo-900">{model.subscription_platform_count || 0}</span>
             </div>
             <div className="flex justify-start">
-              <div className="flex -space-x-1">
+              <div className="flex -space-x-1.5">
                 {visibleProviders.map((provider) => (
                   <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider)}>
-                    <div className="w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-white hover:scale-110 transition-transform cursor-default">
+                    <div className="w-7 h-7 rounded-full border-2 border-white shadow-md overflow-hidden bg-white hover:scale-110 hover:z-10 transition-all cursor-default">
                       <Image
                         src={provider.logo_path}
                         alt={provider.code}
-                        width={24}
-                        height={24}
+                        width={28}
+                        height={28}
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   </ProviderLogoTooltip>
                 ))}
                 {extraProvidersCount > 0 && (
                   <div
-                    className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-400"
+                    className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-white shadow-md flex items-center justify-center text-[10px] font-semibold text-indigo-700"
                     title={t('moreProviders', { count: extraProvidersCount })}
                   >
                     +{extraProvidersCount}
@@ -348,18 +332,18 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
 
           {/* 右侧：可用订阅 */}
           <div>
-            <div className="text-gray-500 dark:text-gray-400 mb-2">
-              {t('availableSubscriptions')}: {model.available_subscriptions}
+            <div className="font-medium text-indigo-600 mb-2.5">
+              {t('availableSubscriptions')}: <span className="text-indigo-900">{model.available_subscriptions}</span>
             </div>
             <div className="flex justify-start">
-              <div className="flex -space-x-1">
+              <div className="flex -space-x-1.5">
                 {visibleSharers.map((sharer) => (
                   <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || tCommon('unknown')}>
                     <Avatar
-                      className="w-6 h-6 border-2 border-white dark:border-gray-800 hover:scale-110 transition-transform cursor-default"
+                      className="w-7 h-7 border-2 border-white shadow-md hover:scale-110 hover:z-10 transition-all cursor-default"
                     >
                       <AvatarImage src={sharer.avatar_url} alt={sharer.name} />
-                      <AvatarFallback className="text-[10px] bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-300">
+                      <AvatarFallback className="text-[10px] font-semibold bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700">
                         {getUserInitial(sharer.name)}
                       </AvatarFallback>
                     </Avatar>
@@ -367,7 +351,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
                 ))}
                 {extraSharersCount > 0 && (
                   <div
-                    className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-400"
+                    className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-white shadow-md flex items-center justify-center text-[10px] font-semibold text-indigo-700"
                     title={t('moreSubscriptions', { count: extraSharersCount })}
                   >
                     +{extraSharersCount}

@@ -212,21 +212,21 @@ export function UsagePage() {
   return (
     <div className="space-y-6">
       {/* Filter Section */}
-      <Card className="border-purple-100">
+      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
         <CardHeader className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
+            <div className="flex flex-col space-y-2">
+              <h3 className="text-2xl font-bold text-indigo-900 leading-none tracking-tight">{t('title')}</h3>
+              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
               {/* Date Filter */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 whitespace-nowrap">
+                <label className="text-sm font-medium text-indigo-700 whitespace-nowrap">
                   {t('selectDate')}
                 </label>
                 <Select value={selectedDate} onValueChange={handleDateChange}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="clay-input w-[140px] border-2 border-indigo-200/50">
                     <SelectValue placeholder={t('selectDatePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -241,11 +241,11 @@ export function UsagePage() {
 
               {/* API Key Filter */}
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600 whitespace-nowrap">
+                <label className="text-sm font-medium text-indigo-700 whitespace-nowrap">
                   {t('apiKey')}
                 </label>
                 <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="clay-input w-[200px] border-2 border-indigo-200/50">
                     <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -266,12 +266,12 @@ export function UsagePage() {
       {/* Loading state */}
       {overviewLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">{tCommon('loading')}</div>
+          <div className="text-indigo-600 font-medium">{tCommon('loading')}</div>
         </div>
       ) : overviewData === null ? (
         /* No data state */
         <div className="flex items-center justify-center py-12">
-          <div className="text-gray-500">{t('noData')}</div>
+          <div className="text-indigo-600 font-medium">{t('noData')}</div>
         </div>
       ) : (
         <>
@@ -297,12 +297,12 @@ export function UsagePage() {
           </div>
 
           {/* Hourly Distribution Chart */}
-          <Card className="border-purple-100">
+          <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
             <CardHeader className="p-6">
-              <h4 className="text-lg font-semibold">{t('tokenDistribution')}</h4>
+              <h4 className="text-lg font-bold text-indigo-900">{t('tokenDistribution')}</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
-              <div className="border border-gray-200 rounded overflow-hidden h-40">
+              <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-40 bg-white">
                 <div className="p-2 pt-2 pb-5 h-full">
                   <UsageBarChart hourlyDistribution={overviewData.hourly_distribution} />
                 </div>
@@ -311,13 +311,13 @@ export function UsagePage() {
           </Card>
 
           {/* Usage Logs Table */}
-          <Card className="border-purple-100">
+          <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
             <CardHeader className="p-6">
-              <h4 className="text-lg font-semibold">{t('detailedRecords')}</h4>
+              <h4 className="text-lg font-bold text-indigo-900">{t('detailedRecords')}</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
               {logsData.length === 0 && !logsLoading ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-indigo-600 font-medium">
                   {t('noRecords')}
                 </div>
               ) : (

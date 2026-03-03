@@ -87,28 +87,28 @@ export function ModelDiscoveryPage() {
       <div className="space-y-6">
         {/* 搜索栏 */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-400 w-5 h-5" />
           <input
             type="text"
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="clay-input w-full pl-12 pr-4 py-3 border-2 border-indigo-200/50 rounded-xl bg-gradient-to-br from-white to-indigo-50/30 text-indigo-900 placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-base"
           />
         </div>
 
         {/* 加载状态 */}
         {loading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-12 text-indigo-600 font-medium">
             {t('loading')}
           </div>
         ) : filteredModels.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-12 text-indigo-600 font-medium">
             {searchQuery ? t('noMatches') : t('noModels')}
           </div>
         ) : (
           /* 模型卡片网格 */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredModels.map((model) => (
               <ModelCard
                 key={`${model.provider}-${model.model_name}`}

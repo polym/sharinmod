@@ -51,11 +51,21 @@ export function Header() {
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
 
   return (
-    <header className="bg-white border-b border-purple-100 px-8 py-4">
+    <header
+      className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-4"
+      style={{
+        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
+      }}
+    >
       <div className="flex items-center justify-between">
-        {/* Logo */}
+        {/* Logo - Claymorphism Style */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回首页">
-          <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+          <div
+            className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
+            style={{
+              boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
+            }}
+          >
             SM
           </div>
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
@@ -63,21 +73,30 @@ export function Header() {
 
         {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="bg-brand-100 gap-1.5 h-8 px-3 rounded-full">
-            <Zap className="h-3.5 w-3.5 text-brand-500" />
+          <Button
+            variant="ghost"
+            className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
+            style={{
+              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+            }}
+          >
+            <Zap className="h-3.5 w-3.5 text-indigo-600" />
             <span className={cn(
               "text-sm font-medium",
-              (user?.token_balance ?? 0) > 0 ? "text-brand-500" : "text-red-600"
+              (user?.token_balance ?? 0) > 0 ? "text-indigo-600" : "text-orange-500"
             )}>
               {user?.token_balance ?? 0}
             </span>
           </Button>
 
-          {/* Account Avatar with Dropdown Menu */}
+          {/* Account Avatar with Dropdown Menu - Claymorphism Style */}
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-full transition-opacity hover:opacity-90"
+              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border-2 border-indigo-200 hover:shadow-md transition-all"
+              style={{
+                boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+              }}
               aria-label="用户菜单"
             >
               <UserAvatar

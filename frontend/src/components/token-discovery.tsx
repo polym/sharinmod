@@ -77,15 +77,15 @@ export function APIKeyDiscovery() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
-            <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">发现 Keys</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">浏览社区分享的 API Keys，使用它们进行 AI 模型调用</p>
+            <div className="flex flex-col space-y-2">
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">发现 Keys</h3>
+              <p className="text-sm text-indigo-600 font-medium">浏览社区分享的 API Keys，使用它们进行 AI 模型调用</p>
             </div>
             <Select value={providerFilter} onValueChange={handleProviderFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="clay-input w-[200px] border-2 border-indigo-200/50">
                 {providerFilter === 'all' ? (
                   <SelectValue placeholder="选择供应商" />
                 ) : (
@@ -112,41 +112,42 @@ export function APIKeyDiscovery() {
         <CardContent>
 
           {loading && apiKeys.length === 0 ? (
-            <div className="text-center py-8">加载中...</div>
+            <div className="text-center py-8 text-indigo-600 font-medium">加载中...</div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-indigo-600 font-medium">
               暂无可用的API Keys
             </div>
           ) : (
             <div className="space-y-4">
               {apiKeys.map((apiKey) => (
-                <Card key={apiKey.id}>
-                  <CardContent className="pt-6">
+                <Card key={apiKey.id} className="clay-card border-2 border-indigo-200/50 bg-gradient-to-br from-white to-indigo-50/50">
+                  <CardContent className="pt-5">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Image src={getProviderLogo(apiKey.provider)} alt={getProviderBrandName(apiKey.provider)} width={24} height={24} />
-                          <div className="font-medium">{getProviderBrandName(apiKey.provider)}</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md border-2 border-white bg-white p-1">
+                            <Image src={getProviderLogo(apiKey.provider)} alt={getProviderBrandName(apiKey.provider)} width={40} height={40} className="w-full h-full object-contain" />
+                          </div>
+                          <div className="font-bold text-lg text-indigo-900">{getProviderBrandName(apiKey.provider)}</div>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          提供者: {apiKey.provider_username}
+                        <div className="text-sm text-indigo-600">
+                          提供者: <span className="font-medium">{apiKey.provider_username}</span>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          使用次数: {apiKey.total_uses}
+                        <div className="text-sm text-indigo-600">
+                          使用次数: <span className="font-semibold text-indigo-900">{apiKey.total_uses}</span>
                         </div>
-                        <div className="text-sm text-gray-500">
-                          创建时间: {new Date(apiKey.created_at).toLocaleDateString()}
+                        <div className="text-sm text-indigo-600">
+                          创建时间: <span className="font-medium">{new Date(apiKey.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`px-2 py-1 rounded text-sm ${
-                          apiKey.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
                           {apiKey.status}
                         </div>
                         <Button
                           onClick={() => handleUseAPIKey(apiKey.id)}
                           disabled={apiKey.status !== 'active'}
+                          className="clay-btn-primary"
                         >
                           使用
                         </Button>
@@ -158,7 +159,7 @@ export function APIKeyDiscovery() {
 
               {hasMore && (
                 <div className="text-center pt-4">
-                  <Button onClick={handleLoadMore} variant="outline">
+                  <Button onClick={handleLoadMore} className="clay-btn-secondary">
                     加载更多
                   </Button>
                 </div>

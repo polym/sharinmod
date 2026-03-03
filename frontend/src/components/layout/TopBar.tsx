@@ -51,17 +51,28 @@ export function TopBar({ onPageChange }: TopBarProps) {
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <header
+      className="h-16 bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 flex items-center justify-between px-6"
+      style={{
+        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
+      }}
+    >
       {/* Left side - can add page title or breadcrumb */}
       <div />
 
       {/* Right side - User menu */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" className="bg-brand-100 gap-1.5">
-          <Zap className="h-4 w-4 text-brand-500" />
+        <Button
+          variant="ghost"
+          className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
+          style={{
+            boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+          }}
+        >
+          <Zap className="h-4 w-4 text-indigo-600" />
           <span className={cn(
             "text-sm font-medium",
-            (user?.token_balance ?? 0) > 0 ? "text-brand-500" : "text-red-600"
+            (user?.token_balance ?? 0) > 0 ? "text-indigo-600" : "text-orange-500"
           )}>
             {user?.token_balance ?? 0}
           </span>
@@ -71,7 +82,12 @@ export function TopBar({ onPageChange }: TopBarProps) {
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded-full">
+            <button
+              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border-2 border-indigo-200 hover:shadow-md transition-all"
+              style={{
+                boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+              }}
+            >
               <UserAvatar
                 email={user?.email}
                 name={user?.name}

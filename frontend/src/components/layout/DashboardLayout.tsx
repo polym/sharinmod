@@ -21,20 +21,23 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Mobile menu button */}
+    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-50 overflow-hidden">
+      {/* Mobile menu button - Claymorphism Style */}
       <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-md border border-gray-200"
+        className="md:hidden fixed top-4 left-4 z-50 p-3 rounded-2xl bg-white shadow-lg border-2 border-indigo-100 hover:shadow-xl transition-all"
         onClick={() => setSidebarOpen(!sidebarOpen)}
         aria-label={sidebarOpen ? '关闭菜单' : '打开菜单'}
+        style={{
+          boxShadow: "0 4px 0 rgba(79, 70, 229, 0.15), 0 8px 16px rgba(79, 70, 229, 0.1)"
+        }}
       >
-        {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {sidebarOpen ? <X className="w-5 h-5 text-indigo-600" /> : <Menu className="w-5 h-5 text-indigo-600" />}
       </button>
 
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div
-          className="md:hidden fixed inset-0 z-30 bg-black/50"
+          className="md:hidden fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -53,7 +56,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar onPageChange={handlePageChange} />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 bg-gradient-to-br from-indigo-50/50 via-transparent to-indigo-50/30">
           {children}
         </main>
       </div>

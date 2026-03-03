@@ -47,11 +47,14 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
     <Link
       href={href}
       className={cn(
-        "w-full px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-3 transition-all",
+        "w-full px-4 py-3 rounded-2xl text-sm font-medium flex items-center gap-3 transition-all border-2 relative",
         active
-          ? "bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700"
-          : "text-gray-600 hover:bg-purple-50 hover:text-purple-600"
+          ? "bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-700 border-indigo-200 shadow-lg"
+          : "text-gray-600 hover:bg-white hover:text-indigo-600 hover:shadow-md hover:border-indigo-100 border-transparent"
       )}
+      style={active ? {
+        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.2), 0 8px 16px rgba(79, 70, 229, 0.1)"
+      } : {}}
     >
       {icon}
       {label}
@@ -82,16 +85,21 @@ export function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full p-4">
-      {/* Launch Button */}
+      {/* Launch Button - Claymorphism Style */}
       <QuickCallDialog>
-        <Button className="w-full mb-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center">
+        <Button
+          className="w-full mb-4 bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white flex items-center justify-center rounded-2xl border-2 border-indigo-300 shadow-lg"
+          style={{
+            boxShadow: "0 4px 0 rgba(79, 70, 229, 0.3), 0 8px 20px rgba(79, 70, 229, 0.2)"
+          }}
+        >
           <Sparkles className="w-4 h-4 mr-1.5" />
           {tQuickCall('quickCall')}
         </Button>
       </QuickCallDialog>
 
       {/* Main Navigation */}
-      <nav className="flex flex-col space-y-1">
+      <nav className="flex flex-col space-y-2">
         <NavSection>
           {mainNavItems.map((item) => (
             <NavItem
@@ -106,7 +114,7 @@ export function Sidebar() {
 
         {user?.is_admin && (
           <>
-            <div className="border-t border-purple-200/50 my-2" />
+            <div className="border-t-2 border-indigo-200/50 my-2" />
             <NavSection>
               {adminNavItems.map((item) => (
                 <NavItem
@@ -131,28 +139,34 @@ export function Sidebar() {
         <SidebarContent />
       </div>
 
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button - Claymorphism Style */}
       <button
-        className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-purple-100"
+        className="lg:hidden fixed top-20 left-4 z-50 p-3 bg-white rounded-2xl shadow-lg border-2 border-indigo-100 hover:shadow-xl transition-all"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
+        style={{
+          boxShadow: "0 4px 0 rgba(79, 70, 229, 0.15), 0 8px 16px rgba(79, 70, 229, 0.1)"
+        }}
       >
-        {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isMobileOpen ? <X className="w-5 h-5 text-indigo-600" /> : <Menu className="w-5 h-5 text-indigo-600" />}
       </button>
 
       {/* Mobile Overlay */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - Claymorphism Style */}
       <aside
         className={cn(
-          "lg:hidden fixed top-16 left-0 bottom-0 z-50 w-56 flex flex-col bg-gradient-to-br from-purple-50 via-white to-purple-50 border-r border-purple-100/50 transform transition-transform duration-200 ease-in-out",
+          "lg:hidden fixed top-16 left-0 bottom-0 z-50 w-56 flex flex-col bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border-r-2 border-indigo-100 transform transition-transform duration-200 ease-in-out",
           isMobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{
+          boxShadow: "4px 0 16px rgba(79, 70, 229, 0.1)"
+        }}
       >
         <SidebarContent />
       </aside>
