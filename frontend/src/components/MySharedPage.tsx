@@ -15,47 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
-
-// Modern square toggle switch component with custom soft colors
-function SquareSwitch({
-  checked,
-  onCheckedChange,
-  disabled = false,
-  ariaLabelOn,
-  ariaLabelOff
-}: {
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-  ariaLabelOn?: string;
-  ariaLabelOff?: string;
-}) {
-  return (
-    <button
-      onClick={() => !disabled && onCheckedChange(!checked)}
-      disabled={disabled}
-      role="switch"
-      aria-checked={checked}
-      aria-label={checked ? ariaLabelOn : ariaLabelOff}
-      className={`
-        relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center
-        rounded-md transition-all duration-200 ease-in-out
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
-        disabled:cursor-not-allowed disabled:opacity-50
-        ${checked ? 'bg-switch-on border border-green-300' : 'bg-switch-off'}
-      `}
-    >
-      <span
-        className={`
-          pointer-events-none inline-block h-4 w-4 transform rounded bg-white shadow-lg
-          transition-transform duration-200 ease-in-out mx-1
-          ${checked ? 'translate-x-4' : 'translate-x-0'}
-        `}
-      />
-    </button>
-  );
-}
 
 // Token formatting helper - formats raw token value for display
 function formatTokens(totalTokens: number, unitMillion: string, unitTenThousand: string): { value: number; unit: string } {
@@ -188,15 +149,15 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const safeLength = Math.max(chartData.length - 1, 1);
 
   return (
-    <div className="flex flex-col h-full py-0.5">
+    <div className="flex flex-col h-full py-1">
       {/* Chart bars */}
-      <div ref={containerRef} className="flex items-end flex-1 border-b border-gray-200 relative px-3 justify-between gap-px">
+      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-indigo-200 relative px-3 justify-between gap-px">
         {chartData.map((value, idx) => {
           const timeInfo = parseBeijingTime(data[idx].date);
           return (
             <div
               key={idx}
-              className="w-3 bg-green-400 hover:bg-green-500 transition-colors cursor-pointer shrink-0"
+              className="w-3 bg-gradient-to-t from-indigo-500 to-purple-400 hover:from-indigo-400 hover:to-purple-300 transition-all duration-200 cursor-pointer shrink-0 rounded-t-sm"
               style={{
                 height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
               }}
@@ -229,10 +190,10 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
               transform: getTooltipTransform(tooltipFlip)
             }}
           >
-            <div className="bg-gray-900 text-white text-[10px] rounded py-0.5 px-2 whitespace-nowrap shadow-md">
-              <span className="font-semibold">{chartData[hoverIndex]} {tCommon('tokens')}</span>
+            <div className="clay-tooltip text-xs rounded-lg py-1.5 px-3 whitespace-nowrap shadow-lg">
+              <span className="font-bold">{chartData[hoverIndex]} {tCommon('tokens')}</span>
               <br />
-              <span className="text-gray-300 text-[9px]">
+              <span className="text-indigo-200 text-[10px]">
                 {parseBeijingTime(data[hoverIndex].date).month}/{parseBeijingTime(data[hoverIndex].date).day} {parseBeijingTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
               </span>
             </div>
@@ -240,7 +201,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
         )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 px-3 relative">
+      <div className="flex justify-between text-[10px] text-indigo-400 mt-1 px-3 relative">
         {labelIndices.map((idx) => {
           const leftPercent = (idx / safeLength) * 100;
           return (
@@ -350,15 +311,15 @@ export function MySharedPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <Card>
+      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
-            <div className="flex flex-col space-y-1.5">
-              <h3 className="text-xl font-semibold leading-none tracking-tight">{t('title')}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
+            <div className="flex flex-col space-y-2">
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">{t('title')}</h3>
+              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-              <Button variant="ghost" className="bg-brand-100 hover:bg-brand-400 text-brand-500 border border-brand-500">
+              <Button className="clay-btn-primary">
                 {t('bindNew')}
               </Button>
             </ShareAPIKeyDialog>
@@ -366,25 +327,25 @@ export function MySharedPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-gray-500">{t('loading')}</div>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-indigo-600 font-medium">{t('loading')}</div>
             </div>
           ) : sharedAPIKeys.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500 mb-4">{t('noBindings')}</div>
+            <div className="text-center py-12">
+              <div className="text-indigo-600 font-medium mb-6">{t('noBindings')}</div>
               <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-                <Button variant="outline">
+                <Button className="clay-btn-secondary">
                   {t('bindFirst')}
                 </Button>
               </ShareAPIKeyDialog>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {sharedAPIKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className={`p-5 border rounded-lg space-y-4 ${
-                    apiKey.status !== 'active' ? 'opacity-50 grayscale' : ''
+                  className={`clay-card p-6 border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 space-y-4 rounded-2xl ${
+                    apiKey.status !== 'active' ? 'opacity-50 grayscale-[0.5]' : ''
                   }`}
                 >
                   {/* Top Section: Logo, Provider Info, and Buttons */}
@@ -395,13 +356,13 @@ export function MySharedPage() {
                         <img
                           src={apiKey.provider_logo_path}
                           alt={apiKey.provider_display_name || apiKey.provider}
-                          className="w-14 h-14 rounded-full object-cover border border-gray-200"
+                          className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-200 bg-white p-1 shadow-md"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xl">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold text-2xl shadow-md border-2 border-indigo-200">
                           {(apiKey.provider_display_name || apiKey.provider || 'A').charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -413,22 +374,22 @@ export function MySharedPage() {
                             href={apiKey.provider_website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-semibold text-lg text-gray-900 hover:text-brand-600 transition-colors cursor-pointer"
+                            className="font-bold text-xl text-indigo-900 hover:text-indigo-600 transition-colors cursor-pointer"
                           >
                             {apiKey.provider_display_name || apiKey.provider}
                           </a>
                         ) : (
-                          <div className="font-semibold text-lg text-gray-900">
+                          <div className="font-bold text-xl text-indigo-900">
                             {apiKey.provider_display_name || apiKey.provider}
                           </div>
                         )}
                         {/* Model Tags */}
                         {apiKey.supported_models && apiKey.supported_models.length > 0 && (
-                          <div className="flex gap-2 flex-wrap mt-1">
+                          <div className="flex gap-2 flex-wrap mt-2">
                             {apiKey.supported_models.map((model) => (
                               <span
                                 key={model}
-                                className="px-2.5 py-0.5 bg-white text-gray-700 text-xs rounded border border-gray-200"
+                                className="clay-badge clay-badge-secondary px-3 py-1 text-xs font-medium"
                               >
                                 {model}
                               </span>
@@ -438,9 +399,9 @@ export function MySharedPage() {
                       </div>
                     </div>
 
-                    {/* Square Toggle Switch and Delete Menu */}
+                    {/* Toggle Switch and Delete Menu */}
                     <div className="flex items-center gap-3">
-                      <SquareSwitch
+                      <Switch
                         checked={apiKey.status === 'active'}
                         onCheckedChange={(checked) => {
                           if (checked) {
@@ -449,15 +410,14 @@ export function MySharedPage() {
                             handleDisableAPIKey(apiKey.id);
                           }
                         }}
-                        ariaLabelOn={t('statusEnabled')}
-                        ariaLabelOff={t('statusDisabled')}
+                        aria-label={apiKey.status === 'active' ? t('statusEnabled') : t('statusDisabled')}
                       />
 
                       {/* Dropdown Menu for Delete */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-indigo-100">
+                            <MoreVertical className="h-5 w-5 text-indigo-600" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -480,35 +440,35 @@ export function MySharedPage() {
 
                   {/* Stats and Chart Section */}
                   {metricsMap[apiKey.id] && (
-                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                    <div className="flex flex-col sm:flex-row gap-5 pt-3">
                       {/* Statistics */}
-                      <dl className="sm:flex-[1] flex flex-row gap-4 sm:gap-6 items-center">
+                      <dl className="sm:flex-[1] flex flex-row gap-5 sm:gap-7 items-center">
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">{tStats('totalTokens')}</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">
+                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalTokens')}</dt>
+                          <dd className="text-2xl font-bold text-indigo-900">
                             {(() => {
                               const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('days'), tStats('times'));
-                              return <>{value}<span className="text-sm font-normal text-gray-500 ml-1">{unit}</span></>;
+                              return <>{value}<span className="text-sm font-normal text-indigo-500 ml-1">{unit}</span></>;
                             })()}
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">{tStats('totalDuration')}</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-gray-500 ml-1">{tStats('days')}</span>
+                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalDuration')}</dt>
+                          <dd className="text-2xl font-bold text-indigo-900">
+                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-indigo-500 ml-1">{tStats('days')}</span>
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs text-gray-500">{tStats('totalRequests')}</dt>
-                          <dd className="text-2xl font-semibold text-gray-900">
-                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-gray-500 ml-1">{tStats('times')}</span>
+                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalRequests')}</dt>
+                          <dd className="text-2xl font-bold text-indigo-900">
+                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-indigo-500 ml-1">{tStats('times')}</span>
                           </dd>
                         </div>
                       </dl>
 
                       {/* 48-hour Bar Chart */}
-                      <div className="sm:flex-[3] border border-gray-200 rounded overflow-hidden h-40">
-                        <div className="p-2 pt-2 pb-5 h-full">
+                      <div className="sm:flex-[3] clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-44 bg-white shadow-sm">
+                        <div className="p-3 pt-2 pb-4 h-full">
                           <UsageBarChart data={metricsMap[apiKey.id].chart_data} />
                         </div>
                       </div>
