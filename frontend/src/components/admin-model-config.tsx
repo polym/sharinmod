@@ -12,9 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Image from 'next/image';
-import { Edit, Trash2, Type, Image as ImageIcon, Video, Mic, File, Upload } from 'lucide-react';
-import { modelConfigAPI, globalModelAPI } from '@/lib/services';
+import { Edit, Trash2, Type, Image as ImageIcon, Video, Mic, File, Upload, Plus } from 'lucide-react';
+import { modelConfigAPI, globalModelAPI, adminAPI } from '@/lib/services';
 import { getProviderLogo, getModelLogo } from '@/lib/providers';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +92,13 @@ interface GlobalModelForm {
 
 // ==================== Provider Model Tab ====================
 
+// Provider interface for add/edit model dialog
+interface ProviderConfig {
+  id: number;
+  provider_key: string;
+  name: string;
+}
+
 function ProviderModelTab() {
   const t = useTranslations('adminModelConfig');
   const { toast } = useToast();
@@ -111,6 +119,25 @@ function ProviderModelTab() {
     coding_score: '',
     input_types: [],
     output_types: [],
+  });
+
+  // Add/Edit Model Dialog states
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editModelTarget, setEditModelTarget] = useState<ModelCatalogItem | null>(null);
+  const [isSavingModel, setIsSavingModel] = useState(false);
+  const [globalModels, setGlobalModels] = useState<GlobalModelItem[]>([]);
+  const [providers, setProviders] = useState<ProviderConfig[]>([]);
+
+  const [modelForm, setModelForm] = useState({
+    providerId: 0,
+    modelKey: '',
+    displayName: '',
+    description: '',
+    contextLength: '',
+    maxOutputLength: '',
+    codingScore: '',
+    inputTypes: [] as string[],
+    outputTypes: [] as string[],
   });
 
   // Derived: filtered model list — fuzzy search on provider_key or model_key, sorted by provider then model
@@ -135,10 +162,38 @@ function ProviderModelTab() {
     }
   };
 
+  const loadGlobalModels = async () => {
+    try {
+      const resp = await globalModelAPI.list();
+      setGlobalModels(resp.data || []);
+    } catch {
+      // Silently fail - global models may not be loaded yet
+      console.error('Failed to load global models');
+    }
+  };
+
+  const loadProviders = async () => {
+    try {
+      const resp = await adminAPI.getProviders();
+      setProviders(resp.data.items || []);
+    } catch {
+      // Silently fail
+      console.error('Failed to load providers');
+    }
+  };
+
   useEffect(() => {
     loadModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load providers when dialog opens
+  useEffect(() => {
+    if (addDialogOpen || editModelTarget) {
+      loadProviders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addDialogOpen, editModelTarget]);
 
   const handleToggle = async (model: ModelCatalogItem, checked: boolean) => {
     try {
@@ -257,6 +312,101 @@ function ProviderModelTab() {
     }
   };
 
+  // Add Model Dialog functions
+  const openAddDialog = () => {
+    setModelForm({
+      providerId: 0,
+      modelKey: '',
+      displayName: '',
+      description: '',
+      contextLength: '',
+      maxOutputLength: '',
+      codingScore: '',
+      inputTypes: [],
+      outputTypes: [],
+    });
+    setAddDialogOpen(true);
+  };
+
+  const openEditModelDialog = (model: ModelCatalogItem) => {
+    setEditModelTarget(model);
+    setModelForm({
+      providerId: 0, // Will be determined from provider_key
+      modelKey: model.model_key,
+      displayName: model.display_name,
+      description: model.description || '',
+      contextLength: model.context_length,
+      maxOutputLength: model.max_output_length,
+      codingScore: model.coding_score?.toString() || '',
+      inputTypes: model.input_types || [],
+      outputTypes: model.output_types || [],
+    });
+    setAddDialogOpen(true);
+  };
+
+  const handleModelSelect = (modelKey: string) => {
+    const selectedModel = globalModels.find(m => m.model_key === modelKey);
+    if (selectedModel) {
+      setModelForm({
+        ...modelForm,
+        modelKey: selectedModel.model_key,
+        displayName: selectedModel.display_name,
+        description: selectedModel.description || '',
+        contextLength: selectedModel.context_length,
+        maxOutputLength: selectedModel.max_output_length,
+        codingScore: selectedModel.coding_score?.toString() || '',
+        inputTypes: selectedModel.input_types || [],
+        outputTypes: selectedModel.output_types || [],
+      });
+    }
+  };
+
+  const handleSaveModel = async () => {
+    if (!modelForm.providerId || !modelForm.modelKey || !modelForm.displayName || !modelForm.contextLength || !modelForm.maxOutputLength) {
+      toast({
+        title: t('toast.error'),
+        description: t('toast.fillRequired') || '请填写所有必填字段',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingModel(true);
+    try {
+      const modelData = {
+        model_key: modelForm.modelKey,
+        display_name: modelForm.displayName,
+        description: modelForm.description || undefined,
+        context_length: modelForm.contextLength,
+        max_output_length: modelForm.maxOutputLength,
+        input_types: modelForm.inputTypes.length > 0 ? modelForm.inputTypes : undefined,
+        output_types: modelForm.outputTypes.length > 0 ? modelForm.outputTypes : undefined,
+        coding_score: modelForm.codingScore ? parseInt(modelForm.codingScore, 10) : undefined,
+      };
+
+      if (editModelTarget) {
+        // Update existing model - not implemented in this phase
+        toast({ title: t('toast.error'), description: '编辑功能暂不支持', variant: 'destructive' });
+      } else {
+        // Create new model
+        await adminAPI.createModel(modelForm.providerId, modelData);
+        toast({ description: t('toast.createSuccess') || '模型已添加' });
+      }
+
+      setAddDialogOpen(false);
+      setEditModelTarget(null);
+      await loadModels();
+    } catch (error: any) {
+      toast({
+        title: t('toast.error'),
+        description: error.response?.data?.detail || (t('toast.createFailed') || '添加失败'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingModel(false);
+    }
+  };
+
   return (
     <>
         {/* 搜索 + 批量编辑按钮 */}
@@ -267,6 +417,10 @@ function ProviderModelTab() {
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
           />
+          <Button size="sm" onClick={openAddDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            {t('addDialog.title') || '添加模型'}
+          </Button>
           {selectedKeys.size > 0 && (
             <Button variant="outline" size="sm" onClick={handleBatchEdit}>
               {t('filter.batchEdit', { count: selectedKeys.size })}
@@ -509,6 +663,177 @@ function ProviderModelTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add/Edit Model Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={(open) => {
+        setAddDialogOpen(open);
+        if (!open) setEditModelTarget(null);
+      }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editModelTarget ? (t('addDialog.editTitle') || '编辑模型') : (t('addDialog.title') || '添加模型')}</DialogTitle>
+            <DialogDescription>
+              {editModelTarget
+                ? `${editModelTarget.provider_key}/${editModelTarget.model_key}`
+                : (t('addDialog.description') || '从全局模型列表中选择并添加到供应商')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Provider Selection */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.provider') || '供应商'}</Label>
+              <Select
+                value={modelForm.providerId.toString()}
+                onValueChange={(value) => setModelForm({ ...modelForm, providerId: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('addDialog.providerPlaceholder') || '选择供应商'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {providers.map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name} ({p.provider_key})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Model Key Selection - disabled in edit mode */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.modelKey') || '模型标识'}</Label>
+              <Select
+                value={modelForm.modelKey}
+                onValueChange={handleModelSelect}
+                onOpenChange={(open) => { if (open) loadGlobalModels(); }}
+                disabled={!!editModelTarget}
+              >
+                <SelectTrigger className={editModelTarget ? 'bg-gray-50 cursor-not-allowed' : ''}>
+                  <SelectValue placeholder={t('addDialog.modelKeyPlaceholder') || '选择模型'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {globalModels.map((m) => (
+                    <SelectItem key={m.model_key} value={m.model_key}>
+                      {m.display_name} ({m.model_key})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Display Name */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.displayName') || '显示名称'}</Label>
+              <Input
+                value={modelForm.displayName}
+                onChange={(e) => setModelForm({ ...modelForm, displayName: e.target.value })}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.description') || '描述'}</Label>
+              <Textarea
+                value={modelForm.description}
+                onChange={(e) => setModelForm({ ...modelForm, description: e.target.value })}
+                rows={2}
+              />
+            </div>
+
+            {/* Context Length & Max Output */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>{t('addDialog.contextLength') || '上下文长度'}</Label>
+                <Input
+                  value={modelForm.contextLength}
+                  onChange={(e) => setModelForm({ ...modelForm, contextLength: e.target.value })}
+                  placeholder="128k"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>{t('addDialog.maxOutput') || '最大输出'}</Label>
+                <Input
+                  value={modelForm.maxOutputLength}
+                  onChange={(e) => setModelForm({ ...modelForm, maxOutputLength: e.target.value })}
+                  placeholder="4k"
+                />
+              </div>
+            </div>
+
+            {/* Coding Score */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.codingScore') || 'Coding 评分'}</Label>
+              <Input
+                type="number"
+                value={modelForm.codingScore}
+                onChange={(e) => setModelForm({ ...modelForm, codingScore: e.target.value })}
+                placeholder="1400"
+              />
+            </div>
+
+            {/* Input Types */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.inputTypes') || '输入类型'}</Label>
+              <div className="flex flex-wrap gap-3">
+                {['Text', 'Image', 'Audio', 'Video'].map((type) => (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <Checkbox
+                      id={`add-input-${type}`}
+                      checked={modelForm.inputTypes.includes(type)}
+                      onCheckedChange={(checked) => {
+                        setModelForm({
+                          ...modelForm,
+                          inputTypes: checked
+                            ? [...modelForm.inputTypes, type]
+                            : modelForm.inputTypes.filter((v) => v !== type),
+                        });
+                      }}
+                    />
+                    <Label htmlFor={`add-input-${type}`} className="font-normal cursor-pointer">{type}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Output Types */}
+            <div className="grid gap-2">
+              <Label>{t('addDialog.outputTypes') || '输出类型'}</Label>
+              <div className="flex flex-wrap gap-3">
+                {['Text', 'Image', 'Audio', 'Video'].map((type) => (
+                  <div key={type} className="flex items-center gap-1.5">
+                    <Checkbox
+                      id={`add-output-${type}`}
+                      checked={modelForm.outputTypes.includes(type)}
+                      onCheckedChange={(checked) => {
+                        setModelForm({
+                          ...modelForm,
+                          outputTypes: checked
+                            ? [...modelForm.outputTypes, type]
+                            : modelForm.outputTypes.filter((v) => v !== type),
+                        });
+                      }}
+                    />
+                    <Label htmlFor={`add-output-${type}`} className="font-normal cursor-pointer">{type}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setAddDialogOpen(false);
+              setEditModelTarget(null);
+            }} disabled={isSavingModel}>
+              {t('addDialog.cancel') || '取消'}
+            </Button>
+            <Button onClick={handleSaveModel} disabled={isSavingModel || !!editModelTarget}>
+              {isSavingModel ? (t('addDialog.saving') || '保存中...') : (t('addDialog.save') || '保存')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -535,6 +860,8 @@ function GlobalModelTab() {
     coding_score: '',
     input_types: [],
     output_types: [],
+    logo_file: null,
+    logo_preview: '',
   });
 
   const loadModels = async () => {

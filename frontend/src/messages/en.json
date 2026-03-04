@@ -465,13 +465,35 @@
       "saving": "Saving...",
       "cancel": "Cancel"
     },
+    "addDialog": {
+      "title": "Add Model",
+      "editTitle": "Edit Model",
+      "description": "Select from global model list and add to provider",
+      "provider": "Provider",
+      "providerPlaceholder": "Select provider",
+      "modelKey": "Model Key",
+      "modelKeyPlaceholder": "Select model",
+      "displayName": "Display Name",
+      "description": "Description",
+      "contextLength": "Context Length",
+      "maxOutput": "Max Output",
+      "codingScore": "Coding Score",
+      "inputTypes": "Input Types",
+      "outputTypes": "Output Types",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
     "toast": {
       "error": "Error",
       "toggleSuccess": "Model status updated",
       "toggleFailed": "Update failed",
       "updateSuccess": "Model config saved",
       "updateFailed": "Save failed",
-      "loadFailed": "Failed to load model list"
+      "loadFailed": "Failed to load model list",
+      "createSuccess": "Model added",
+      "createFailed": "Failed to add",
+      "fillRequired": "Please fill in all required fields"
     },
     "tabs": {
       "provider": "Provider Models",
