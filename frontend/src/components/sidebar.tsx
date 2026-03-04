@@ -128,7 +128,7 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop Sidebar Content */}
+      {/* Desktop Sidebar Content - 已在 layout.tsx 中设置 fixed */}
       <div className="hidden lg:block h-full">
         <SidebarContent />
       </div>
@@ -149,7 +149,7 @@ export function Sidebar() {
         />
       )}
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - 固定定位，从 Header 下方开始 */}
       <aside
         className={cn(
           "lg:hidden fixed top-16 left-0 bottom-0 z-50 w-56 flex flex-col bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out shadow-lg",

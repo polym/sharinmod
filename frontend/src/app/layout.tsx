@@ -31,21 +31,18 @@ export default function RootLayout({
               <Header />
             </div>
 
-            {/* Sidebar and main content in same container */}
-            <div className="pt-16">
-              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row">
-                {/* Sidebar on desktop - scrolls with content */}
-                <aside className="hidden lg:block w-56 flex-shrink-0">
-                  <div className="border-r border-gray-200 min-h-[calc(100vh-4rem)]">
-                    <Sidebar />
-                  </div>
-                </aside>
-
-                {/* Main content */}
-                <main className="flex-1">
-                  {children}
-                </main>
+            {/* Fixed Sidebar on desktop - 从 Header 下方开始 */}
+            <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40">
+              <div className="w-full border-r border-gray-200 bg-white">
+                <Sidebar />
               </div>
+            </aside>
+
+            {/* Main content - 预留 Header 和 Sidebar 空间 */}
+            <div className="pt-16 lg:pl-56">
+              <main className="max-w-7xl mx-auto">
+                {children}
+              </main>
             </div>
           </div>
         </I18nProvider>

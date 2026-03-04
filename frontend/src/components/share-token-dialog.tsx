@@ -176,7 +176,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                 </SelectTrigger>
                 <SelectContent>
                   {providers.map((p) => (
-                    <SelectItem key={p.provider_key} value={p.provider_key} className="pl-2">
+                    <SelectItem key={p.provider_key} value={p.provider_key} className="pl-9">
                       <div className="flex items-center gap-2">
                         <Image
                           src={p.logo_path || getProviderLogo(p.provider_key)}
