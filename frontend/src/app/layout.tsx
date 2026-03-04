@@ -31,19 +31,21 @@ export default function RootLayout({
               <Header />
             </div>
 
-            {/* Sidebar and main content below fixed header */}
-            <div className="flex pt-16">
-              {/* Fixed Sidebar on desktop */}
-              <div className="hidden lg:block">
-                <div className="fixed left-0 top-16 bottom-0 w-56 bg-gradient-to-br from-purple-50 via-white to-purple-50 border-r border-purple-100/50">
-                  <Sidebar />
-                </div>
-              </div>
+            {/* Sidebar and main content in same container */}
+            <div className="pt-16">
+              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row">
+                {/* Sidebar on desktop - scrolls with content */}
+                <aside className="hidden lg:block w-56 flex-shrink-0">
+                  <div className="border-r border-gray-200 min-h-[calc(100vh-4rem)]">
+                    <Sidebar />
+                  </div>
+                </aside>
 
-              {/* Main content with left padding for fixed sidebar */}
-              <main className="flex-1 lg:ml-56 min-h-screen">
-                {children}
-              </main>
+                {/* Main content */}
+                <main className="flex-1">
+                  {children}
+                </main>
+              </div>
             </div>
           </div>
         </I18nProvider>
