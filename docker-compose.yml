@@ -83,8 +83,8 @@ services:
 
   nginx:
     image: nginx:alpine
-    expose:
-      - 80
+    ports:
+      - "${HOST_PORT:-18888}:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
