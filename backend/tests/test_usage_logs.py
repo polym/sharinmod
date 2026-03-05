@@ -298,12 +298,12 @@ def test_get_usage_overview_for_date(client: TestClient, auth_setup, sample_usag
     assert data["successful_requests"] + data["failed_requests"] == data["total_requests"]
 
 
-def test_get_usage_overview_hourly_distribution(client: TestClient, auth_setup, sample_usage_logs):
+def test_get_usage_overview_quarter_hourly_distribution(client: TestClient, auth_setup, sample_usage_logs):
     """
-    AC 17: Test 24-hour token distribution
+    AC 17: Test 96 quarter-hour token distribution (15-minute intervals)
     Given authenticated user with usage logs,
     When I query overview,
-    Then hourly_distribution contains 24 hours (0-23).
+    Then quarter_hourly_distribution contains 96 quarter-hours (0-95).
     """
     today = date.today()
 
@@ -314,13 +314,13 @@ def test_get_usage_overview_hourly_distribution(client: TestClient, auth_setup, 
 
     assert response.status_code == 200
     data = response.json()
-    hourly_dist = data["hourly_distribution"]
-    assert len(hourly_dist) == 24
-    # Verify each hour has data (even if 0)
-    for i, hour_data in enumerate(hourly_dist):
-        assert hour_data["hour"] == i
-        assert "tokens" in hour_data
-        assert hour_data["tokens"] >= 0
+    quarter_dist = data["quarter_hourly_distribution"]
+    assert len(quarter_dist) == 96
+    # Verify each quarter_hour has data (even if 0)
+    for i, quarter_data in enumerate(quarter_dist):
+        assert quarter_data["quarter_hour"] == i
+        assert "tokens" in quarter_data
+        assert quarter_data["tokens"] >= 0
 
 
 def test_get_usage_overview_no_data(client: TestClient, auth_setup):
@@ -345,10 +345,10 @@ def test_get_usage_overview_no_data(client: TestClient, auth_setup):
     assert data["total_tokens"] == 0
     assert data["input_tokens"] == 0
     assert data["output_tokens"] == 0
-    # Hourly distribution should still have 24 hours with 0 tokens
-    assert len(data["hourly_distribution"]) == 24
-    for hour_data in data["hourly_distribution"]:
-        assert hour_data["tokens"] == 0
+    # Quarter-hourly distribution should still have 96 quarter-hours with 0 tokens
+    assert len(data["quarter_hourly_distribution"]) == 96
+    for quarter_data in data["quarter_hourly_distribution"]:
+        assert quarter_data["tokens"] == 0
 
 
 def test_get_usage_overview_default_today(client: TestClient, auth_setup, sample_usage_logs):
@@ -427,5 +427,5 @@ def test_usage_overview_response_structure(client: TestClient, auth_setup):
     assert "total_tokens" in data
     assert "input_tokens" in data
     assert "output_tokens" in data
-    assert "hourly_distribution" in data
-    assert isinstance(data["hourly_distribution"], list)
+    assert "quarter_hourly_distribution" in data
+    assert isinstance(data["quarter_hourly_distribution"], list)

@@ -24,7 +24,7 @@ interface UsageOverview {
   total_tokens: number;
   input_tokens: number;
   output_tokens: number;
-  hourly_distribution: Array<{ hour: number; tokens: number }>;
+  quarter_hourly_distribution: Array<{ quarter_hour: number; tokens: number }>;
 }
 
 interface UsageLog {
@@ -302,9 +302,9 @@ export function UsagePage() {
               <h4 className="text-lg font-bold text-indigo-900">{t('tokenDistribution')}</h4>
             </CardHeader>
             <CardContent className="p-6 pt-0">
-              <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-40 bg-white">
-                <div className="p-2 pt-2 pb-5 h-full">
-                  <UsageBarChart hourlyDistribution={overviewData.hourly_distribution} />
+              <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-40 bg-white overflow-x-auto">
+                <div className="p-2 pt-2 pb-5 h-full min-w-[850px]">
+                  <UsageBarChart quarterHourlyDistribution={overviewData.quarter_hourly_distribution} />
                 </div>
               </div>
             </CardContent>
