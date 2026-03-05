@@ -91,8 +91,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         tokens_dict = {}
 
     # 按 model_name 分组，收集提供商和共享者列表
-    # key: model_name, value: {"providers": set(), "shared_by": [...]}
-    models_dict: Dict[str, Dict] = defaultdict(lambda: {"providers": set(), "shared_by": []})
+    # key: model_name, value: {"providers": set(), "shared_by": [], "subscription_count": int}
+    models_dict: Dict[str, Dict] = defaultdict(lambda: {"providers": set(), "shared_by": [], "subscription_count": 0})
 
     for subscription, shared_api_key, user in results:
         # 从 litellm_model_ids JSON 中反向查找原始 model_name
@@ -104,7 +104,7 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         # 收集提供商
         models_dict[model_name]["providers"].add(shared_api_key.provider)
 
-        # 添加共享者信息（去重）
+        # 添加共享者信息（不去重，保留所有订阅记录）
         # 只暴露邮箱前缀以保护用户隐私
         username = user.email.split('@')[0] if user.email else f"user_{user.id}"
         shared_by_entry = SharedBy(
@@ -112,9 +112,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             name=username,
             avatar_url=user.avatar_url
         )
-        # 检查是否已存在（同一用户可能共享了相同的模型）
-        if not any(sb.user_id == user.id for sb in models_dict[model_name]["shared_by"]):
-            models_dict[model_name]["shared_by"].append(shared_by_entry)
+        models_dict[model_name]["shared_by"].append(shared_by_entry)
+        models_dict[model_name]["subscription_count"] += 1
 
     # 构建返回的 ModelInfo 列表
     model_info_list = []
@@ -123,15 +122,18 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     enabled_catalog = get_unified_model_catalog(db, enabled_only=True)
     enabled_model_keys = {item["model_key"] for item in enabled_catalog}
 
-    # 批量查询 GlobalModel 获取 logo_url 映射
+    # 批量查询 GlobalModel 获取所有元数据
     from api.models.provider_config import GlobalModel
-    global_models = db.exec(select(GlobalModel.model_key, GlobalModel.logo_url)).all()
-    global_logo_map = {gm.model_key: gm.logo_url for gm in global_models if gm.logo_url}
+    global_models = db.exec(select(GlobalModel)).all()
+    global_model_map = {gm.model_key: gm for gm in global_models}
 
     for model_name, data in models_dict.items():
         # 跳过模型配置中已禁用的模型
         if model_name not in enabled_model_keys:
             continue
+
+        # 优先从 GlobalModel 获取元数据
+        global_model = global_model_map.get(model_name)
 
         # 获取该模型的第一个提供商（用于获取模型配置）
         # 优先使用 bigmodel，否则使用第一个提供商
@@ -151,8 +153,11 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         models_config = provider_config.get("models", {}) if provider_config else {}
         model_config = models_config.get(model_name, {})
 
-        # 构建 display_name: 优先使用配置的 display_name，否则使用 model_name.upper()
-        display_name = model_config.get("display_name", model_name.upper())
+        # 构建 display_name: 优先级 GlobalModel > PROVIDER_INFO > model_name.upper()
+        if global_model and global_model.display_name:
+            display_name = global_model.display_name
+        else:
+            display_name = model_config.get("display_name", model_name.upper())
 
         # 构建提供商列表
         provider_infos = []
@@ -177,29 +182,44 @@ def get_available_models(db: Session) -> List[ModelInfo]:
                         logo_path=db_provider.logo_path or ""
                     ))
 
-        # 获取 Coding 评分
-        coding_score = model_config.get("coding_score")
+        # 获取元数据：优先 GlobalModel，其次 PROVIDER_INFO，最后默认值
+        if global_model:
+            description = global_model.description or model_config.get("description", "暂无描述")
+            context_length = global_model.context_length or model_config.get("context_length", "N/A")
+            max_output_length = global_model.max_output_length or model_config.get("max_output_length", "N/A")
+            input_types = global_model.input_types or model_config.get("input_types", ["Text"])
+            output_types = global_model.output_types or model_config.get("output_types", ["Text"])
+            coding_score = global_model.coding_score if global_model.coding_score is not None else model_config.get("coding_score")
+            model_logo_url = global_model.logo_url
+        else:
+            description = model_config.get("description", "暂无描述")
+            context_length = model_config.get("context_length", "N/A")
+            max_output_length = model_config.get("max_output_length", "N/A")
+            input_types = model_config.get("input_types", ["Text"])
+            output_types = model_config.get("output_types", ["Text"])
+            coding_score = model_config.get("coding_score")
+            model_logo_url = None
 
-        # 如果 provider 不在配置中，记录警告并使用默认值
-        if not provider_config:
-            logger.warning(f"No provider config found for {first_provider}, using defaults for model {model_name}")
+        # 如果 provider 不在配置中，记录警告
+        if not provider_config and not global_model:
+            logger.warning(f"No config found for {first_provider}, using defaults for model {model_name}")
 
         model_info = ModelInfo(
             display_name=display_name,
             model_name=model_name,  # 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
             provider=first_provider,  # 使用第一个提供商作为主提供商（现在是 str 类型）
-            description=model_config.get("description", "暂无描述"),
-            input_types=model_config.get("input_types", ["Text"]),
-            output_types=model_config.get("output_types", ["Text"]),
-            context_length=model_config.get("context_length", "N/A"),
-            max_output_length=model_config.get("max_output_length", "N/A"),
-            available_subscriptions=len(data["shared_by"]),
+            description=description,
+            input_types=input_types,
+            output_types=output_types,
+            context_length=context_length,
+            max_output_length=max_output_length,
+            available_subscriptions=data["subscription_count"],  # 使用实际订阅数量（不去重）
             shared_by=data["shared_by"],
             used_tokens=tokens_dict.get(model_name, 0),
             coding_score=coding_score,
             providers=provider_infos,
             subscription_platform_count=len(providers_list),
-            model_logo_url=global_logo_map.get(model_name),
+            model_logo_url=model_logo_url,
         )
         model_info_list.append(model_info)
 

@@ -180,14 +180,14 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
     );
   };
 
-  // 最多显示前 3 个头像，超出显示 "+N"
-  const visibleSharers = model.shared_by.slice(0, 3);
-  const extraSharersCount = Math.max(0, model.shared_by.length - 3);
+  // 最多显示前 5 个头像，超出显示 "+N"
+  const visibleSharers = model.shared_by.slice(0, 5);
+  const extraSharersCount = Math.max(0, model.shared_by.length - 5);
 
-  // 提供商列表（最多显示前 3 个）
+  // 提供商列表（最多显示前 5 个）
   const providers = model.providers || [];
-  const visibleProviders = providers.slice(0, 3);
-  const extraProvidersCount = Math.max(0, providers.length - 3);
+  const visibleProviders = providers.slice(0, 5);
+  const extraProvidersCount = Math.max(0, providers.length - 5);
 
   // 获取提供商显示名称：直接使用 API 返回的 name，去掉 Coding Plan 后缀
   const getProviderDisplayName = (provider: { code: string; name: string }): string => {
