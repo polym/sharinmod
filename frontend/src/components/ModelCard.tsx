@@ -301,7 +301,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
           {/* 左侧：订阅平台 */}
           <div>
             <div className="font-medium text-indigo-600 mb-2.5">
-              {t('subscriptionPlatforms')}: <span className="text-indigo-900">{model.subscription_platform_count || 0}</span>
+              {t('subscriptionPlatforms')} <span className="text-indigo-900">{model.subscription_platform_count || 0}</span>
             </div>
             <div className="flex justify-start">
               <div className="flex -space-x-1.5">
@@ -333,7 +333,7 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
           {/* 右侧：可用订阅 */}
           <div>
             <div className="font-medium text-indigo-600 mb-2.5">
-              {t('availableSubscriptions')}: <span className="text-indigo-900">{model.available_subscriptions}</span>
+              {t('availableSubscriptions')} <span className="text-indigo-900">{model.available_subscriptions}</span>
             </div>
             <div className="flex justify-start">
               <div className="flex -space-x-1.5">
