@@ -79,10 +79,14 @@ class UsageLogList(BaseModel):
     timezone: str = Field(default="Asia/Shanghai", description="Timezone used for date filtering")
 
 
-class HourlyTokenData(BaseModel):
-    """Hourly token distribution data"""
-    hour: int = Field(..., ge=0, le=23, description="Hour of day (0-23)")
-    tokens: int = Field(..., ge=0, description="Total tokens for this hour")
+class QuarterHourlyTokenData(BaseModel):
+    """Quarter-hourly token distribution data (15-minute intervals)"""
+    quarter_hour: int = Field(..., ge=0, le=95, description="Quarter hour of day (0-95, each represents 15 minutes)")
+    tokens: int = Field(..., ge=0, description="Total tokens for this 15-minute interval")
+
+
+# Alias for backward compatibility
+HourlyTokenData = QuarterHourlyTokenData
 
 
 class UsageOverviewResponse(BaseModel):
@@ -94,7 +98,7 @@ class UsageOverviewResponse(BaseModel):
     total_tokens: int = Field(description="Total tokens consumed")
     input_tokens: int = Field(description="Total input/prompt tokens")
     output_tokens: int = Field(description="Total output/completion tokens")
-    hourly_distribution: List[HourlyTokenData] = Field(description="24-hour token distribution (hours 0-23)")
+    quarter_hourly_distribution: List[QuarterHourlyTokenData] = Field(description="96 quarter-hour token distribution (0-95, each represents 15 minutes)")
     timezone: str = Field(default="Asia/Shanghai", description="Timezone used for date filtering")
 
     model_config = {
@@ -107,11 +111,11 @@ class UsageOverviewResponse(BaseModel):
                 "total_tokens": 7266,
                 "input_tokens": 1386,
                 "output_tokens": 5880,
-                "hourly_distribution": [
-                    {"hour": 0, "tokens": 120},
-                    {"hour": 1, "tokens": 0},
-                    {"hour": 10, "tokens": 3500},
-                    {"hour": 23, "tokens": 200}
+                "quarter_hourly_distribution": [
+                    {"quarter_hour": 0, "tokens": 120},
+                    {"quarter_hour": 1, "tokens": 0},
+                    {"quarter_hour": 42, "tokens": 3500},
+                    {"quarter_hour": 95, "tokens": 200}
                 ]
             }
         }

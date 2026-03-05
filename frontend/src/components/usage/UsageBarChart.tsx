@@ -2,19 +2,26 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-interface HourlyTokenData {
-  hour: number;
+interface QuarterHourlyTokenData {
+  quarter_hour: number;
   tokens: number;
 }
 
 interface UsageBarChartProps {
-  hourlyDistribution: HourlyTokenData[];
+  quarterHourlyDistribution: QuarterHourlyTokenData[];
 }
 
 // Tooltip padding constant for boundary detection
 const TOOLTIP_PADDING = 12;
 
-export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
+// Format quarter_hour (0-95) to time string like "0:00", "10:15", "14:30"
+const formatQuarterHour = (qh: number): string => {
+  const hours = Math.floor(qh / 4);
+  const minutes = (qh % 4) * 15;
+  return `${hours}:${minutes.toString().padStart(2, '0')}`;
+};
+
+export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [tooltipFlip, setTooltipFlip] = useState<'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none'>('none');
@@ -89,19 +96,16 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
     setTooltipFlip(flip);
   }, [mousePosition]);
 
-  if (!hourlyDistribution || hourlyDistribution.length === 0) return null;
+  if (!quarterHourlyDistribution || quarterHourlyDistribution.length === 0) return null;
 
-  // Sort by hour and extract token values
-  const sortedData = [...hourlyDistribution].sort((a, b) => a.hour - b.hour);
+  // Sort by quarter_hour and extract token values
+  const sortedData = [...quarterHourlyDistribution].sort((a, b) => a.quarter_hour - b.quarter_hour);
   const chartData = sortedData.map(d => d.tokens);
   const maxValue = Math.max(...chartData, 1);
 
-  // Calculate label indices (show labels at 0, 6, 12, 18, and the last hour in data)
-  const lastIndex = sortedData.length - 1;
-  const labelIndices = sortedData
-    .map((d, idx) => ({ idx, hour: d.hour }))
-    .filter(({ hour, idx }) => hour === 0 || hour === 6 || hour === 12 || hour === 18 || idx === lastIndex)
-    .map(({ idx }) => idx);
+  // Calculate label indices (show labels at every 2 hours: 0:00, 2:00, 4:00, ..., 22:00)
+  // quarter_hour indices: 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88
+  const labelIndices = [0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88];
 
   // Prevent division by zero
   const safeLength = Math.max(chartData.length - 1, 1);
@@ -113,7 +117,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
         {chartData.map((value, idx) => (
           <div
             key={idx}
-            className="clay-chart-bar w-3 bg-gradient-to-t from-indigo-400 to-purple-400 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 cursor-pointer shrink-0"
+            className="clay-chart-bar w-2 bg-gradient-to-t from-indigo-400 to-purple-400 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 cursor-pointer shrink-0"
             style={{
               height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
             }}
@@ -131,7 +135,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
               setMousePosition(null);
             }}
             role="graphics-symbol"
-            aria-label={`${sortedData[idx].hour}:00 - ${chartData[idx]} tokens`}
+            aria-label={`${formatQuarterHour(sortedData[idx].quarter_hour)} - ${chartData[idx]} tokens`}
           />
         ))}
         {/* Tooltip overlay */}
@@ -149,7 +153,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
               <span className="font-semibold text-sm">{chartData[hoverIndex]} tokens</span>
               <br />
               <span className="text-indigo-200 text-xs">
-                {sortedData[hoverIndex].hour}:00
+                {formatQuarterHour(sortedData[hoverIndex].quarter_hour)}
               </span>
             </div>
           </div>
@@ -162,7 +166,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
           // to prevent them from being cut off at the edges
           const rawPercent = (idx / safeLength) * 100;
           const isFirst = idx === 0;
-          const isLast = idx === sortedData.length - 1;
+          const isLast = idx === 88;
 
           let leftPercent = rawPercent;
           if (isFirst) {
@@ -177,7 +181,7 @@ export function UsageBarChart({ hourlyDistribution }: UsageBarChartProps) {
               className={`absolute transform ${isFirst ? '' : isLast ? '-translate-x-full' : '-translate-x-1/2'}`}
               style={{ left: `${leftPercent}%` }}
             >
-              {sortedData[idx].hour}:00
+              {formatQuarterHour(idx)}
             </span>
           );
         })}

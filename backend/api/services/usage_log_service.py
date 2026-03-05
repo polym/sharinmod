@@ -17,7 +17,7 @@ from api.schemas.usage_log import (
     UsageLogList,
     UsageLogResponse,
     UsageOverviewResponse,
-    HourlyTokenData
+    QuarterHourlyTokenData
 )
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
@@ -568,27 +568,49 @@ def get_user_usage_overview(
     output_tokens = result[1] or 0
     total_tokens = result[2] or 0
 
-    # Get 24-hour distribution
+    # Get 96 quarter-hour distribution (15-minute intervals)
     # Calculate timezone offset in hours for PostgreSQL date conversion
     tz_offset_hours = int(tz_offset.total_seconds() / 3600)
 
     # Build WHERE clause for unified_api_key_id filter
     key_filter = "AND unified_api_key_id = :key_id" if unified_api_key_id is not None else ""
 
-    hourly_query = text(f"""
-        SELECT CAST(EXTRACT(HOUR FROM request_time AT TIME ZONE 'UTC' + (INTERVAL '1 hour' * :offset)) AS INTEGER) AS hour,
-               SUM(total_tokens) as tokens
-        FROM usage_logs
-        WHERE user_id = :user_id
-          AND request_time >= :utc_start
-          AND request_time <= :utc_end
-          {key_filter}
-        GROUP BY hour
-        ORDER BY hour
-    """)
+    # Check database type to use appropriate SQL syntax
+    # PostgreSQL uses EXTRACT(EPOCH FROM ...), SQLite uses strftime
+    db_url = str(db.get_bind().url)
+    is_sqlite = db_url.startswith("sqlite")
 
-    # Initialize all 24 hours with 0 tokens
-    hourly_distribution = [HourlyTokenData(hour=h, tokens=0) for h in range(24)]
+    if is_sqlite:
+        # SQLite compatible query - calculate quarter_hour using strftime
+        # Convert UTC time to local timezone by adding offset hours
+        # strftime('%s', ...) gives seconds since epoch, then calculate quarter_hour
+        quarter_hourly_query = text(f"""
+            SELECT CAST(((strftime('%%s', datetime(request_time, '+{tz_offset_hours} hours')) %% 86400) / 900) AS INTEGER) AS quarter_hour,
+                   SUM(total_tokens) as tokens
+            FROM usage_logs
+            WHERE user_id = :user_id
+              AND request_time >= :utc_start
+              AND request_time <= :utc_end
+              {key_filter}
+            GROUP BY quarter_hour
+            ORDER BY quarter_hour
+        """)
+    else:
+        # PostgreSQL query
+        quarter_hourly_query = text(f"""
+            SELECT FLOOR(EXTRACT(EPOCH FROM (request_time AT TIME ZONE 'UTC' + INTERVAL '1 hour' * :offset)) % 86400 / 900)::int AS quarter_hour,
+                   SUM(total_tokens) as tokens
+            FROM usage_logs
+            WHERE user_id = :user_id
+              AND request_time >= :utc_start
+              AND request_time <= :utc_end
+              {key_filter}
+            GROUP BY quarter_hour
+            ORDER BY quarter_hour
+        """)
+
+    # Initialize all 96 quarter-hours with 0 tokens
+    quarter_hourly_distribution = [QuarterHourlyTokenData(quarter_hour=q, tokens=0) for q in range(96)]
 
     # Execute query and update distribution
     query_params = {
@@ -601,15 +623,15 @@ def get_user_usage_overview(
         query_params["key_id"] = unified_api_key_id
 
     try:
-        results = db.execute(hourly_query, query_params).fetchall()
+        results = db.execute(quarter_hourly_query, query_params).fetchall()
     except Exception as e:
-        logger.error(f"Hourly distribution query failed: {e}")
+        logger.error(f"Quarter-hourly distribution query failed: {e}")
         results = []
 
     for row in results:
-        hour, tokens = row
-        if 0 <= hour < 24:
-            hourly_distribution[hour] = HourlyTokenData(hour=hour, tokens=tokens or 0)
+        quarter_hour, tokens = row
+        if 0 <= quarter_hour < 96:
+            quarter_hourly_distribution[quarter_hour] = QuarterHourlyTokenData(quarter_hour=quarter_hour, tokens=tokens or 0)
 
     return UsageOverviewResponse(
         date=target_date,
@@ -619,6 +641,6 @@ def get_user_usage_overview(
         total_tokens=total_tokens,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        hourly_distribution=hourly_distribution,
+        quarter_hourly_distribution=quarter_hourly_distribution,
         timezone=tz_str
     )
