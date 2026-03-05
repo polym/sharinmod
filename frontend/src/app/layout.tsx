@@ -32,7 +32,7 @@ export default function RootLayout({
             </div>
 
             {/* Fixed Sidebar on desktop - 从 Header 下方开始 */}
-            <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40">
+            <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40 pt-2">
               <div className="w-full border-r border-gray-200 bg-white">
                 <Sidebar />
               </div>
