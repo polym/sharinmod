@@ -447,7 +447,9 @@
     },
     "filter": {
       "searchPlaceholder": "Search models...",
-      "batchEdit": "Batch Edit ({count})"
+      "batchEdit": "Batch Edit ({count})",
+      "providerPlaceholder": "Select Provider",
+      "allProviders": "All Providers"
     },
     "editDialog": {
       "title": "Edit Model Config",

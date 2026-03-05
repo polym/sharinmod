@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -102,10 +103,15 @@ interface ProviderConfig {
 function ProviderModelTab() {
   const t = useTranslations('adminModelConfig');
   const { toast } = useToast();
+  const searchParams = useSearchParams();
 
   const [models, setModels] = useState<ModelCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterQuery, setFilterQuery] = useState<string>('');
+  const providerFromUrl = searchParams.get('provider') || '';
+  const [selectedProvider, setSelectedProvider] = useState<string>(providerFromUrl);
+  // "all" 代表全部供应商，筛选时视为空字符串
+  const providerFilterValue = selectedProvider === 'all' ? '' : selectedProvider;
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ModelCatalogItem | null>(null);
@@ -143,12 +149,31 @@ function ProviderModelTab() {
   // Derived: filtered model list — fuzzy search on provider_key or model_key, sorted by provider then model
   const filteredModels = useMemo(() => {
     const sorted = [...models].sort((a, b) => a.provider_key.localeCompare(b.provider_key) || a.model_key.localeCompare(b.model_key));
-    if (!filterQuery.trim()) return sorted;
-    const q = filterQuery.toLowerCase().trim();
-    return sorted.filter(
-      (m) => m.provider_key.toLowerCase().includes(q) || m.model_key.toLowerCase().includes(q)
-    );
-  }, [models, filterQuery]);
+    let result = sorted;
+    // 供应商筛选（精确匹配）
+    if (providerFilterValue) {
+      result = result.filter(m => m.provider_key === providerFilterValue);
+    }
+    // 文本搜索
+    if (filterQuery.trim()) {
+      const q = filterQuery.toLowerCase().trim();
+      result = result.filter(
+        (m) => m.provider_key.toLowerCase().includes(q) || m.model_key.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [models, providerFilterValue, filterQuery]);
+
+  // 提取唯一供应商列表（用于下拉筛选）
+  const uniqueProviders = useMemo(() => {
+    const providerMap = new Map<string, { key: string; name: string }>();
+    models.forEach(m => {
+      if (!providerMap.has(m.provider_key)) {
+        providerMap.set(m.provider_key, { key: m.provider_key, name: m.provider_name });
+      }
+    });
+    return Array.from(providerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [models]);
 
   const loadModels = async () => {
     setLoading(true);
@@ -409,8 +434,24 @@ function ProviderModelTab() {
 
   return (
     <>
-        {/* 搜索 + 批量编辑按钮 */}
+        {/* 搜索 + 供应商筛选 + 批量编辑按钮 */}
         <div className="flex gap-3 mb-4 items-center">
+          <Select
+            value={selectedProvider || 'all'}
+            onValueChange={setSelectedProvider}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder={t('filter.providerPlaceholder') || '选择供应商'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('filter.allProviders') || '全部供应商'}</SelectItem>
+              {uniqueProviders.map((p) => (
+                <SelectItem key={p.key} value={p.key}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input
             className="w-64"
             placeholder={t('filter.searchPlaceholder')}

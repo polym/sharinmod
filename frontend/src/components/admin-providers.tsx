@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -343,7 +344,14 @@ export function AdminProviders() {
                           {provider.website}
                         </a>
                       </TableCell>
-                      <TableCell>{provider.models.length}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/admin/models?provider=${encodeURIComponent(provider.provider_key)}`}
+                          className="text-blue-600 hover:underline cursor-pointer"
+                        >
+                          {provider.models.length}
+                        </Link>
+                      </TableCell>
                       <TableCell>
                         <Switch
                           checked={provider.is_enabled}
