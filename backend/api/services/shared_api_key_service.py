@@ -927,20 +927,20 @@ def get_subscription_hourly_tokens(session: Session, shared_api_key_id: int, hou
         logger.error(f"Failed to get hourly tokens from Redis: {e}")
         return []
 
-    # Convert to list of dicts (UTC time, frontend will handle timezone conversion)
+    # Convert to list of dicts (UTC time in RFC3339 format, frontend will handle timezone conversion)
     chart_data = []
     for hour_dt in sorted(hourly_totals.keys()):
         chart_data.append({
-            "date": hour_dt.strftime("%Y-%m-%d %H:00"),
+            "date": hour_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "value": hourly_totals[hour_dt]
         })
 
-    # Fill missing hours with zeros (UTC time)
+    # Fill missing hours with zeros (UTC time in RFC3339 format)
     result = []
     hour_dict = {item["date"]: item["value"] for item in chart_data}
     for i in range(hours):
         hour_dt = now - timedelta(hours=hours - 1 - i)
-        date_str = hour_dt.strftime("%Y-%m-%d %H:00")
+        date_str = hour_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         result.append({
             "date": date_str,
             "value": hour_dict.get(date_str, 0)
