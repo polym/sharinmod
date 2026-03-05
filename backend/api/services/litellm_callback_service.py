@@ -446,6 +446,14 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             if callback.error_information:
                 error_code = callback.error_information.error_code
 
+            # Truncate error_str to prevent exceeding database column limit
+            # Max error_details column is 20000 chars, leave room for JSON structure and multiple errors
+            MAX_ERROR_STR_LENGTH = 5000
+            if error_str and len(error_str) > MAX_ERROR_STR_LENGTH:
+                # Middle truncation: keep head and tail, truncate middle
+                half = MAX_ERROR_STR_LENGTH // 2
+                error_str = error_str[:half] + "... [truncated] ... " + error_str[-half:]
+
             # Build error_details structure
             error_detail = {
                 "start_time": callback.start_time if callback.start_time else datetime.now(timezone.utc).timestamp(),
@@ -486,7 +494,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
             if existing_log:
                 # Merge with existing record
-                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status, error_details_json)
+                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status, error_details_json, client)
                 if updated_log is None:
                     # Callback was ignored (duplicate success)
                     logger.info(f"Ignored callback for trace_id={trace_id}")

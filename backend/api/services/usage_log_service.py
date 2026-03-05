@@ -282,7 +282,8 @@ def update_usage_log_for_retry(
     existing_log: UsageLog,
     callback_data: LiteLLMSpendlogCallbackRequest,
     new_status: UsageLogStatus,
-    error_details_json: Optional[str] = None
+    error_details_json: Optional[str] = None,
+    client: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Update an existing usage log for retry scenarios
@@ -330,9 +331,9 @@ def update_usage_log_for_retry(
                     WHERE id = :log_id
                 """),
                 {
-                    "status": new_status.value,
+                    "status": new_status.name,
                     "model_name": _extract_model_short_name(callback_data.model),
-                    "client": callback_data.get('client'),
+                    "client": client,
                     "total_duration": callback_data.response_time,
                     "ttft": callback_data.response_time if callback_data.completion_start_time else None,
                     "input_tokens": callback_data.prompt_tokens,
@@ -358,6 +359,22 @@ def update_usage_log_for_retry(
                         existing_errors = json.loads(updated_error_details)
                         existing_errors.extend(new_errors)
                         updated_error_details = json.dumps(existing_errors)
+
+                        # Truncate if exceeds database column limit
+                        MAX_ERROR_DETAILS_LENGTH = 19000  # Leave buffer for JSON overhead
+                        if len(updated_error_details) > MAX_ERROR_DETAILS_LENGTH:
+                            # Middle truncation on the last error's error_str
+                            last_error_str = existing_errors[-1].get("error_str", "")
+                            if len(last_error_str) > 1000:
+                                half = 500
+                                existing_errors[-1]["error_str"] = last_error_str[:half] + "... [truncated] ... " + last_error_str[-half:]
+                            else:
+                                existing_errors[-1]["error_str"] = last_error_str
+                            updated_error_details = json.dumps(existing_errors)
+                            # If still too long, remove older errors
+                            while len(updated_error_details) > MAX_ERROR_DETAILS_LENGTH and len(existing_errors) > 1:
+                                existing_errors.pop(0)  # Remove oldest error
+                                updated_error_details = json.dumps(existing_errors)
                     else:
                         # No existing errors, use new ones
                         updated_error_details = error_details_json
@@ -383,7 +400,7 @@ def update_usage_log_for_retry(
                     SET status = :status, num_fails = num_fails + 1, error_details = :error_details
                     WHERE id = :log_id
                 """),
-                {"status": new_status.value, "log_id": existing_log.id, "error_details": error_details_json}
+                {"status": new_status.name, "log_id": existing_log.id, "error_details": error_details_json}
             )
             db.commit()
             db.refresh(existing_log)

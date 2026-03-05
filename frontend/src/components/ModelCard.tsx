@@ -337,8 +337,8 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             </div>
             <div className="flex justify-start">
               <div className="flex -space-x-1.5">
-                {visibleSharers.map((sharer) => (
-                  <SharerAvatarTooltip key={sharer.user_id} name={sharer.name || tCommon('unknown')}>
+                {visibleSharers.map((sharer, idx) => (
+                  <SharerAvatarTooltip key={`${sharer.user_id}-${idx}`} name={sharer.name || tCommon('unknown')}>
                     <Avatar
                       className="w-7 h-7 border-2 border-white shadow-md hover:scale-110 hover:z-10 transition-all cursor-default"
                     >
