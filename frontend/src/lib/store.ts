@@ -23,11 +23,13 @@ interface AuthState {
   user: User | null;
   token: string | null;
   showLoginDialog: boolean;
+  redirectAfterLogin: string | null;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: User) => void;
   setShowLoginDialog: (show: boolean) => void;
+  setRedirectAfterLogin: (path: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       showLoginDialog: false,
+      redirectAfterLogin: null,
       _isLoggingOut: false,
       login: (user: User, token: string) => {
         set({ isAuthenticated: true, user, token, _isLoggingOut: false });
@@ -48,7 +51,19 @@ export const useAuthStore = create<AuthState>()(
         set({ user });
       },
       setShowLoginDialog: (show: boolean) => {
+        // 当打开登录对话框时，保存当前路径用于登录后跳转
+        if (show && typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          // 排除首页和登录相关页面
+          if (currentPath !== '/' && !currentPath.startsWith('/auth/')) {
+            set({ showLoginDialog: show, redirectAfterLogin: currentPath });
+            return;
+          }
+        }
         set({ showLoginDialog: show });
+      },
+      setRedirectAfterLogin: (path: string | null) => {
+        set({ redirectAfterLogin: path });
       },
     }),
     {
@@ -57,7 +72,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         token: state.token,
-        // showLoginDialog and _isLoggingOut are NOT persisted
+        // showLoginDialog, redirectAfterLogin and _isLoggingOut are NOT persisted
       }),
     }
   )

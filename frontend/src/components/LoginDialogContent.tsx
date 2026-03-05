@@ -37,6 +37,8 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
+  const redirectAfterLogin = useAuthStore((state) => state.redirectAfterLogin);
+  const setRedirectAfterLogin = useAuthStore((state) => state.setRedirectAfterLogin);
   const router = useRouter();
 
   const validateForm = (): boolean => {
@@ -74,7 +76,10 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       const response = await authAPI.login({ email, password });
       const { access_token, user } = response.data;
       login(user, access_token);
-      router.push('/shared');
+      // 跳转到登录前的页面或默认页面
+      const redirectPath = redirectAfterLogin || '/shared';
+      setRedirectAfterLogin(null);
+      router.push(redirectPath);
       setShowLoginDialog(false);
       onSuccess?.();
     } catch (err) {
