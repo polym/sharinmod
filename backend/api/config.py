@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
     GITHUB_REDIRECT_URI: str = os.getenv("GITHUB_REDIRECT_URI", "http://localhost:28888/api/oauth/github/callback")
 
+    # GitLab OAuth Configuration
+    GITLAB_CLIENT_ID: str = os.getenv("GITLAB_CLIENT_ID", "")
+    GITLAB_CLIENT_SECRET: str = os.getenv("GITLAB_CLIENT_SECRET", "")
+    GITLAB_BASE_URL: str = os.getenv("GITLAB_BASE_URL", "https://gitlab.com")
+    GITLAB_REDIRECT_URI: str = os.getenv("GITLAB_REDIRECT_URI", "http://localhost:28888/api/oauth/gitlab/callback")
+
     # Website Base URL (for OAuth callback)
     WEBSITE_BASE_URL: str = os.getenv("WEBSITE_BASE_URL", "http://localhost:38888")
 
