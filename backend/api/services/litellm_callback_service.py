@@ -389,9 +389,6 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         request_tags = callback_data.get('request_tags')
         client = extract_client_from_request_tags(request_tags)
 
-        # Extract provider from callback
-        provider = callback_data.get('custom_llm_provider')
-
         # Find consumer by api_key_hash
         consumer = None
         unified_api_key_id = None
@@ -423,6 +420,16 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         if not subscription:
             logger.warning(f"No subscription found for model_id: {model_id}")
             # Don't fail - just log and continue
+
+        # Get provider from subscription (via SharedAPIKey)
+        provider = None
+        if subscription:
+            shared_key_statement = select(SharedAPIKey).where(
+                SharedAPIKey.id == subscription.shared_api_key_id
+            )
+            shared_key = session.exec(shared_key_statement).first()
+            if shared_key:
+                provider = shared_key.provider
 
         # Determine callback status (default to success if not specified)
         # Validate status field - only accept "success" or "failure"
@@ -518,16 +525,6 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                 try:
                     from api.services.usage_log_service import create_failure_usage_log
 
-                    # Get provider from subscription if not in callback
-                    failure_provider = provider
-                    if not failure_provider and subscription:
-                        shared_key_statement = select(SharedAPIKey).where(
-                            SharedAPIKey.id == subscription.shared_api_key_id
-                        )
-                        shared_key = session.exec(shared_key_statement).first()
-                        if shared_key:
-                            failure_provider = shared_key.provider
-
                     create_failure_usage_log(
                         db=session,
                         user_id=consumer.id,
@@ -539,7 +536,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                         kind=kind,
                         trace_id=trace_id,
                         error_details=error_details_json,
-                        provider=failure_provider
+                        provider=provider
                     )
                     logger.info(f"Created failure usage log for user {consumer.id}, kind={kind}")
                 except Exception as e:
