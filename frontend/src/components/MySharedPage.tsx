@@ -102,26 +102,22 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   const chartData = data ? data.map(d => d.value) : [];
   const maxValue = chartData.length > 0 ? Math.max(...chartData, 1) : 1;
 
-  // Parse UTC date string and return components with UTC+8 offset
-  const parseBeijingTime = (dateStr: string) => {
-    const [ymd, time] = dateStr.split(' ');
-    const [year, month, day] = ymd.split('-').map(Number);
-    const [hour, minute] = time.split(':').map(Number);
-    const beijingHour = (hour + 8) % 24;
-    const date = new Date(Date.UTC(year, month - 1, day, beijingHour, minute));
+  // Parse RFC3339 UTC date string and return components in local timezone
+  const parseLocalTime = (dateStr: string) => {
+    const date = new Date(dateStr);
     return {
-      month: date.getUTCMonth() + 1,
-      day: date.getUTCDate(),
-      hour: date.getUTCHours()
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hour: date.getHours()
     };
   };
 
-  // Memoize label indices calculation (based on UTC+8 hour)
+  // Memoize label indices calculation (based on local timezone hour)
   const labelIndices = useMemo(() => {
     const indices: number[] = [];
     if (!data) return indices;
     data.forEach((_, idx) => {
-      const { hour } = parseBeijingTime(data[idx].date);
+      const { hour } = parseLocalTime(data[idx].date);
       if (hour === 0 || hour === 12) {
         indices.push(idx);
       }
@@ -129,12 +125,12 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
     return indices;
   }, [data]);
 
-  // Memoize label content (formatted in UTC+8)
+  // Memoize label content (formatted in local timezone)
   const labelContent = useMemo(() => {
     const content: { [key: number]: string } = {};
     if (!data) return content;
     data.forEach((d, idx) => {
-      const { month, day, hour } = parseBeijingTime(d.date);
+      const { month, day, hour } = parseLocalTime(d.date);
       if (hour === 0 || hour === 12) {
         content[idx] = `${month}/${day} ${hour.toString().padStart(2, '0')}:00`;
       }
@@ -153,7 +149,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
       {/* Chart bars */}
       <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-indigo-200 relative px-3 justify-between gap-px">
         {chartData.map((value, idx) => {
-          const timeInfo = parseBeijingTime(data[idx].date);
+          const timeInfo = parseLocalTime(data[idx].date);
           return (
             <div
               key={idx}
@@ -194,7 +190,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
               <span className="font-bold">{chartData[hoverIndex]} {tCommon('tokens')}</span>
               <br />
               <span className="text-indigo-200 text-[10px]">
-                {parseBeijingTime(data[hoverIndex].date).month}/{parseBeijingTime(data[hoverIndex].date).day} {parseBeijingTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
+                {parseLocalTime(data[hoverIndex].date).month}/{parseLocalTime(data[hoverIndex].date).day} {parseLocalTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
               </span>
             </div>
           </div>
@@ -447,7 +443,7 @@ export function MySharedPage() {
                           <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalTokens')}</dt>
                           <dd className="text-2xl font-bold text-indigo-900">
                             {(() => {
-                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('days'), tStats('times'));
+                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('million'), tStats('tenThousand'));
                               return <>{value}<span className="text-sm font-normal text-indigo-500 ml-1">{unit}</span></>;
                             })()}
                           </dd>

@@ -86,7 +86,9 @@
       "totalDuration": "总时长",
       "totalRequests": "总请求",
       "days": "天",
-      "times": "次"
+      "times": "次",
+      "million": "百万",
+      "tenThousand": "万"
     },
     "statusEnabled": "已启用",
     "statusDisabled": "已停用"
@@ -171,7 +173,10 @@
     "errorCode": "错误码",
     "errorMessage": "错误信息",
     "callTime": "调用时间",
-    "provider": "提供商"
+    "provider": "提供商",
+    "errorDetails": "错误详情",
+    "expand": "展开",
+    "collapse": "收起"
   },
   "ModelCard": {
     "tokensUsed": "已使用 Token",
@@ -317,6 +322,33 @@
       "updateFailed": "更新失败"
     }
   },
+  "password": {
+    "changePassword": "修改密码",
+    "changeDescription": "更新您的账户密码",
+    "forceChangeDescription": "首次登录需要修改密码，修改后才能使用其他功能",
+    "required": "必填",
+    "newPassword": "新密码",
+    "newPasswordPlaceholder": "输入新密码",
+    "confirmPassword": "确认密码",
+    "confirmPasswordPlaceholder": "再次输入新密码",
+    "requirements": "密码要求",
+    "requirementsList": {
+      "length": "8-72 个字符",
+      "uppercase": "至少一个大写字母",
+      "lowercase": "至少一个小写字母",
+      "digit": "至少一个数字"
+    },
+    "errors": {
+      "minLength": "密码长度至少 8 位",
+      "maxLength": "密码长度不能超过 72 位",
+      "uppercase": "密码必须包含至少一个大写字母",
+      "lowercase": "密码必须包含至少一个小写字母",
+      "digit": "密码必须包含至少一个数字",
+      "mismatch": "两次输入的密码不一致"
+    },
+    "changeSuccess": "密码修改成功",
+    "changeFailed": "密码修改失败"
+  },
   "common": {
     "loading": "加载中...",
     "error": "错误",
@@ -448,9 +480,7 @@
     },
     "filter": {
       "searchPlaceholder": "搜索模型...",
-      "batchEdit": "批量编辑 ({count} 条)",
-      "providerPlaceholder": "选择供应商",
-      "allProviders": "全部供应商"
+      "batchEdit": "批量编辑 ({count} 条)"
     },
     "editDialog": {
       "title": "编辑模型配置",

@@ -37,6 +37,33 @@
       "updateFailed": "Update failed"
     }
   },
+  "password": {
+    "changePassword": "Change Password",
+    "changeDescription": "Update your account password",
+    "forceChangeDescription": "First-time login requires password change before accessing other features",
+    "required": "Required",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Enter new password again",
+    "requirements": "Password Requirements",
+    "requirementsList": {
+      "length": "8-72 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "digit": "At least one digit"
+    },
+    "errors": {
+      "minLength": "Password must be at least 8 characters",
+      "maxLength": "Password cannot exceed 72 characters",
+      "uppercase": "Password must contain at least one uppercase letter",
+      "lowercase": "Password must contain at least one lowercase letter",
+      "digit": "Password must contain at least one digit",
+      "mismatch": "Passwords do not match"
+    },
+    "changeSuccess": "Password changed successfully",
+    "changeFailed": "Failed to change password"
+  },
   "language": {
     "zh-CN": "中文",
     "en": "English"
@@ -106,7 +133,9 @@
       "totalDuration": "Total Duration",
       "totalRequests": "Total Requests",
       "days": "days",
-      "times": "times"
+      "times": "times",
+      "million": "M",
+      "tenThousand": "10K"
     },
     "statusEnabled": "Enabled",
     "statusDisabled": "Disabled"
@@ -191,7 +220,10 @@
     "errorCode": "Error Code",
     "errorMessage": "Error Message",
     "callTime": "Call Time",
-    "provider": "Provider"
+    "provider": "Provider",
+    "errorDetails": "Error Details",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "ModelCard": {
     "tokensUsed": "Tokens Used",
@@ -447,9 +479,7 @@
     },
     "filter": {
       "searchPlaceholder": "Search models...",
-      "batchEdit": "Batch Edit ({count})",
-      "providerPlaceholder": "Select Provider",
-      "allProviders": "All Providers"
+      "batchEdit": "Batch Edit ({count})"
     },
     "editDialog": {
       "title": "Edit Model Config",
