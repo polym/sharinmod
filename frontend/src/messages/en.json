@@ -191,7 +191,10 @@
     "errorCode": "Error Code",
     "errorMessage": "Error Message",
     "callTime": "Call Time",
-    "provider": "Provider"
+    "provider": "Provider",
+    "errorDetails": "Error Details",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "ModelCard": {
     "tokensUsed": "Tokens Used",

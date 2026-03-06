@@ -171,7 +171,10 @@
     "errorCode": "错误码",
     "errorMessage": "错误信息",
     "callTime": "调用时间",
-    "provider": "提供商"
+    "provider": "提供商",
+    "errorDetails": "错误详情",
+    "expand": "展开",
+    "collapse": "收起"
   },
   "ModelCard": {
     "tokensUsed": "已使用 Token",

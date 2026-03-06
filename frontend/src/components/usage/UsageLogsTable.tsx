@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ClientName } from './ClientName';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/lib/store';
@@ -61,9 +62,10 @@ const getKindLabelStyle = (kind: string): string => {
   return '';
 };
 
-// 错误信息 Tooltip 组件
-function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; children: React.ReactNode }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+// 错误详情弹窗组件
+function ErrorDetailsDialog({ errorDetails, children }: { errorDetails?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const t = useTranslations('usageTable');
   const { locale } = useLocaleStore();
 
@@ -84,98 +86,123 @@ function ErrorTooltip({ errorDetails, children }: { errorDetails?: string; child
     });
   };
 
-  // 解析 error_details JSON
-  const { errors, totalCount } = errorDetails ? (() => {
-    try {
-      const parsed = JSON.parse(errorDetails);
-      const allErrors = Array.isArray(parsed) ? parsed : [];
-      // 限制最多显示5条错误，防止 tooltip 过大
-      return { errors: allErrors.slice(0, 5), totalCount: allErrors.length };
-    } catch (e) {
-      console.error('Failed to parse error_details:', e);
-      return { errors: [], totalCount: 0 };
-    }
-  })() : { errors: [], totalCount: 0 };
-
-  // 根据内容动态计算 tooltip 宽度
-  const calculateTooltipWidth = () => {
-    if (errors.length === 0) return 320;
-
-    let maxLineLength = 0;
-    errors.forEach(error => {
-      if (error.start_time) {
-        const timeStr = formatErrorTime(error.start_time);
-        // 计算时间字符串长度（标签 + 值 + 分隔符）
-        maxLineLength = Math.max(maxLineLength, `${t('callTime')}: ${timeStr}`.length);
+  // 切换行展开状态
+  const toggleRow = (index: number) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
       }
-      if (error.provider) {
-        maxLineLength = Math.max(maxLineLength, `${t('provider')}: ${error.provider}`.length);
-      }
-      if (error.error_code) {
-        maxLineLength = Math.max(maxLineLength, `${t('errorCode')}: ${error.error_code}`.length);
-      }
-      if (error.error_str) {
-        // 错误信息通常较长，考虑换行
-        const errorStrLines = error.error_str.length;
-        maxLineLength = Math.max(maxLineLength, `${t('errorMessage')}: `.length + errorStrLines);
-      }
+      return newSet;
     });
-
-    // 每个字符约 8px 宽度，加上内边距和最小宽度
-    const charWidth = 8;
-    const paddingAndMin = 64; // px-4 py-3 + 最小宽度
-    const calculatedWidth = Math.max(maxLineLength * charWidth + paddingAndMin, 320);
-
-    // 设置最大宽度上限为 800px，防止过长
-    return Math.min(calculatedWidth, 800);
   };
 
+  // 解析 error_details JSON
+  const errors: ErrorDetail[] = errorDetails ? (() => {
+    try {
+      const parsed = JSON.parse(errorDetails);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error('Failed to parse error_details:', e);
+      return [];
+    }
+  })() : [];
+
+  // 错误信息截断长度
+  const TRUNCATE_LENGTH = 100;
+
   return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      {children}
-      {showTooltip && errors.length > 0 && (
-        <div
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 max-h-60 overflow-y-auto px-4 py-3 text-sm bg-gray-900 text-white rounded z-50 pointer-events-none"
-          style={{ width: `${calculateTooltipWidth()}px` }}
-        >
-          {errors.map((error: ErrorDetail, index: number) => (
-            <div key={index}>
-              {error.start_time && (
-                <div className="text-gray-400">
-                  {t('callTime')}: {formatErrorTime(error.start_time)}
-                </div>
-              )}
-              {error.provider && (
-                <div className="text-gray-400">
-                  {t('provider')}: {error.provider}
-                </div>
-              )}
-              {error.error_code && (
-                <div>
-                  {t('errorCode')}: {error.error_code}
-                </div>
-              )}
-              {error.error_str && (
-                <div>
-                  {t('errorMessage')}: {error.error_str}
-                </div>
-              )}
-              {index < errors.length - 1 && (
-                <div className="border-t border-gray-700 my-2" />
-              )}
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      setOpen(isOpen);
+      if (!isOpen) {
+        setExpandedRows(new Set());
+      }
+    }}>
+      <DialogTrigger asChild>
+        <button type="button" className="inline-flex items-center">
+          {children}
+        </button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl lg:max-w-[66.67%]">
+        <DialogHeader>
+          <DialogTitle>{t('errorDetails')}</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
+          {errors.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">{t('callTime')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('provider')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('errorCode')}</TableHead>
+                  <TableHead className="w-[50%]">{t('errorMessage')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {errors.map((error: ErrorDetail, index: number) => {
+                  const isExpanded = expandedRows.has(index);
+                  const errorStr = error.error_str || '-';
+                  const shouldTruncate = errorStr.length > TRUNCATE_LENGTH;
+
+                  return (
+                    <TableRow key={index}>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {error.start_time ? formatErrorTime(error.start_time) : '-'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {error.provider || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {error.error_code || '-'}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="flex flex-col gap-1">
+                          <span className="break-all">
+                            {isExpanded || !shouldTruncate
+                              ? errorStr
+                              : `${errorStr.slice(0, TRUNCATE_LENGTH)}...`}
+                          </span>
+                          {shouldTruncate && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleRow(index);
+                              }}
+                              aria-expanded={isExpanded}
+                              aria-label={isExpanded ? t('collapse') : t('expand')}
+                              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs w-fit"
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="w-3 h-3" />
+                                  {t('collapse')}
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="w-3 h-3" />
+                                  {t('expand')}
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              -
             </div>
-          ))}
-          {totalCount > 5 && (
-            <div className="text-gray-400 mt-2 text-center">... 还有 {totalCount - 5} 条错误</div>
           )}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
         </div>
-      )}
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -254,9 +281,9 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
                   {log.num_fails > 0 && (
-                    <ErrorTooltip errorDetails={log.error_details}>
-                      <AlertTriangle className="ml-1 w-4 h-4 text-amber-600 cursor-help" />
-                    </ErrorTooltip>
+                    <ErrorDetailsDialog errorDetails={log.error_details}>
+                      <AlertTriangle className="ml-1 w-4 h-4 text-amber-600 cursor-pointer" />
+                    </ErrorDetailsDialog>
                   )}
                 </TableCell>
                 <TableCell className="text-sm">
