@@ -133,7 +133,9 @@
       "totalDuration": "Total Duration",
       "totalRequests": "Total Requests",
       "days": "days",
-      "times": "times"
+      "times": "times",
+      "million": "M",
+      "tenThousand": "10K"
     },
     "statusEnabled": "Enabled",
     "statusDisabled": "Disabled"

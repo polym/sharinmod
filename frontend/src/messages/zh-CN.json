@@ -86,7 +86,9 @@
       "totalDuration": "总时长",
       "totalRequests": "总请求",
       "days": "天",
-      "times": "次"
+      "times": "次",
+      "million": "百万",
+      "tenThousand": "万"
     },
     "statusEnabled": "已启用",
     "statusDisabled": "已停用"

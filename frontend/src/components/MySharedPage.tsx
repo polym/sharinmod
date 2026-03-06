@@ -443,7 +443,7 @@ export function MySharedPage() {
                           <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalTokens')}</dt>
                           <dd className="text-2xl font-bold text-indigo-900">
                             {(() => {
-                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('days'), tStats('times'));
+                              const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('million'), tStats('tenThousand'));
                               return <>{value}<span className="text-sm font-normal text-indigo-500 ml-1">{unit}</span></>;
                             })()}
                           </dd>
