@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_DATABASE: str = os.getenv("REDIS_DATABASE", "redis://redis:6379/")
 
+    # Initial Admin User Configuration
+    SHARINMOD_ADMIN_EMAIL: str = os.getenv("SHARINMOD_ADMIN_EMAIL", "admin@sharin.mod")
+    SHARINMOD_ADMIN_PASSWORD: str = os.getenv("SHARINMOD_ADMIN_PASSWORD", "Aha12345!")
+
     # LiteLLM webhook IP whitelist (comma-separated string, will be parsed to list)
     LITELLM_WEBHOOK_IP_WHITELIST_STR: str = ""
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []

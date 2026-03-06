@@ -34,3 +34,64 @@ def initialize_sharinmod_data(db: Session):
     """
     from api.services.provider_config_service import sync_global_models_from_catalog
     sync_global_models_from_catalog(db)
+
+
+def initialize_admin_user(db: Session):
+    """
+    Initialize admin user on startup.
+
+    Creates a default admin user if the configured email doesn't exist.
+    Uses environment variables for configuration:
+    - SHARINMOD_ADMIN_EMAIL: Admin email (default: admin@sharin.mod)
+    - SHARINMOD_ADMIN_PASSWORD: Admin password (default: Aha12345!)
+
+    The user will be created with:
+    - is_admin=True
+    - force_password_change=True (requires password change on first login)
+    """
+    from api.models.user import User
+    from api.utils.security import hash_password
+    from api.config import settings
+    import re
+
+    email = settings.SHARINMOD_ADMIN_EMAIL
+    password = settings.SHARINMOD_ADMIN_PASSWORD
+
+    # Validate email format
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        print(f"⚠ Invalid admin email format: {email}. Skipping admin user initialization.")
+        return
+
+    # Check if user already exists
+    existing_user = db.exec(
+        __import__('sqlmodel', fromlist=['select']).select(User).where(User.email == email)
+    ).first()
+
+    if existing_user:
+        print(f"✓ Admin user already exists: {email}")
+        return
+
+    # Extract name from email (part before @)
+    name = email.split('@')[0]
+
+    # Create admin user
+    admin_user = User(
+        email=email,
+        hashed_password=hash_password(password),
+        name=name,
+        is_admin=True,
+        force_password_change=True
+    )
+
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    # Print prominent message
+    print("\n" + "╔" + "═" * 60 + "╗")
+    print("║" + "  初始管理员账户已创建".center(56) + "║")
+    print("║" + f"  邮箱: {email}".ljust(59) + "║")
+    print("║" + f"  密码: {password}".ljust(59) + "║")
+    print("║" + "  请登录后立即修改密码！".center(56) + "║")
+    print("╚" + "═" * 60 + "╝\n")

@@ -37,6 +37,33 @@
       "updateFailed": "Update failed"
     }
   },
+  "password": {
+    "changePassword": "Change Password",
+    "changeDescription": "Update your account password",
+    "forceChangeDescription": "First-time login requires password change before accessing other features",
+    "required": "Required",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Enter new password again",
+    "requirements": "Password Requirements",
+    "requirementsList": {
+      "length": "8-72 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "digit": "At least one digit"
+    },
+    "errors": {
+      "minLength": "Password must be at least 8 characters",
+      "maxLength": "Password cannot exceed 72 characters",
+      "uppercase": "Password must contain at least one uppercase letter",
+      "lowercase": "Password must contain at least one lowercase letter",
+      "digit": "Password must contain at least one digit",
+      "mismatch": "Passwords do not match"
+    },
+    "changeSuccess": "Password changed successfully",
+    "changeFailed": "Failed to change password"
+  },
   "language": {
     "zh-CN": "中文",
     "en": "English"

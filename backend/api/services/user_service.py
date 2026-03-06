@@ -9,6 +9,7 @@ from api.models.subscription import Subscription
 from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.models.usage_log import UsageLog
 from api.schemas.user import UserProfileUpdate
+from api.utils.security import hash_password
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -187,4 +188,25 @@ def revoke_admin_privilege(db: Session, user_id: int) -> User | None:
         db.add(user)
         db.commit()
         db.refresh(user)
+    return user
+
+
+def change_password(db: Session, user: User, new_password: str) -> User:
+    """
+    Change user password and clear force_password_change flag
+
+    Args:
+        db: Database session
+        user: User object to update
+        new_password: New plain text password
+
+    Returns:
+        Updated User object
+    """
+    user.hashed_password = hash_password(new_password)
+    user.force_password_change = False
+    user.updated_at = datetime.utcnow()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     return user

@@ -47,3 +47,6 @@ class User(SQLModel, table=True):
 
     # Admin privileges
     is_admin: bool = Field(default=False, description="Whether user has admin privileges")
+
+    # Password change requirement
+    force_password_change: bool = Field(default=False, description="Whether user must change password on next login")

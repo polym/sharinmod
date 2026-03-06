@@ -34,4 +34,9 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         )
     
     access_token = create_user_token(user)
-    return TokenResponse(access_token=access_token, token_type="bearer", user=UserResponse.model_validate(user))
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+        force_password_change=user.force_password_change
+    )

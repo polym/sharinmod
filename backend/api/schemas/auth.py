@@ -15,3 +15,4 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: Optional[UserResponse] = None
+    force_password_change: bool = False
