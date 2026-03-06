@@ -162,23 +162,14 @@ export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps)
       {/* Hour axis */}
       <div className="flex justify-between text-[10px] text-indigo-400 font-medium mt-1 px-3 relative">
         {labelIndices.map((idx) => {
-          // Calculate position as percentage, but clamp first and last labels
-          // to prevent them from being cut off at the edges
-          const rawPercent = (idx / safeLength) * 100;
           const isFirst = idx === 0;
-          const isLast = idx === 88;
 
-          let leftPercent = rawPercent;
-          if (isFirst) {
-            leftPercent = 0;
-          } else if (isLast) {
-            leftPercent = 100;
-          }
+          const leftPercent = isFirst ? 0 : (idx / safeLength) * 100;
 
           return (
             <span
               key={idx}
-              className={`absolute transform ${isFirst ? '' : isLast ? '-translate-x-full' : '-translate-x-1/2'}`}
+              className={`absolute transform ${isFirst ? '' : '-translate-x-1/2'}`}
               style={{ left: `${leftPercent}%` }}
             >
               {formatQuarterHour(idx)}
