@@ -144,11 +144,11 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
                 return {}
             api_base = provider_config.base_url
             custom_provider = provider_config.custom_llm_provider or "openai"
-            db_models_q = select(ProviderModelDB.model_key).where(
+            db_models_q = select(ProviderModelDB.model_key, ProviderModelDB.real_model).where(
                 ProviderModelDB.provider_config_id == provider_config.id,
                 ProviderModelDB.is_enabled == True
             )
-            supported_models = list(_db.exec(db_models_q).all())
+            supported_models = list(_db.exec(db_models_q).all())  # 返回 (model_key, real_model) 元组列表
 
     if not api_base:
         raise ValueError(f"No API base URL configured for provider: {provider}")
@@ -214,9 +214,17 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
 
         # Step 2: Create selected models in LiteLLM
         model_ids = {}
-        for model_name in models_to_create:
-            # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-            litellm_model = f"openrouter/openrouter/{model_name}" if provider == "openrouter" else model_name
+        for model_item in models_to_create:
+            # 处理元组（动态提供商，包含 real_model）或字符串（静态提供商）
+            if isinstance(model_item, tuple):
+                model_name, real_model_val = model_item
+            else:
+                model_name = model_item
+                real_model_val = None
+
+            # 使用 real_model 或 fallback 到 model_name
+            actual_real_model = real_model_val or model_name
+            litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
             model_payload = {
                 "model_name": model_name,
                 "litellm_params": {
@@ -228,7 +236,7 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
                 "litellm_model_name": litellm_model,
             }
 
-            print(f"[MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
+            print(f"[MODEL_CREATE] Creating model '{model_name}' with litellm_model '{litellm_model}'", json.dumps(model_payload, indent=2))
 
             model_response = await client.post(
                 f"{settings.LITELLM_BASE_URL}/model/new",
@@ -1058,13 +1066,16 @@ async def update_shared_api_key(
                 detail=f"Invalid provider: {api_key_obj.provider}"
             )
         supported_models = provider_info.get("supported_models", [])
+        real_model_map = {}  # 静态提供商暂不支持 real_model
     else:
-        # Load enabled models from database
-        models_statement = select(ProviderModel.model_key).where(
+        # Load enabled models from database (include real_model)
+        models_statement = select(ProviderModel.model_key, ProviderModel.real_model).where(
             ProviderModel.provider_config_id == provider_config.id,
             ProviderModel.is_enabled == True
         )
-        supported_models = session.exec(models_statement).all()
+        db_models = session.exec(models_statement).all()
+        supported_models = [m[0] for m in db_models]  # 只取 model_key 列表
+        real_model_map = {m[0]: m[1] for m in db_models}  # model_key -> real_model 映射
 
     invalid_models = [m for m in selected_models if m not in supported_models]
     if invalid_models:
@@ -1187,8 +1198,10 @@ async def update_shared_api_key(
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     credential_name = f"{api_key_obj.provider}/{user.email}"
                     for model_name in models_to_add:
-                        # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-                        litellm_model = f"openrouter/openrouter/{model_name}" if api_key_obj.provider == "openrouter" else model_name
+                        # 获取 real_model，如果没有则使用 model_name
+                        real_model_val = real_model_map.get(model_name) or model_name
+                        # OpenRouter 特殊处理：添加 openrouter/openrouter/ 前缀
+                        litellm_model = f"openrouter/openrouter/{real_model_val}" if api_key_obj.provider == "openrouter" else real_model_val
                         model_payload = {
                             "model_name": model_name,
                             "litellm_params": {
@@ -1199,7 +1212,7 @@ async def update_shared_api_key(
                             "provider": custom_provider,
                             "litellm_model_name": litellm_model,
                         }
-                        print(f"[UPDATE] Creating model '{model_name}'")
+                        print(f"[UPDATE] Creating model '{model_name}' with litellm_model '{litellm_model}'")
                         model_response = await client.post(
                             f"{settings.LITELLM_BASE_URL}/model/new",
                             json=model_payload,

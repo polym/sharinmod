@@ -68,6 +68,7 @@ class ProviderModel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     provider_config_id: int = Field(foreign_key="provider_configs.id", index=True)
     model_key: str = Field(max_length=100)
+    real_model: Optional[str] = Field(default=None, max_length=200, description="Real model identifier for LiteLLM API calls")
     display_name: str = Field(max_length=200)
     description: Optional[str] = Field(default=None, max_length=1000)
     context_length: str = Field(max_length=50)  # Store as string like '128k', '200k'

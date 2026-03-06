@@ -35,6 +35,7 @@ export interface ModelCatalogItem {
   provider_key: string;
   provider_name: string;
   model_key: string;
+  real_model?: string;
   display_name: string;
   description?: string;
   context_length: string;
@@ -48,6 +49,7 @@ export interface ModelCatalogItem {
 
 interface EditForm {
   display_name: string;
+  real_model: string;
   description: string;
   context_length: string;
   max_output_length: string;
@@ -119,6 +121,7 @@ function ProviderModelTab() {
   const [conflictFields, setConflictFields] = useState<Set<keyof EditForm>>(new Set());
   const [editForm, setEditForm] = useState<EditForm>({
     display_name: '',
+    real_model: '',
     description: '',
     context_length: '',
     max_output_length: '',
@@ -137,6 +140,7 @@ function ProviderModelTab() {
   const [modelForm, setModelForm] = useState({
     providerId: 0,
     modelKey: '',
+    realModel: '',
     displayName: '',
     description: '',
     contextLength: '',
@@ -248,6 +252,7 @@ function ProviderModelTab() {
     setConflictFields(new Set());
     setEditForm({
       display_name: model.display_name || '',
+      real_model: model.real_model || '',
       description: model.description || '',
       context_length: model.context_length || '',
       max_output_length: model.max_output_length || '',
@@ -280,6 +285,7 @@ function ProviderModelTab() {
     setConflictFields(conflicts);
     setEditForm({
       display_name: unifyStr((m) => m.display_name || '', 'display_name'),
+      real_model: unifyStr((m) => m.real_model || '', 'real_model'),
       description: unifyStr((m) => m.description || '', 'description'),
       context_length: unifyStr((m) => m.context_length || '', 'context_length'),
       max_output_length: unifyStr((m) => m.max_output_length || '', 'max_output_length'),
@@ -299,6 +305,7 @@ function ProviderModelTab() {
 
       const payload = {
         display_name: editForm.display_name || undefined,
+        real_model: editForm.real_model || undefined,
         description: editForm.description || undefined,
         context_length: editForm.context_length || undefined,
         max_output_length: editForm.max_output_length || undefined,
@@ -358,6 +365,7 @@ function ProviderModelTab() {
     setModelForm({
       providerId: 0, // Will be determined from provider_key
       modelKey: model.model_key,
+      realModel: model.real_model || '',
       displayName: model.display_name,
       description: model.description || '',
       contextLength: model.context_length,
@@ -375,6 +383,7 @@ function ProviderModelTab() {
       setModelForm({
         ...modelForm,
         modelKey: selectedModel.model_key,
+        realModel: '', // 全局模型没有 provider 前缀，需要管理员手动配置
         displayName: selectedModel.display_name,
         description: selectedModel.description || '',
         contextLength: selectedModel.context_length,
@@ -400,6 +409,7 @@ function ProviderModelTab() {
     try {
       const modelData = {
         model_key: modelForm.modelKey,
+        real_model: modelForm.realModel || undefined,
         display_name: modelForm.displayName,
         description: modelForm.description || undefined,
         context_length: modelForm.contextLength,
@@ -596,6 +606,19 @@ function ProviderModelTab() {
               )}
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="edit-real-model">{t('editDialog.realModel')}</Label>
+              <Input
+                id="edit-real-model"
+                value={editForm.real_model}
+                onChange={(e) => setEditForm((f) => ({ ...f, real_model: e.target.value }))}
+                placeholder={t('editDialog.realModelPlaceholder')}
+              />
+              <p className="text-xs text-muted-foreground">{t('editDialog.realModelHint')}</p>
+              {!editTarget && conflictFields.has('real_model') && (
+                <p className="text-xs text-amber-600">{t('editDialog.conflictHint')}</p>
+              )}
+            </div>
+            <div className="grid gap-2">
               <Label>{t('editDialog.modelDescription')}</Label>
               <Textarea
                 value={editForm.description}
@@ -761,6 +784,17 @@ function ProviderModelTab() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Real Model */}
+            <div className="grid gap-2">
+              <Label htmlFor="add-real-model">{t('addDialog.realModel') || '真实模型'}</Label>
+              <Input
+                id="add-real-model"
+                value={modelForm.realModel}
+                onChange={(e) => setModelForm({ ...modelForm, realModel: e.target.value })}
+                placeholder={t('addDialog.realModelPlaceholder') || '如 anthropic/claude-3-sonet'}
+              />
             </div>
 
             {/* Display Name */}

@@ -262,6 +262,7 @@ export const modelConfigAPI = {
 
   updateModel: (id: number, data: {
     display_name?: string;
+    real_model?: string;
     description?: string;
     context_length?: string;
     max_output_length?: string;

@@ -458,6 +458,8 @@ def update_provider_model(
 
     if model_data.display_name is not None:
         model.display_name = model_data.display_name
+    if model_data.real_model is not None:
+        model.real_model = model_data.real_model
     if model_data.description is not None:
         model.description = model_data.description
     if model_data.context_length is not None:
@@ -556,6 +558,7 @@ def get_unified_model_catalog(
             "provider_key": pc.provider_key,
             "provider_name": pc.name,
             "model_key": pm.model_key,
+            "real_model": pm.real_model,
             "display_name": pm.display_name,
             "description": pm.description,
             "context_length": pm.context_length,
@@ -581,6 +584,7 @@ def get_unified_model_catalog(
                     "provider_key": pkey,
                     "provider_name": pname,
                     "model_key": mkey,
+                    "real_model": None,  # 内置模型暂不支持 real_model
                     "display_name": mdata.get("display_name", mkey),
                     "description": mdata.get("description"),
                     "context_length": mdata.get("context_length", "N/A"),
@@ -628,6 +632,8 @@ def update_provider_models_batch(
     for existing, new_data in zip(existing_models, models_data):
         if new_data.display_name is not None:
             existing.display_name = new_data.display_name
+        if new_data.real_model is not None:
+            existing.real_model = new_data.real_model
         if new_data.description is not None:
             existing.description = new_data.description
         if new_data.context_length is not None:

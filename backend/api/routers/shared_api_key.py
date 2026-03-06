@@ -210,5 +210,8 @@ async def get_provider_models(
     return {
         "provider": provider,
         "supported_models": [item["model_key"] for item in catalog],
-        "models": catalog,
+        "models": [
+            {k: v for k, v in item.items() if k != "real_model"}
+            for item in catalog
+        ],
     }

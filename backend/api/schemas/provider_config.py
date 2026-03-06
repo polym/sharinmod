@@ -13,6 +13,23 @@ class ProviderModelResponse(BaseModel):
     """Response schema for a single provider model configuration"""
     id: int
     model_key: str
+    real_model: Optional[str] = None
+    display_name: str
+    description: Optional[str] = None
+    context_length: str
+    max_output_length: str
+    input_types: Optional[List[str]] = None
+    output_types: Optional[List[str]] = None
+    coding_score: Optional[int] = None
+    is_enabled: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ProviderModelResponsePublic(BaseModel):
+    """Response schema for non-admin users (excludes real_model)"""
+    id: int
+    model_key: str
     display_name: str
     description: Optional[str] = None
     context_length: str
@@ -47,6 +64,7 @@ class ProviderConfigResponse(BaseModel):
 class ProviderModelCreate(BaseModel):
     """Schema for creating a new provider model"""
     model_key: str = Field(..., min_length=1, max_length=100)
+    real_model: Optional[str] = Field(None, max_length=200)
     display_name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     context_length: str = Field(..., min_length=1, max_length=50)
@@ -72,6 +90,7 @@ class ProviderConfigCreate(BaseModel):
 class ProviderModelUpdate(BaseModel):
     """Schema for updating a provider model"""
     display_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    real_model: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     context_length: Optional[str] = Field(None, min_length=1, max_length=50)
     max_output_length: Optional[str] = Field(None, min_length=1, max_length=50)
