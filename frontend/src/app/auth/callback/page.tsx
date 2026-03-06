@@ -11,6 +11,8 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string>('');
   const login = useAuthStore((state) => state.login);
+  const redirectAfterLogin = useAuthStore((state) => state.redirectAfterLogin);
+  const setRedirectAfterLogin = useAuthStore((state) => state.setRedirectAfterLogin);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -38,8 +40,10 @@ export default function AuthCallbackPage() {
         // 登录并存储 token
         login(user, token);
 
-        // 跳转到共享页面
-        router.push('/shared');
+        // 跳转到登录前的页面或默认页面
+        const redirectPath = redirectAfterLogin || '/shared';
+        setRedirectAfterLogin(null);
+        router.push(redirectPath);
       } catch (err) {
         console.error('OAuth callback error:', err);
         setError('Authentication failed. Please try again.');
@@ -47,7 +51,7 @@ export default function AuthCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, router, login]);
+  }, [searchParams, router, login, redirectAfterLogin, setRedirectAfterLogin]);
 
   if (error) {
     return (
