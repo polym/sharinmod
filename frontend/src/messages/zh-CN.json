@@ -480,7 +480,9 @@
     },
     "filter": {
       "searchPlaceholder": "搜索模型...",
-      "batchEdit": "批量编辑 ({count} 条)"
+      "batchEdit": "批量编辑 ({count} 条)",
+      "providerPlaceholder": "选择供应商",
+      "allProviders": "全部供应商"
     },
     "editDialog": {
       "title": "编辑模型配置",
