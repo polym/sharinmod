@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import json
 import logging
+from typing import List
 from pydantic import ValidationError
 from sqlmodel import Session, select
 
@@ -22,6 +23,27 @@ from api.services.litellm_callback_service import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Maximum length for debug log output
+MAX_LOG_LENGTH = 1000
+
+
+def truncate_json_str(json_str: str) -> str:
+    """
+    Truncate a JSON string in the middle if it exceeds MAX_LOG_LENGTH.
+
+    Args:
+        json_str: The JSON string to potentially truncate
+
+    Returns:
+        Truncated string with "... [truncated] ..." in the middle,
+        or the original string if under the limit
+    """
+    if len(json_str) <= MAX_LOG_LENGTH:
+        return json_str
+    half = MAX_LOG_LENGTH // 2
+    return json_str[:half] + "... [truncated] ... " + json_str[-half:]
+
 
 load_dotenv("../.env")
 REDIS_ENV = os.getenv("REDIS_DATABASE", "redis://redis:6379/")
@@ -70,7 +92,7 @@ async def litellm_spendlog_callback(
         logger.info("=" * 80)
 
         # Handle both single object and array of callbacks
-        callbacks_to_process = []
+        callbacks_to_process: List[LiteLLMSpendlogCallbackRequest] = []
         if isinstance(callback_data, list):
             logger.info(f"[WEBHOOK] Received array of {len(callback_data)} callback(s)")
             for i, item in enumerate(callback_data):
@@ -83,6 +105,13 @@ async def litellm_spendlog_callback(
             callbacks_to_process.append(callback)
 
         logger.info(f"[WEBHOOK] Successfully validated {len(callbacks_to_process)} callback(s)")
+
+        # Debug print: show validated callbacks with truncation
+        truncated_callbacks: List[str] = []
+        for callback in callbacks_to_process:
+            json_str = json.dumps(callback.model_dump(), indent=2, ensure_ascii=False)
+            truncated_callbacks.append(truncate_json_str(json_str))
+        print(f"Validated callbacks: {truncated_callbacks}")
 
         # Connect to Redis and enqueue (use sync client for enqueue operation)
         redis_client = redis.from_url(REDIS_ENV, encoding="utf-8", decode_responses=True)
