@@ -244,3 +244,139 @@ def test_dequeue_callback_timeout(mock_redis_from_url):
     result = dequeue_callback(mock_redis, timeout=1)
 
     assert result is None
+
+
+# Test 11: Failure callback log truncation - short data
+@patch("api.consumers.litellm_callback_consumer.process_callback")
+@patch("api.consumers.litellm_callback_consumer.dequeue_callback")
+def test_failure_callback_log_no_truncation_short_data(mock_dequeue, mock_process, session: Session):
+    """Test that short failure callback data is not truncated"""
+    from api.consumers.litellm_callback_consumer import process_message, MAX_LOG_LENGTH
+    import json
+
+    # Create short failure callback data
+    callback_data = {
+        "status": "failure",
+        "error": "short error message",
+        "model": "test-model"
+    }
+    mock_dequeue.return_value = callback_data
+    mock_process.return_value = True
+
+    mock_redis = Mock()
+
+    with patch("api.consumers.litellm_callback_consumer.logger") as mock_logger:
+        process_message(mock_redis, session)
+
+        # Get the logged message
+        error_call = mock_logger.error.call_args
+        logged_message = error_call[0][0]
+
+        # Verify no truncation marker for short data
+        assert "... [truncated] ..." not in logged_message
+        # Verify the full JSON is present
+        assert "short error message" in logged_message
+
+
+# Test 12: Failure callback log truncation - long data
+@patch("api.consumers.litellm_callback_consumer.process_callback")
+@patch("api.consumers.litellm_callback_consumer.dequeue_callback")
+def test_failure_callback_log_truncation_long_data(mock_dequeue, mock_process, session: Session):
+    """Test that long failure callback data is truncated"""
+    from api.consumers.litellm_callback_consumer import process_message, MAX_LOG_LENGTH
+    import json
+
+    # Create long failure callback data (> 1000 chars)
+    long_error = "x" * 2000
+    callback_data = {
+        "status": "failure",
+        "error": long_error,
+        "model": "test-model"
+    }
+    mock_dequeue.return_value = callback_data
+    mock_process.return_value = True
+
+    mock_redis = Mock()
+
+    with patch("api.consumers.litellm_callback_consumer.logger") as mock_logger:
+        process_message(mock_redis, session)
+
+        # Get the logged message
+        error_call = mock_logger.error.call_args
+        logged_message = error_call[0][0]
+
+        # Verify truncation marker is present
+        assert "... [truncated] ..." in logged_message
+        # Verify head and tail are preserved
+        assert "xxx" in logged_message  # Part of the long error
+
+
+# Test 13: Failure callback log truncation - boundary case
+@patch("api.consumers.litellm_callback_consumer.process_callback")
+@patch("api.consumers.litellm_callback_consumer.dequeue_callback")
+def test_failure_callback_log_boundary_1000_chars(mock_dequeue, mock_process, session: Session):
+    """Test that exactly 1000 char JSON is not truncated"""
+    from api.consumers.litellm_callback_consumer import process_message, MAX_LOG_LENGTH
+    import json
+
+    # Create data that results in exactly <= 1000 chars when serialized with indent=2
+    # We'll iteratively find the right size
+    callback_data = {
+        "status": "failure",
+        "error": "x" * 900,  # Start with a reasonable size
+        "model": "test-model"
+    }
+
+    json_str = json.dumps(callback_data, indent=2, ensure_ascii=False)
+
+    # Adjust to be exactly at or just under 1000 chars
+    while len(json_str) > MAX_LOG_LENGTH:
+        callback_data["error"] = callback_data["error"][:-1]
+        json_str = json.dumps(callback_data, indent=2, ensure_ascii=False)
+
+    # Verify our adjustment worked
+    assert len(json_str) <= MAX_LOG_LENGTH, f"JSON length {len(json_str)} should be <= {MAX_LOG_LENGTH}"
+
+    mock_dequeue.return_value = callback_data
+    mock_process.return_value = True
+
+    mock_redis = Mock()
+
+    with patch("api.consumers.litellm_callback_consumer.logger") as mock_logger:
+        process_message(mock_redis, session)
+
+        # Get the logged message
+        error_call = mock_logger.error.call_args
+        logged_message = error_call[0][0]
+
+        # Verify no truncation for boundary case
+        assert "... [truncated] ..." not in logged_message
+
+
+# Test 14: Success callback does not trigger truncation logic
+@patch("api.consumers.litellm_callback_consumer.process_callback")
+@patch("api.consumers.litellm_callback_consumer.dequeue_callback")
+def test_success_callback_no_truncation(mock_dequeue, mock_process, session: Session):
+    """Test that success callback does not go through truncation logic"""
+    from api.consumers.litellm_callback_consumer import process_message
+
+    # Create long success callback data
+    long_data = "x" * 2000
+    callback_data = {
+        "status": "success",
+        "data": long_data,
+        "model": "test-model"
+    }
+    mock_dequeue.return_value = callback_data
+    mock_process.return_value = True
+
+    mock_redis = Mock()
+
+    with patch("api.consumers.litellm_callback_consumer.logger") as mock_logger:
+        process_message(mock_redis, session)
+
+        # Verify error log was not called (only info logs for success)
+        error_calls = mock_logger.error.call_args_list
+        # No error logging for success callbacks
+        failure_log_calls = [c for c in error_calls if "Failure callback" in str(c)]
+        assert len(failure_log_calls) == 0
