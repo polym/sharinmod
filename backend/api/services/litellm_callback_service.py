@@ -389,6 +389,9 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         request_tags = callback_data.get('request_tags')
         client = extract_client_from_request_tags(request_tags)
 
+        # Extract provider from callback
+        provider = callback_data.get('custom_llm_provider')
+
         # Find consumer by api_key_hash
         consumer = None
         unified_api_key_id = None
@@ -494,7 +497,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
             if existing_log:
                 # Merge with existing record
-                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status, error_details_json, client)
+                updated_log = update_usage_log_for_retry(session, existing_log, callback, new_status, error_details_json, client, provider)
                 if updated_log is None:
                     # Callback was ignored (duplicate success)
                     logger.info(f"Ignored callback for trace_id={trace_id}")
@@ -515,6 +518,16 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                 try:
                     from api.services.usage_log_service import create_failure_usage_log
 
+                    # Get provider from subscription if not in callback
+                    failure_provider = provider
+                    if not failure_provider and subscription:
+                        shared_key_statement = select(SharedAPIKey).where(
+                            SharedAPIKey.id == subscription.shared_api_key_id
+                        )
+                        shared_key = session.exec(shared_key_statement).first()
+                        if shared_key:
+                            failure_provider = shared_key.provider
+
                     create_failure_usage_log(
                         db=session,
                         user_id=consumer.id,
@@ -525,7 +538,8 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                         unified_api_key_name=unified_api_key_name,
                         kind=kind,
                         trace_id=trace_id,
-                        error_details=error_details_json
+                        error_details=error_details_json,
+                        provider=failure_provider
                     )
                     logger.info(f"Created failure usage log for user {consumer.id}, kind={kind}")
                 except Exception as e:
@@ -547,7 +561,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                 if stats_updated:
                     try:
                         from api.services.usage_log_service import create_usage_log
-                        create_usage_log(session, consumer.id, callback, subscription, client, trace_id)
+                        create_usage_log(session, consumer.id, callback, subscription, client, trace_id, provider)
                     except Exception as e:
                         logger.error(f"Failed to create usage log (non-critical): {e}")
 

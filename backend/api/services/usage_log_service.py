@@ -101,7 +101,8 @@ def create_usage_log(
     callback_data: LiteLLMSpendlogCallbackRequest,
     subscription: Optional[Subscription] = None,
     client: Optional[str] = None,
-    trace_id: Optional[str] = None
+    trace_id: Optional[str] = None,
+    provider: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a usage log entry from LiteLLM callback data
@@ -157,6 +158,7 @@ def create_usage_log(
             unified_api_key_name=unified_api_key_name,
             model_id=model_id,
             model_name=_extract_model_short_name(callback_data.model),
+            provider=provider,
             status=UsageLogStatus.SUCCESS,
             kind=kind,
             client=client,
@@ -201,7 +203,8 @@ def create_failure_usage_log(
     unified_api_key_name: Optional[str] = None,
     kind: UsageLogKind = UsageLogKind.DIRECT,
     trace_id: Optional[str] = None,
-    error_details: Optional[str] = None
+    error_details: Optional[str] = None,
+    provider: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Create a failure usage log entry
@@ -228,6 +231,7 @@ def create_failure_usage_log(
             unified_api_key_name=unified_api_key_name,
             model_id=model_id,
             model_name=_extract_model_short_name(model),
+            provider=provider,
             status=UsageLogStatus.FAILURE,
             kind=kind,
             total_duration=None,
@@ -283,7 +287,8 @@ def update_usage_log_for_retry(
     callback_data: LiteLLMSpendlogCallbackRequest,
     new_status: UsageLogStatus,
     error_details_json: Optional[str] = None,
-    client: Optional[str] = None
+    client: Optional[str] = None,
+    provider: Optional[str] = None
 ) -> Optional[UsageLog]:
     """
     Update an existing usage log for retry scenarios
@@ -322,6 +327,7 @@ def update_usage_log_for_retry(
                     UPDATE usage_logs
                     SET status = :status,
                         model_name = :model_name,
+                        provider = :provider,
                         client = :client,
                         total_duration = :total_duration,
                         ttft = :ttft,
@@ -333,6 +339,7 @@ def update_usage_log_for_retry(
                 {
                     "status": new_status.name,
                     "model_name": _extract_model_short_name(callback_data.model),
+                    "provider": provider,
                     "client": client,
                     "total_duration": callback_data.response_time,
                     "ttft": callback_data.response_time if callback_data.completion_start_time else None,
