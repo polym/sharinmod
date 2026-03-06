@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from api.config import Settings
-from api.database import create_db_and_tables, initialize_sharinmod_data, get_db
+from api.database import create_db_and_tables, initialize_sharinmod_data, initialize_admin_user, get_db
 
 from alembic.config import Config
 from alembic import command
@@ -77,6 +77,7 @@ async def lifespan(app: FastAPI):
     await FastAPILimiter.init(redis_connection)
     try:
         initialize_sharinmod_data(db)
+        initialize_admin_user(db)
         yield
     except (IntegrityError, Exception) as e:
         yield

@@ -37,6 +37,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [error, setError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
+  const setShowChangePasswordDialog = useAuthStore((state) => state.setShowChangePasswordDialog);
   const router = useRouter();
 
   const validateForm = (): boolean => {
@@ -72,11 +73,17 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
 
     try {
       const response = await authAPI.login({ email, password });
-      const { access_token, user } = response.data;
+      const { access_token, user, force_password_change } = response.data;
       login(user, access_token);
-      router.push('/shared');
       setShowLoginDialog(false);
       onSuccess?.();
+
+      // 如果需要强制修改密码，显示修改密码弹窗
+      if (force_password_change) {
+        setShowChangePasswordDialog(true);
+      } else {
+        router.push('/shared');
+      }
     } catch (err) {
       const axiosError = err as AxiosError<ApiError>;
       const errorData = axiosError.response?.data;

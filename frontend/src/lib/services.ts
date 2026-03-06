@@ -20,6 +20,9 @@ export const authAPI = {
 export const userAPI = {
   updateProfile: (data: { name?: string; bio?: string }) =>
     api.patch('/api/users/me/profile', data),
+
+  changePassword: (data: { new_password: string }) =>
+    api.patch('/api/users/me/password', data),
 };
 
 // API Key API

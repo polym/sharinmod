@@ -62,6 +62,7 @@ class UserResponse(BaseModel):
     contributed_tokens: int = 0
     consumed_tokens: int = 0
     is_admin: bool = False  # 默认 False 兼容旧数据
+    force_password_change: bool = False  # 是否需要强制修改密码
 
     @computed_field
     @property

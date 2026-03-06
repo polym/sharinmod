@@ -12,6 +12,7 @@ export interface User {
   contributed_tokens?: number;
   consumed_tokens?: number;
   is_admin?: boolean;
+  force_password_change?: boolean;
   subscription_count?: number;
   active_subscription_count?: number;
   last_used_at?: string;
@@ -23,11 +24,13 @@ interface AuthState {
   user: User | null;
   token: string | null;
   showLoginDialog: boolean;
+  showChangePasswordDialog: boolean;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: User) => void;
   setShowLoginDialog: (show: boolean) => void;
+  setShowChangePasswordDialog: (show: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       showLoginDialog: false,
+      showChangePasswordDialog: false,
       _isLoggingOut: false,
       login: (user: User, token: string) => {
         set({ isAuthenticated: true, user, token, _isLoggingOut: false });
@@ -49,6 +53,9 @@ export const useAuthStore = create<AuthState>()(
       },
       setShowLoginDialog: (show: boolean) => {
         set({ showLoginDialog: show });
+      },
+      setShowChangePasswordDialog: (show: boolean) => {
+        set({ showChangePasswordDialog: show });
       },
     }),
     {
