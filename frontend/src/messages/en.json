@@ -198,7 +198,9 @@
     "detailedRecords": "Detailed Usage Records",
     "noRecords": "No usage records",
     "loadMore": "Load More",
-    "loadingMore": "Loading..."
+    "loadingMore": "Loading...",
+    "refresh": "Refresh data",
+    "refreshFailed": "Failed to refresh data"
   },
   "usageTable": {
     "time": "Time",
