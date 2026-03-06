@@ -151,7 +151,9 @@
     "detailedRecords": "详细使用记录",
     "noRecords": "暂无使用记录",
     "loadMore": "加载更多",
-    "loadingMore": "加载中..."
+    "loadingMore": "加载中...",
+    "refresh": "刷新数据",
+    "refreshFailed": "刷新数据失败"
   },
   "usageTable": {
     "time": "时间",

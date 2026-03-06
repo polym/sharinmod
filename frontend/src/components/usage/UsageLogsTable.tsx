@@ -13,6 +13,7 @@ interface UsageLog {
   id: number;
   request_time: string;
   model_name: string;
+  provider?: string | null;
   status: string;
   kind: string;
   unified_api_key_name: string | null;
@@ -271,7 +272,14 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                 <TableCell className="text-center">
                   <ClientName client={log.client} />
                 </TableCell>
-                <TableCell className="text-sm">{log.model_name}</TableCell>
+                <TableCell className="text-sm">
+                  <div>
+                    <div>{log.model_name}</div>
+                    <div className="text-xs text-gray-500">
+                      {log.provider || '-'}
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-sm ${
                     log.status === 'success'

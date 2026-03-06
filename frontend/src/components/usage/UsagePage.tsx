@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { usageAPI, apiKeyAPI } from '@/lib/services';
 import { UsageStatsCard } from './UsageStatsCard';
 import { UsageBarChart } from './UsageBarChart';
 import { UsageLogsTable } from './UsageLogsTable';
+import { useToast } from '@/components/ui/toast';
 import { useTranslations } from 'next-intl';
 
 interface UnifiedAPIKey {
@@ -53,6 +55,7 @@ interface UsageLogsResponse {
 export function UsagePage() {
   const t = useTranslations('usage');
   const tCommon = useTranslations('common');
+  const { toast } = useToast();
 
   // Get user timezone
   const [userTimezone] = useState<string>(() =>
@@ -84,6 +87,7 @@ export function UsagePage() {
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsLoading, setLogsLoading] = useState(false);
   const [hasMoreLogs, setHasMoreLogs] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const PAGE_SIZE = 20;
 
@@ -204,6 +208,27 @@ export function UsagePage() {
     setSelectedApiKey(value);
   };
 
+  // Refresh all data
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        loadAPIKeys(),
+        loadOverviewData(),
+        loadLogsData(1, true)
+      ]);
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      toast({
+        title: tCommon('error'),
+        description: t('refreshFailed'),
+        variant: 'destructive'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [loadAPIKeys, loadOverviewData, loadLogsData, toast, tCommon, t]);
+
   // Token formatting helper
   const formatTokenValue = (total: number, input: number, output: number) => {
     return `${total.toLocaleString()} (${input.toLocaleString()} + ${output.toLocaleString()})`;
@@ -258,6 +283,18 @@ export function UsagePage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Refresh Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                aria-label={t('refresh')}
+              >
+                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
           </div>
         </CardHeader>

@@ -54,6 +54,7 @@ class UsageLog(SQLModel, table=True):
     unified_api_key_name: Optional[str] = Field(default=None, max_length=255)
     model_id: Optional[str] = Field(default=None, max_length=255)
     model_name: str = Field(max_length=255)
+    provider: Optional[str] = Field(default=None, max_length=50)
     status: UsageLogStatus = Field(index=True)
     kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, index=True)
     client: Optional[str] = Field(default=None, max_length=255)

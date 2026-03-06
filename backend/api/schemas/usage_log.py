@@ -15,6 +15,7 @@ class UsageLogResponse(BaseModel):
     unified_api_key_name: Optional[str] = None
     model_id: Optional[str] = None
     model_name: str
+    provider: Optional[str] = None
     status: str
     kind: UsageLogKind = Field(default=UsageLogKind.DIRECT, description="Who provided the API key (own/shared/direct)")
     client: Optional[str] = None
@@ -51,6 +52,7 @@ class UsageLogResponse(BaseModel):
                 "unified_api_key_name": "my-api-key",
                 "model_id": "model_123",
                 "model_name": "openai/gpt-4",
+                "provider": "openai",
                 "status": "success",
                 "kind": "direct",
                 "client": "Chrome",
