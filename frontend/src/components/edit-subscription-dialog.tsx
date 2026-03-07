@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,22 @@ interface EditSubscriptionDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Debounce hook
+function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number): T {
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const debouncedCallback = useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
+
+  return debouncedCallback as T;
+}
+
 export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }: EditSubscriptionDialogProps) {
   const t = useTranslations('editSubscriptionDialog');
   const tToast = useTranslations('editSubscriptionDialog.toast');
@@ -28,7 +44,45 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
   const [modelError, setModelError] = useState('');
   const [loading, setLoading] = useState(false);
   const [providerModels, setProviderModels] = useState<string[]>([]);
+  const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
+  const [modelErrors, setModelErrors] = useState<Record<string, string>>({});
+  const [validating, setValidating] = useState(false);
   const { toast } = useToast();
+
+  // Debounced model validation function
+  const validateModels = useCallback(async () => {
+    // 只有当用户输入了新的 API Key 时才进行验证
+    if (!newApiKey || selectedModels.length === 0) {
+      setUnavailableModels([]);
+      setModelErrors({});
+      setValidating(false);
+      return;
+    }
+
+    setValidating(true);
+    try {
+      const response = await apiKeyAPI.validateModels({
+        provider: apiKey.provider,
+        api_key: newApiKey,
+        selected_models: selectedModels,
+      });
+      setUnavailableModels(response.data.unavailable_models || []);
+      setModelErrors(response.data.model_errors || {});
+    } catch (error) {
+      // Ignore validation errors, keep empty lists
+      setUnavailableModels([]);
+      setModelErrors({});
+    } finally {
+      setValidating(false);
+    }
+  }, [apiKey.provider, newApiKey, selectedModels]);
+
+  const debouncedValidate = useDebounce(validateModels, 800);
+
+  // Trigger validation when newApiKey or selectedModels changes
+  useEffect(() => {
+    debouncedValidate();
+  }, [debouncedValidate, newApiKey, selectedModels]);
 
   // Load provider models when dialog opens
   useEffect(() => {
@@ -36,6 +90,8 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       setSelectedModels(apiKey.supported_models || []);
       setModelError('');
       setNewApiKey('');
+      setUnavailableModels([]);
+      setModelErrors({});
 
       // Fetch models for this provider
       apiKeyAPI.getProviderModels(apiKey.provider)
@@ -74,13 +130,28 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       setNewApiKey('');
       setSelectedModels([]);
       setModelError('');
+      setUnavailableModels([]);
+      setModelErrors({});
       onUpdated();
     } catch (error: any) {
-      toast({
-        title: tToast('error'),
-        description: error.response?.data?.message || tToast('editFailed'),
-        variant: 'destructive',
-      });
+      // Handle backend validation error for unavailable models
+      if (error.response?.data?.code === 'models_unavailable') {
+        const unavailableList = error.response.data.unavailable_models || [];
+        const errors = error.response.data.model_errors || {};
+        setUnavailableModels(unavailableList);
+        setModelErrors(errors);
+        toast({
+          title: tToast('error'),
+          description: tToast('modelsUnavailable', { models: unavailableList.join(', ') }),
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: tToast('error'),
+          description: error.response?.data?.message || tToast('editFailed'),
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -108,6 +179,12 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
               />
+              {newApiKey && validating && (
+                <div className="text-xs text-gray-500 flex items-center gap-2">
+                  <div className="animate-spin h-3 w-3 border-2 border-gray-300 border-t-blue-500 rounded-full" />
+                  {tToast('checking')}
+                </div>
+              )}
             </div>
             <ModelSelector
               provider={apiKey.provider}
@@ -115,6 +192,9 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
               onChange={setSelectedModels}
               error={modelError}
               enabledModels={providerModels}
+              unavailableModels={unavailableModels}
+              modelErrors={modelErrors}
+              validating={validating}
             />
           </div>
           <DialogFooter>

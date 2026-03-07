@@ -51,6 +51,9 @@ export const apiKeyAPI = {
   getProviders: () =>
     api.get('/api/api-keys/providers'),
 
+  validateModels: (data: { provider: string; api_key: string; selected_models: string[] }) =>
+    api.post('/api/api-keys/validate-models', data),
+
   updateSharedAPIKey: (apiKeyId: number, data: { api_key?: string; selected_models: string[] }) =>
     api.put(`/api/api-keys/shared/${apiKeyId}`, data),
 

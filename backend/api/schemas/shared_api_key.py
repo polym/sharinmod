@@ -1,7 +1,45 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any, Dict
 from api.models.shared_api_key import APIKeyProvider, APIKeyStatus
+
+
+class ModelValidationRequest(BaseModel):
+    """Schema for validating model availability"""
+    provider: str = Field(..., description="API key provider")
+    api_key: str = Field(..., description="Plain text API key")
+    selected_models: List[str] = Field(..., description="List of models to validate")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "provider": "bigmodel",
+                "api_key": "your-api-key-here",
+                "selected_models": ["glm-4.7", "glm-4.6"]
+            }
+        }
+
+
+class ModelValidationResponse(BaseModel):
+    """Schema for model validation response"""
+    valid: bool = Field(..., description="Whether all models are available")
+    message: str = Field(..., description="Validation message")
+    available_models: List[str] = Field(..., description="List of available models")
+    unavailable_models: List[str] = Field(..., description="List of unavailable models")
+    model_errors: Dict[str, str] = Field(..., description="Map of model name to error message", default_factory=dict)
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "valid": False,
+                "message": "以下模型不可用: glm-4.6",
+                "available_models": ["glm-4.7"],
+                "unavailable_models": ["glm-4.6"],
+                "model_errors": {
+                    "glm-4.6": "HTTP 错误: 400"
+                }
+            }
+        }
 
 
 class SharedAPIKeyCreate(BaseModel):

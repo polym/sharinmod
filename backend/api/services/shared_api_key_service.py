@@ -355,6 +355,26 @@ async def create_shared_api_key(
             detail=f"API key validation failed: {validation_result['message']}"
         )
 
+    # 验证模型可用性（通过真实 API 调用）
+    if selected_models:
+        from api.services.api_key_validation_service import validate_models_availability
+        model_validation = await validate_models_availability(
+            provider=provider,
+            api_key=api_key,
+            selected_models=selected_models,
+            session=session
+        )
+
+        if not model_validation["valid"]:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "models_unavailable",
+                    "message": f"以下模型不可用: {', '.join(model_validation['unavailable_models'])}",
+                    "unavailable_models": model_validation["unavailable_models"]
+                }
+            )
+
     # Encrypt API key before storage
     encrypted = encrypt_token(api_key)
 
@@ -374,9 +394,13 @@ async def create_shared_api_key(
     # Sync with LiteLLM (create credential and models) - skip in testing
     if not settings.TESTING:
         try:
-            model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
+            try:
+                model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
+            except ValueError:
+                # 如果是动态提供商（不在 PROVIDER_INFO 中），跳过 LiteLLM 同步
+                model_ids = None
 
-            # Handle dynamic providers (model_ids is empty)
+            # Handle dynamic providers (model_ids is None)
             if not model_ids:
                 # For dynamic providers, get models from database and create subscriptions
                 from api.services.provider_config_service import get_provider_by_key
@@ -1090,6 +1114,7 @@ async def update_shared_api_key(
 
     try:
         # Step 1: Update API Key if provided
+        api_key_to_validate = None
         if new_api_key:
             # Validate new API key with provider API
             validation_result = await validate_api_key(api_key_obj.provider, new_api_key)
@@ -1100,6 +1125,27 @@ async def update_shared_api_key(
                 )
             # Encrypt new API key
             api_key_obj.encrypted_api_key = encrypt_token(new_api_key)
+            api_key_to_validate = new_api_key  # 用于模型验证
+
+        # Step 1.5: 验证模型可用性（如果有新的 API Key）
+        if api_key_to_validate and selected_models:
+            from api.services.api_key_validation_service import validate_models_availability
+            model_validation = await validate_models_availability(
+                provider=api_key_obj.provider,
+                api_key=api_key_to_validate,
+                selected_models=selected_models,
+                session=session
+            )
+
+            if not model_validation["valid"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "code": "models_unavailable",
+                        "message": f"以下模型不可用: {', '.join(model_validation['unavailable_models'])}",
+                        "unavailable_models": model_validation["unavailable_models"]
+                    }
+                )
 
         # Step 2: Calculate model differences
         current_model_ids = {}

@@ -278,6 +278,10 @@
     "binding": "绑定中...",
     "bind": "绑定",
     "noModelsAvailable": "该平台暂无可用的模型",
+    "models": {
+      "unavailable": "不可用",
+      "checking": "检查中..."
+    },
     "toast": {
       "error": "错误",
       "selectPlatformAndKey": "请选择平台并输入 API Key",
@@ -285,7 +289,8 @@
       "selectedCount": "已选择 {count} 个模型",
       "success": "成功",
       "bindSuccess": "订阅绑定成功",
-      "bindFailed": "绑定失败，请重试"
+      "bindFailed": "绑定失败，请重试",
+      "modelsUnavailable": "以下模型不可用: {models}"
     }
   },
   "editSubscriptionDialog": {
@@ -295,12 +300,15 @@
     "apiKeyPlaceholder": "留空表示不修改 API Key",
     "saving": "保存中...",
     "save": "保存",
+    "checking": "检查中...",
     "toast": {
       "success": "成功",
       "editSuccess": "订阅修改成功",
       "selectOneModel": "请至少选择一个模型",
       "error": "错误",
-      "editFailed": "修改失败，请重试"
+      "editFailed": "修改失败，请重试",
+      "modelsUnavailable": "以下模型不可用: {models}",
+      "checking": "检查中..."
     }
   },
   "settings": {

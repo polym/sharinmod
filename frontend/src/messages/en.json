@@ -325,6 +325,10 @@
     "binding": "Binding...",
     "bind": "Bind",
     "noModelsAvailable": "No models available for this platform",
+    "models": {
+      "unavailable": "Unavailable",
+      "checking": "Checking..."
+    },
     "toast": {
       "error": "Error",
       "selectPlatformAndKey": "Please select a platform and enter an API Key",
@@ -332,7 +336,8 @@
       "selectedCount": "{count} models selected",
       "success": "Success",
       "bindSuccess": "Subscription bound successfully",
-      "bindFailed": "Binding failed, please try again"
+      "bindFailed": "Binding failed, please try again",
+      "modelsUnavailable": "The following models are unavailable: {models}"
     }
   },
   "editSubscriptionDialog": {
@@ -342,12 +347,15 @@
     "apiKeyPlaceholder": "Leave empty to keep current API Key",
     "saving": "Saving...",
     "save": "Save",
+    "checking": "Checking...",
     "toast": {
       "success": "Success",
       "editSuccess": "Subscription modified successfully",
       "selectOneModel": "Please select at least one model",
       "error": "Error",
-      "editFailed": "Modification failed, please try again"
+      "editFailed": "Modification failed, please try again",
+      "modelsUnavailable": "The following models are unavailable: {models}",
+      "checking": "Checking..."
     }
   },
   "common": {

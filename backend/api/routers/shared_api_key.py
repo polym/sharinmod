@@ -5,7 +5,10 @@ from api.database import get_db
 from api.models.provider_config import ProviderModel
 from api.models.user import User
 from api.dependencies.auth import get_current_user
-from api.schemas.shared_api_key import SharedAPIKeyCreate, SharedAPIKeyUpdate, SharedAPIKeyResponse, SharedAPIKeyList, SharedAPIKeyMetrics
+from api.schemas.shared_api_key import (
+    SharedAPIKeyCreate, SharedAPIKeyUpdate, SharedAPIKeyResponse,
+    SharedAPIKeyList, SharedAPIKeyMetrics, ModelValidationRequest, ModelValidationResponse
+)
 from api.services.shared_api_key_service import (
     create_shared_api_key,
     get_user_shared_api_keys,
@@ -49,6 +52,29 @@ async def get_providers(
         ],
         "total": len(providers)
     }
+
+
+@router.post("/validate-models", response_model=ModelValidationResponse)
+async def validate_models(
+    request: ModelValidationRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db)
+):
+    """
+    Validate model availability by making real API calls
+
+    Checks if the selected models are actually available on the provider side
+    by calling the provider's chat completions or messages endpoint.
+    """
+    from api.services.api_key_validation_service import validate_models_availability
+
+    result = await validate_models_availability(
+        provider=request.provider,
+        api_key=request.api_key,
+        selected_models=request.selected_models,
+        session=session
+    )
+    return result
 
 
 @router.post("/share", response_model=SharedAPIKeyResponse, status_code=status.HTTP_201_CREATED)
