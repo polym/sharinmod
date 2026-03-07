@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
-import { Edit, Trash2, Power, PowerOff, Plus } from 'lucide-react';
+import { Edit, Trash2, Power, PowerOff, Plus, Upload } from 'lucide-react';
 import { adminAPI } from '@/lib/services';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
@@ -65,6 +65,16 @@ export function AdminProviders() {
   const [baseUrl, setBaseUrl] = useState('');
   const [customLlmProvider, setCustomLlmProvider] = useState('openai');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState('');
+
+  // Cleanup blob URL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (logoPreview && logoPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(logoPreview);
+      }
+    };
+  }, [logoPreview]);
 
   const loadProviders = async () => {
     try {
@@ -119,6 +129,7 @@ export function AdminProviders() {
       setBaseUrl('');
       setCustomLlmProvider('openai');
       setLogoFile(null);
+      setLogoPreview('');
       loadProviders();
     } catch (error: any) {
       toast({
@@ -153,6 +164,7 @@ export function AdminProviders() {
       setBaseUrl('');
       setCustomLlmProvider('openai');
       setLogoFile(null);
+      setLogoPreview('');
       loadProviders();
     } catch (error: any) {
       toast({
@@ -207,6 +219,7 @@ export function AdminProviders() {
     setBaseUrl(provider.base_url || defaults?.base_url || '');
     setCustomLlmProvider(provider.custom_llm_provider || defaults?.custom_llm_provider || 'openai');
     setLogoFile(null);
+    setLogoPreview(provider.logo_path || '');
     setEditDialogOpen(true);
   };
 
@@ -228,6 +241,7 @@ export function AdminProviders() {
                   setBaseUrl('');
                   setCustomLlmProvider('openai');
                   setLogoFile(null);
+                  setLogoPreview('');
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
                   {t('create')}
@@ -290,12 +304,52 @@ export function AdminProviders() {
                   </div>
                   <div>
                     <Label htmlFor="logo">{t('logo')}</Label>
-                    <Input
-                      id="logo"
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg"
-                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-                    />
+                    <div className="flex items-center gap-3">
+                      {logoPreview && (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                          <Image
+                            src={logoPreview}
+                            alt="Logo preview"
+                            width={48}
+                            height={48}
+                            className="object-contain w-full h-full"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1 flex-1">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                          <Upload className="w-3.5 h-3.5" />
+                          {t('logoUpload')}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setLogoFile(file);
+                                setLogoPreview(URL.createObjectURL(file));
+                              }
+                            }}
+                          />
+                        </label>
+                        <span className="text-xs text-gray-400">{t('logoHint')}</span>
+                      </div>
+                      {logoPreview && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-red-500 hover:text-red-600"
+                          onClick={() => {
+                            setLogoFile(null);
+                            setLogoPreview('');
+                          }}
+                        >
+                          {t('logoRemove')}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
@@ -315,11 +369,10 @@ export function AdminProviders() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10">Logo</TableHead>
-                    <TableHead>{t('providerKey')}</TableHead>
+                    <TableHead className="w-40">{t('provider')}</TableHead>
                     <TableHead>{t('name')}</TableHead>
                     <TableHead>{t('website')}</TableHead>
-                    <TableHead>{t('modelCount')}</TableHead>
+                    <TableHead>{t('models')}</TableHead>
                     <TableHead>{t('status')}</TableHead>
                     <TableHead>{t('actions')}</TableHead>
                   </TableRow>
@@ -328,16 +381,18 @@ export function AdminProviders() {
                   {providers.map((provider) => (
                     <TableRow key={provider.id}>
                       <TableCell>
-                        <Image
-                          src={provider.logo_path || getProviderLogo(provider.provider_key)}
-                          alt={provider.name}
-                          width={24}
-                          height={24}
-                          className="rounded-sm object-contain"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src={provider.logo_path || getProviderLogo(provider.provider_key)}
+                            alt={provider.name}
+                            width={24}
+                            height={24}
+                            className="rounded-sm object-contain shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <span className="font-mono text-sm">{provider.provider_key}</span>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{provider.provider_key}</TableCell>
                       <TableCell>{provider.name}</TableCell>
                       <TableCell>
                         <a href={provider.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
@@ -437,12 +492,52 @@ export function AdminProviders() {
             </div>
             <div>
               <Label htmlFor="edit-logo">{t('logo')}</Label>
-              <Input
-                id="edit-logo"
-                type="file"
-                accept="image/png,image/jpeg,image/jpg"
-                onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
-              />
+              <div className="flex items-center gap-3">
+                {logoPreview && (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <Image
+                      src={logoPreview}
+                      alt="Logo preview"
+                      width={48}
+                      height={48}
+                      className="object-contain w-full h-full"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1 flex-1">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                    <Upload className="w-3.5 h-3.5" />
+                    {logoPreview ? t('logoUpload') : t('logoUpload')}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setLogoFile(file);
+                          setLogoPreview(URL.createObjectURL(file));
+                        }
+                      }}
+                    />
+                  </label>
+                  <span className="text-xs text-gray-400">{t('logoHint')}</span>
+                </div>
+                {logoPreview && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-red-500 hover:text-red-600"
+                    onClick={() => {
+                      setLogoFile(null);
+                      setLogoPreview('');
+                    }}
+                  >
+                    {t('logoRemove')}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
