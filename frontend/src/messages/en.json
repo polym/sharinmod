@@ -223,6 +223,7 @@
     "errorMessage": "Error Message",
     "callTime": "Call Time",
     "provider": "Provider",
+    "statusCode": "Status Code",
     "errorDetails": "Error Details",
     "expand": "Expand",
     "collapse": "Collapse"

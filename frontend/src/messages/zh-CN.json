@@ -176,6 +176,7 @@
     "errorMessage": "错误信息",
     "callTime": "调用时间",
     "provider": "提供商",
+    "statusCode": "状态码",
     "errorDetails": "错误详情",
     "expand": "展开",
     "collapse": "收起"

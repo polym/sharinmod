@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -64,7 +64,7 @@ const getKindLabelStyle = (kind: string): string => {
 };
 
 // 错误详情弹窗组件
-function ErrorDetailsDialog({ errorDetails, children }: { errorDetails?: string; children: React.ReactNode }) {
+function ErrorDetailsDialog({ log, errorDetails, children }: { log: UsageLog; errorDetails?: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const t = useTranslations('usageTable');
@@ -77,6 +77,19 @@ function ErrorDetailsDialog({ errorDetails, children }: { errorDetails?: string;
       return '-';
     }
     return new Date(timestamp * 1000).toLocaleString(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
+
+  // 格式化成功记录的 request_time
+  const formatSuccessTime = (requestTime: string) => {
+    return new Date(requestTime).toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -137,7 +150,7 @@ function ErrorDetailsDialog({ errorDetails, children }: { errorDetails?: string;
                 <TableRow>
                   <TableHead className="whitespace-nowrap">{t('callTime')}</TableHead>
                   <TableHead className="whitespace-nowrap">{t('provider')}</TableHead>
-                  <TableHead className="whitespace-nowrap">{t('errorCode')}</TableHead>
+                  <TableHead className="whitespace-nowrap">{t('statusCode')}</TableHead>
                   <TableHead className="w-[50%]">{t('errorMessage')}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -194,6 +207,26 @@ function ErrorDetailsDialog({ errorDetails, children }: { errorDetails?: string;
                     </TableRow>
                   );
                 })}
+                {/* 成功记录行 - 仅在最终成功且有失败记录时显示 */}
+                {log.status === 'success' && errors.length > 0 && (
+                  <TableRow>
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {formatSuccessTime(log.request_time)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {log.provider || '-'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      200
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm bg-green-100 text-green-800">
+                        <CheckCircle className="w-3 h-3" />
+                        {t('statusSuccess')}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           ) : (
@@ -289,7 +322,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>
                   {log.num_fails > 0 && (
-                    <ErrorDetailsDialog errorDetails={log.error_details}>
+                    <ErrorDetailsDialog log={log} errorDetails={log.error_details}>
                       <AlertTriangle className="ml-1 w-4 h-4 text-amber-600 cursor-pointer" />
                     </ErrorDetailsDialog>
                   )}
