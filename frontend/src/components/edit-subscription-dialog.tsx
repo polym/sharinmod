@@ -47,6 +47,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
   const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
   const [modelErrors, setModelErrors] = useState<Record<string, string>>({});
   const [validating, setValidating] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Debounced model validation function
@@ -54,6 +55,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
     // 只有当用户输入了新的 API Key 时才进行验证
     if (!newApiKey || selectedModels.length === 0) {
       setUnavailableModels([]);
+      setAvailableModels([]);
       setModelErrors({});
       setValidating(false);
       return;
@@ -67,10 +69,12 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
         selected_models: selectedModels,
       });
       setUnavailableModels(response.data.unavailable_models || []);
+      setAvailableModels(response.data.available_models || []);
       setModelErrors(response.data.model_errors || {});
     } catch (error) {
       // Ignore validation errors, keep empty lists
       setUnavailableModels([]);
+      setAvailableModels([]);
       setModelErrors({});
     } finally {
       setValidating(false);
@@ -91,6 +95,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       setModelError('');
       setNewApiKey('');
       setUnavailableModels([]);
+      setAvailableModels([]);
       setModelErrors({});
 
       // Fetch models for this provider
@@ -134,24 +139,11 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       setModelErrors({});
       onUpdated();
     } catch (error: any) {
-      // Handle backend validation error for unavailable models
-      if (error.response?.data?.code === 'models_unavailable') {
-        const unavailableList = error.response.data.unavailable_models || [];
-        const errors = error.response.data.model_errors || {};
-        setUnavailableModels(unavailableList);
-        setModelErrors(errors);
-        toast({
-          title: tToast('error'),
-          description: tToast('modelsUnavailable', { models: unavailableList.join(', ') }),
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: tToast('error'),
-          description: error.response?.data?.message || tToast('editFailed'),
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: tToast('error'),
+        description: error.response?.data?.message || tToast('editFailed'),
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -198,7 +190,10 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
             />
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading || validating || (newApiKey && selectedModels.length > 0 && availableModels.length === 0)}
+            >
               {loading ? t('saving') : t('save')}
             </Button>
           </DialogFooter>

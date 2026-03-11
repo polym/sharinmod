@@ -131,6 +131,8 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
         supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
         custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
+        # 静态提供商的 supported_models 已经是字符串列表
+        supported_model_keys = supported_models
     except ValueError:
         # Dynamic provider — look up from database
         from api.services.provider_config_service import get_provider_by_key
@@ -149,6 +151,8 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
                 ProviderModelDB.is_enabled == True
             )
             supported_models = list(_db.exec(db_models_q).all())  # 返回 (model_key, real_model) 元组列表
+        # 对于动态提供商，将元组列表转换为 model_key 列表以支持正确的模型验证
+        supported_model_keys = [m[0] for m in supported_models]
 
     if not api_base:
         raise ValueError(f"No API base URL configured for provider: {provider}")
@@ -161,12 +165,16 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         raise ValueError(f"No supported models configured for provider: {provider}")
 
     # Use selected models if provided, otherwise use all supported models
-    models_to_create = selected_models if selected_models else supported_models
+    models_to_create = selected_models if selected_models else supported_model_keys
 
-    # Validate selected models
-    invalid_models = [m for m in models_to_create if m not in supported_models]
+    # Validate selected models - 使用 model_key 列表进行比较
+    invalid_models = [m for m in models_to_create if m not in supported_model_keys]
     if invalid_models:
         raise ValueError(f"Invalid models for provider {provider}: {invalid_models}")
+
+    # 确保至少有一个有效模型
+    if not models_to_create or (isinstance(models_to_create, list) and len(models_to_create) == 0):
+        raise ValueError(f"No valid models to create for provider {provider}")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         # Step 1: Check if credential exists, update if exists, create if not
@@ -214,16 +222,14 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
 
         # Step 2: Create selected models in LiteLLM
         model_ids = {}
-        for model_item in models_to_create:
-            # 处理元组（动态提供商，包含 real_model）或字符串（静态提供商）
-            if isinstance(model_item, tuple):
-                model_name, real_model_val = model_item
-            else:
-                model_name = model_item
-                real_model_val = None
+        # 构建 model_key 到 real_model 的映射（用于动态提供商）
+        real_model_map = {m[0]: m[1] for m in supported_models if isinstance(m, tuple)}
 
-            # 使用 real_model 或 fallback 到 model_name
-            actual_real_model = real_model_val or model_name
+        for model_name in models_to_create:
+            # 对于动态提供商，从映射中查找 real_model
+            real_model_val = real_model_map.get(model_name)
+            # 对于静态提供商，real_model 为 None，使用 model_name
+            actual_real_model = real_model_val if real_model_val else model_name
             litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
             model_payload = {
                 "model_name": model_name,
@@ -1126,26 +1132,6 @@ async def update_shared_api_key(
             # Encrypt new API key
             api_key_obj.encrypted_api_key = encrypt_token(new_api_key)
             api_key_to_validate = new_api_key  # 用于模型验证
-
-        # Step 1.5: 验证模型可用性（如果有新的 API Key）
-        if api_key_to_validate and selected_models:
-            from api.services.api_key_validation_service import validate_models_availability
-            model_validation = await validate_models_availability(
-                provider=api_key_obj.provider,
-                api_key=api_key_to_validate,
-                selected_models=selected_models,
-                session=session
-            )
-
-            if not model_validation["valid"]:
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "code": "models_unavailable",
-                        "message": f"以下模型不可用: {', '.join(model_validation['unavailable_models'])}",
-                        "unavailable_models": model_validation["unavailable_models"]
-                    }
-                )
 
         # Step 2: Calculate model differences
         current_model_ids = {}
