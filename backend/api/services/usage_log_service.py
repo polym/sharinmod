@@ -125,6 +125,13 @@ def create_usage_log(
         elif callback_data.response_time:
             ttft = callback_data.response_time
 
+        # Calculate total duration
+        total_duration = None
+        if callback_data.end_time and callback_data.start_time:
+            total_duration = callback_data.end_time - callback_data.start_time
+        elif callback_data.response_time:
+            total_duration = callback_data.response_time
+
         # Extract model_id
         model_id = callback_data.model_id
         if not model_id and callback_data.hidden_params:
@@ -162,7 +169,7 @@ def create_usage_log(
             status=UsageLogStatus.SUCCESS,
             kind=kind,
             client=client,
-            total_duration=callback_data.response_time,
+            total_duration=total_duration,
             ttft=ttft,
             input_tokens=callback_data.prompt_tokens,
             output_tokens=callback_data.completion_tokens,
@@ -321,6 +328,20 @@ def update_usage_log_for_retry(
 
         # Case: Old failure + New success -> update status and tokens, keep num_fails
         if old_status == UsageLogStatus.FAILURE and new_status == UsageLogStatus.SUCCESS:
+            # Calculate TTFT
+            ttft = None
+            if callback_data.completion_start_time and callback_data.start_time:
+                ttft = callback_data.completion_start_time - callback_data.start_time
+            elif callback_data.response_time:
+                ttft = callback_data.response_time
+
+            # Calculate total duration
+            total_duration = None
+            if callback_data.end_time and callback_data.start_time:
+                total_duration = callback_data.end_time - callback_data.start_time
+            elif callback_data.response_time:
+                total_duration = callback_data.response_time
+
             # Update status, token fields, client, duration
             db.execute(
                 text("""
@@ -341,8 +362,8 @@ def update_usage_log_for_retry(
                     "model_name": _extract_model_short_name(callback_data.model),
                     "provider": provider,
                     "client": client,
-                    "total_duration": callback_data.response_time,
-                    "ttft": callback_data.response_time if callback_data.completion_start_time else None,
+                    "total_duration": total_duration,
+                    "ttft": ttft,
                     "input_tokens": callback_data.prompt_tokens,
                     "output_tokens": callback_data.completion_tokens,
                     "total_tokens": callback_data.total_tokens,
