@@ -20,10 +20,10 @@ database_uri = os.getenv("DATABASE_URI")
 if database_uri:
     config.set_main_option("sqlalchemy.url", database_uri)
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+# 不调用 fileConfig，避免 alembic 覆盖应用的 logging 配置
+# alembic.runtime.migration 等 logger 仍会通过 propagate 输出到 root handler
+# if config.config_file_name is not None:
+#     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

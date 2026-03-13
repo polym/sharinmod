@@ -106,12 +106,12 @@ async def litellm_spendlog_callback(
 
         logger.info(f"[WEBHOOK] Successfully validated {len(callbacks_to_process)} callback(s)")
 
-        # Debug print: show validated callbacks with truncation
+        # Debug log: show validated callbacks with truncation
         truncated_callbacks: List[str] = []
         for callback in callbacks_to_process:
             json_str = json.dumps(callback.model_dump(), indent=2, ensure_ascii=False)
             truncated_callbacks.append(truncate_json_str(json_str))
-        print(f"Validated callbacks: {truncated_callbacks}")
+        logger.debug(f"Validated callbacks: {truncated_callbacks}")
 
         # Connect to Redis and enqueue (use sync client for enqueue operation)
         redis_client = redis.from_url(REDIS_ENV, encoding="utf-8", decode_responses=True)

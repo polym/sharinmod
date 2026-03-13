@@ -9,7 +9,8 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi_pagination import  add_pagination
 from sqlalchemy.exc import IntegrityError
 
-# 配置日志
+# 日志由 asgi.py 统一配置；此处只获取模块 logger
+# 若在非 asgi 上下文中使用，basicConfig 作为兜底
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -60,9 +61,9 @@ def run_alembic_migrations():
         if database_uri:
             config.set_main_option("sqlalchemy.url", database_uri)
         command.upgrade(config, "head")
-        print("✓ Alembic migrations applied successfully")
+        logger.info("✓ Alembic migrations applied successfully")
     except Exception as e:
-        print(f"⚠ Alembic migration warning: {e}")
+        logger.warning(f"⚠ Alembic migration warning: {e}")
         # 迁移失败不阻止应用启动，后续会使用 create_db_and_tables 作为兜底
 
 
