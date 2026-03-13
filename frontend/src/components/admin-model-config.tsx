@@ -795,6 +795,7 @@ function ProviderModelTab() {
                 onChange={(e) => setModelForm({ ...modelForm, realModel: e.target.value })}
                 placeholder={t('addDialog.realModelPlaceholder') || '如 anthropic/claude-3-sonet'}
               />
+              <p className="text-xs text-muted-foreground">只有供应商模型名称不一致才需要填写</p>
             </div>
 
             {/* Display Name */}
