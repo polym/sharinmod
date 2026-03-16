@@ -31,10 +31,17 @@ interface UnifiedAPIKey {
 }
 
 const CLAW_TYPES = [
-  { value: 'NANOBOT', label: 'NanoBot' },
-  { value: 'OPENCLAW', label: 'OpenClaw' },
-  { value: 'ZEROBOT', label: 'ZeroBot' },
+  { value: 'NANOBOT', label: '性能型 (NanoBot)' },
+  { value: 'OPENCLAW', label: '全能型 (OpenClaw)' },
+  { value: 'ZEROBOT', label: '安享型 (ZeroClaw)' },
 ];
+
+// 类型显示名称映射（用于列表显示）
+const TYPE_DISPLAY_NAMES: Record<string, string> = {
+  NANOBOT: '性能型',
+  OPENCLAW: '全能型',
+  ZEROBOT: '安享型',
+};
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   PENDING:  { label: '准备中', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
@@ -274,7 +281,7 @@ export function ClawsPage() {
                     <TableCell className="font-medium">{claw.name}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
-                        {claw.type}
+                        {TYPE_DISPLAY_NAMES[claw.type] || claw.type}
                       </span>
                     </TableCell>
                     <TableCell className="font-mono text-sm text-gray-600">{claw.qq_bot_id}</TableCell>
