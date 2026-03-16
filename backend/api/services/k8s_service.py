@@ -85,6 +85,7 @@ def create_deployment(
         container = client.V1Container(
             name="claw",
             image=image,
+            image_pull_policy="IfNotPresent",
             command=command,
             volume_mounts=[volume_mount],
         )

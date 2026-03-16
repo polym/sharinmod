@@ -16,7 +16,7 @@ claw_types:
   NANOBOT:
     image: "hub.upyun.xxkc/nanobot/nanobot:latest"
     model_id: "minimax-m2.5"
-    command: ["nanobot"]
+    command: ["bash", "-c", "cp /config/config.json /app/config.json && nanobot gateway -c /app/config.json"]
     config_template:
       config.json: |
         {
