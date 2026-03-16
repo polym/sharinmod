@@ -237,7 +237,7 @@ export function ClawsPage() {
           <div>
             <CardTitle className="text-xl font-bold text-gray-900">领养龙虾</CardTitle>
             <CardDescription className="text-gray-500 mt-1">
-              管理您的 QQ 机器人实例（最多 10 只）
+              管理您的龙虾家族（最多 10 只）
             </CardDescription>
           </div>
           <Button
@@ -313,7 +313,6 @@ export function ClawsPage() {
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>领养龙虾 🦞</DialogTitle>
-            <DialogDescription>创建一只新的 QQ 机器人实例，将部署到 K8s 集群</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -340,21 +339,31 @@ export function ClawsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-bot-id">QQ Bot ID <span className="text-red-500">*</span></Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="create-bot-id">AppID <span className="text-red-500">*</span></Label>
+                <a
+                  href="https://q.qq.com/qqbot/openclaw/login.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-indigo-500 hover:underline"
+                >
+                  获取 ID 和 Secret
+                </a>
+              </div>
               <Input
                 id="create-bot-id"
-                placeholder="QQ 机器人 ID"
+                placeholder="AppID"
                 value={newQqBotId}
                 onChange={(e) => setNewQqBotId(e.target.value)}
                 className="rounded-xl"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-bot-secret">QQ Bot Secret <span className="text-red-500">*</span></Label>
+              <Label htmlFor="create-bot-secret">AppSecret <span className="text-red-500">*</span></Label>
               <Input
                 id="create-bot-secret"
                 type="password"
-                placeholder="QQ 机器人 Secret"
+                placeholder="AppSecret"
                 value={newQqBotSecret}
                 onChange={(e) => setNewQqBotSecret(e.target.value)}
                 className="rounded-xl"
@@ -394,17 +403,6 @@ export function ClawsPage() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-400">
-              获取 ID 和 Secret：
-              <a
-                href="https://q.qq.com/qqbot/openclaw/login.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-500 hover:underline ml-1"
-              >
-                https://q.qq.com/qqbot/openclaw/login.html
-              </a>
-            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">取消</Button>
