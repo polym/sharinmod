@@ -1,0 +1,475 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/components/ui/toast';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import { clawAPI, apiKeyAPI } from '@/lib/services';
+
+interface Claw {
+  id: number;
+  name: string;
+  type: string;
+  qq_bot_id: string;
+  k8s_deployment_name?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UnifiedAPIKey {
+  id: number;
+  api_key_name: string | null;
+  status: string;
+  litellm_key: string | null;
+}
+
+const CLAW_TYPES = [
+  { value: 'NANOBOT', label: 'NanoBot' },
+  { value: 'OPENCLAW', label: 'OpenClaw' },
+  { value: 'ZEROBOT', label: 'ZeroBot' },
+];
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  PENDING:  { label: '准备中', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
+  RUNNING:  { label: '运行中', className: 'bg-green-100  text-green-700  border border-green-200' },
+  FAILED:   { label: '失败',   className: 'bg-red-100    text-red-700    border border-red-200' },
+  STOPPED:  { label: '已停止', className: 'bg-gray-100   text-gray-700   border border-gray-200' },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_LABELS[status] ?? { label: status, className: 'bg-gray-100 text-gray-700' };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+export function ClawsPage() {
+  const [claws, setClaws] = useState<Claw[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Create dialog
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newType, setNewType] = useState('NANOBOT');
+  const [newQqBotId, setNewQqBotId] = useState('');
+  const [newQqBotSecret, setNewQqBotSecret] = useState('');
+  const [apiKeys, setApiKeys] = useState<UnifiedAPIKey[]>([]);
+  const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null);
+  const [creatingKey, setCreatingKey] = useState(false);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingClaw, setEditingClaw] = useState<Claw | null>(null);
+  const [editName, setEditName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Delete dialog
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingClaw, setDeletingClaw] = useState<Claw | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const { toast } = useToast();
+
+  const loadClaws = async () => {
+    try {
+      const response = await clawAPI.getMyClaws();
+      setClaws(response.data.items ?? []);
+    } catch (error) {
+      console.error('Failed to load claws:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadApiKeys = async () => {
+    try {
+      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
+      const active = (response.data.items ?? response.data ?? []).filter(
+        (k: UnifiedAPIKey) => k.status === 'active'
+      );
+      setApiKeys(active);
+      if (active.length > 0 && !selectedApiKeyId) {
+        setSelectedApiKeyId(active[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to load API keys:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadClaws();
+    loadApiKeys();
+  }, []);
+
+  const handleCreateApiKey = async () => {
+    setCreatingKey(true);
+    try {
+      const response = await apiKeyAPI.createUnifiedAPIKey({
+        api_key_name: '默认 Key',
+        api_key_ids: [],
+      });
+      toast({ title: '成功', description: 'API Key 已创建' });
+      await loadApiKeys();
+      setSelectedApiKeyId(response.data.id);
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '创建 Key 失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
+  const resetCreateForm = () => {
+    setNewName('');
+    setNewType('NANOBOT');
+    setNewQqBotId('');
+    setNewQqBotSecret('');
+    // 不重置 selectedApiKeyId，保留上次选择
+  };
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !newQqBotId.trim() || !newQqBotSecret.trim() || !selectedApiKeyId) {
+      toast({ title: '错误', description: '请填写所有必填字段', variant: 'destructive' });
+      return;
+    }
+    setCreating(true);
+    try {
+      await clawAPI.createClaw({
+        name: newName.trim(),
+        type: newType,
+        qq_bot_id: newQqBotId.trim(),
+        qq_bot_secret: newQqBotSecret.trim(),
+        unified_api_key_id: selectedApiKeyId,
+      });
+      toast({ title: '成功', description: '龙虾创建成功！' });
+      setCreateOpen(false);
+      resetCreateForm();
+      loadClaws();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '创建失败，请重试',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openEdit = (claw: Claw) => {
+    setEditingClaw(claw);
+    setEditName(claw.name);
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingClaw || !editName.trim()) {
+      toast({ title: '错误', description: '名称不能为空', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await clawAPI.updateClaw(editingClaw.id, { name: editName.trim() });
+      toast({ title: '成功', description: '名称已更新' });
+      setEditOpen(false);
+      setEditingClaw(null);
+      loadClaws();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '更新失败，请重试',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openDelete = (claw: Claw) => {
+    setDeletingClaw(claw);
+    setDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingClaw) return;
+    setDeleting(true);
+    try {
+      await clawAPI.deleteClaw(deletingClaw.id);
+      toast({ title: '成功', description: `龙虾「${deletingClaw.name}」已销毁` });
+      setDeleteOpen(false);
+      setDeletingClaw(null);
+      loadClaws();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '删除失败，请重试',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    });
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-[3px] border-indigo-100 shadow-md rounded-2xl bg-gradient-to-br from-white to-indigo-50/30">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-bold text-gray-900">领养龙虾</CardTitle>
+            <CardDescription className="text-gray-500 mt-1">
+              管理您的 QQ 机器人实例（最多 10 只）
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            创建龙虾
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-indigo-400 font-medium">加载中...</div>
+          ) : claws.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <div className="text-4xl mb-3">🦞</div>
+              <p className="font-medium">还没有龙虾，快去领养一只吧！</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名称</TableHead>
+                  <TableHead>类型</TableHead>
+                  <TableHead>QQ Bot ID</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {claws.map((claw) => (
+                  <TableRow key={claw.id}>
+                    <TableCell className="font-medium">{claw.name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
+                        {claw.type}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-gray-600">{claw.qq_bot_id}</TableCell>
+                    <TableCell><StatusBadge status={claw.status} /></TableCell>
+                    <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEdit(claw)}
+                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openDelete(claw)}
+                          className="rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create Dialog */}
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetCreateForm(); }}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>领养龙虾 🦞</DialogTitle>
+            <DialogDescription>创建一只新的 QQ 机器人实例，将部署到 K8s 集群</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="create-name">龙虾名称 <span className="text-red-500">*</span></Label>
+              <Input
+                id="create-name"
+                placeholder="给你的龙虾起个名字"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-type">类型 <span className="text-red-500">*</span></Label>
+              <Select value={newType} onValueChange={setNewType}>
+                <SelectTrigger id="create-type" className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLAW_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-bot-id">QQ Bot ID <span className="text-red-500">*</span></Label>
+              <Input
+                id="create-bot-id"
+                placeholder="QQ 机器人 ID"
+                value={newQqBotId}
+                onChange={(e) => setNewQqBotId(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-bot-secret">QQ Bot Secret <span className="text-red-500">*</span></Label>
+              <Input
+                id="create-bot-secret"
+                type="password"
+                placeholder="QQ 机器人 Secret"
+                value={newQqBotSecret}
+                onChange={(e) => setNewQqBotSecret(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>绑定 API Key <span className="text-red-500">*</span></Label>
+              {apiKeys.length > 0 ? (
+                <Select
+                  value={selectedApiKeyId?.toString() ?? ''}
+                  onValueChange={(v) => setSelectedApiKeyId(parseInt(v))}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="选择 API Key" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {apiKeys.map((k) => (
+                      <SelectItem key={k.id} value={k.id.toString()}>
+                        {k.api_key_name || `Key #${k.id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50">
+                  <span className="text-sm text-gray-500 flex-1">暂无可用 Key</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={creatingKey}
+                    onClick={handleCreateApiKey}
+                    className="rounded-lg text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                  >
+                    {creatingKey ? '创建中...' : '一键创建'}
+                  </Button>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">
+              获取 ID 和 Secret：
+              <a
+                href="https://q.qq.com/qqbot/openclaw/login.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-500 hover:underline ml-1"
+              >
+                https://q.qq.com/qqbot/openclaw/login.html
+              </a>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">取消</Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+            >
+              {creating ? '创建中...' : '创建'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>修改名称</DialogTitle>
+            <DialogDescription>修改龙虾「{editingClaw?.name}」的名称</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="edit-name">新名称</Label>
+            <Input
+              id="edit-name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="rounded-xl"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl">取消</Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={saving}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+            >
+              {saving ? '保存中...' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>销毁龙虾</DialogTitle>
+            <DialogDescription>
+              确定要销毁龙虾「{deletingClaw?.name}」吗？此操作将删除 K8s Deployment 和数据库记录，不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} className="rounded-xl">取消</Button>
+            <Button
+              onClick={handleDelete}
+              disabled={deleting}
+              variant="destructive"
+              className="rounded-xl"
+            >
+              {deleting ? '销毁中...' : '确认销毁'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -56,6 +56,8 @@ class Settings(BaseSettings):
         "openrouter": "https://openrouter.ai/api/v1"
     }
 
+    ASSETS_PATH: str = os.getenv("ASSETS_PATH", "/app/assets")
+
     # Redis Configuration
     REDIS_DATABASE: str = os.getenv("REDIS_DATABASE", "redis://redis:6379/")
 

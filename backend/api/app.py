@@ -34,6 +34,7 @@ from api.routers.webhooks import router as webhooks_router
 from api.routers.usage import router as usage_router
 from api.routers.oauth import router as oauth_router
 from api.routers.admin import router as admin_router
+from api.routers.claw import router as claw_router
 from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -135,6 +136,7 @@ def create_app(settings: Settings):
     app.include_router(webhooks_router)
     app.include_router(usage_router)
     app.include_router(admin_router)
+    app.include_router(claw_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app

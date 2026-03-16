@@ -12,6 +12,7 @@ from api.models.unified_api_key import UnifiedAPIKey  # noqa: F401
 from api.models.subscription import Subscription  # noqa: F401
 from api.models.usage_log import UsageLog  # noqa: F401
 from api.models.provider_config import GlobalModel, ProviderConfig, ProviderModel  # noqa: F401
+from api.models.claw import Claw  # noqa: F401
 
 # connect_args = {"check_same_thread": False}
 

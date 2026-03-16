@@ -333,3 +333,18 @@ export const globalModelAPI = {
   delete: (id: number) =>
     api.delete(`/api/admin/global-models/${id}`),
 };
+
+// Claw API
+export const clawAPI = {
+  createClaw: (data: { name: string; type: string; qq_bot_id: string; qq_bot_secret: string; unified_api_key_id: number }) =>
+    api.post('/api/claws', data),
+
+  getMyClaws: () =>
+    api.get('/api/claws'),
+
+  updateClaw: (id: number, data: { name: string }) =>
+    api.put(`/api/claws/${id}`, data),
+
+  deleteClaw: (id: number) =>
+    api.delete(`/api/claws/${id}`),
+};
