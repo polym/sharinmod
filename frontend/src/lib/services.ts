@@ -336,7 +336,7 @@ export const globalModelAPI = {
 
 // Claw API
 export const clawAPI = {
-  createClaw: (data: { name: string; type: string; qq_bot_id: string; qq_bot_secret: string; unified_api_key_id: number }) =>
+  createClaw: (data: { name: string; type: string; qq_bot_id: string; qq_bot_secret: string }) =>
     api.post('/api/claws', data),
 
   getMyClaws: () =>

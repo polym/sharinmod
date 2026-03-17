@@ -35,6 +35,7 @@ class UnifiedAPIKey(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     revoked_at: Optional[datetime] = Field(default=None)
     last_used_at: Optional[datetime] = Field(default=None)
+    is_auto_created: bool = Field(default=False, description="Auto-created for claw, not counted in user quota")
     
     # Index for user + status queries (enforcing 5-key limit)
     __table_args__ = (

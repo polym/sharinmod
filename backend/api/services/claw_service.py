@@ -55,12 +55,12 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     """
     Create a new Claw:
     1. Check quota (max 10 per user)
-    2. Validate unified_api_key_id belongs to current user and is ACTIVE
+    2. Auto-create API Key with claw name
     3. Persist a PENDING record to obtain the ID
     4. Build IMAGE, COMMAND and CONFIG_FILES dict from /app/assets/config.yaml
     5. Create K8s ConfigMap (all files mounted at /config) + Deployment
     6. Update record with deployment name and RUNNING status
-    If K8s creation fails, the database record is deleted to keep consistency.
+    If any step fails, rollback everything.
     """
     if count_user_claws(session, current_user.id) >= MAX_CLAWS_PER_USER:
         raise HTTPException(
@@ -68,16 +68,27 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
             detail=f"每用户最多 {MAX_CLAWS_PER_USER} 只龙虾"
         )
 
-    # Validate unified_api_key_id belongs to user and is ACTIVE
-    from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
-    key_stmt = select(UnifiedAPIKey).where(
-        UnifiedAPIKey.id == data.unified_api_key_id,
-        UnifiedAPIKey.user_id == current_user.id,
-        UnifiedAPIKey.status == UnifiedAPIKeyStatus.ACTIVE,
+    # Auto-create API Key with claw name
+    from api.services.unified_api_key_service import (
+        create_unified_api_key_async,
+        block_unified_api_key_async,
+        delete_unified_api_key_async
     )
-    api_key_obj = session.exec(key_stmt).first()
-    if not api_key_obj:
-        raise HTTPException(status_code=400, detail="无效的 API Key，请选择一个有效的 Key")
+
+    api_key_obj = None
+    try:
+        api_key_obj = await create_unified_api_key_async(
+            session=session,
+            user=current_user,
+            api_key_name=data.name,  # 使用龙虾名字作为 API Key 名称
+            description=f"Auto-created for claw: {data.name}",
+            is_auto_created=True  # 标记为自动创建，不占用配额
+        )
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"创建 API Key 失败: {e.detail}"
+        )
 
     # Persist initial record to get an auto-increment ID
     claw = Claw(
@@ -86,7 +97,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         type=data.type,
         qq_bot_id=data.qq_bot_id,
         qq_bot_secret=data.qq_bot_secret,
-        unified_api_key_id=data.unified_api_key_id,
+        unified_api_key_id=api_key_obj.id,  # 关联自动创建的 API Key
         status=ClawStatus.PENDING,
     )
     session.add(claw)
@@ -124,7 +135,12 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         )
     except Exception as e:
         logger.error(f"Failed to create K8s deployment for claw {claw.id}: {e}")
-        # Roll back the database record
+        # Roll back: 删除已创建的 API Key 和数据库记录
+        try:
+            await block_unified_api_key_async(session, current_user, api_key_obj.id)
+            await delete_unified_api_key_async(session, current_user, api_key_obj.id)
+        except Exception as delete_err:
+            logger.error(f"Failed to rollback API key for claw {claw.id}: {delete_err}")
         session.delete(claw)
         session.commit()
         raise HTTPException(
@@ -156,11 +172,39 @@ def update_claw_name(session: Session, user_id: int, claw_id: int, data: ClawUpd
 async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> None:
     """
     Delete a Claw:
-    1. Delete the K8s Deployment (404 is ignored)
-    2. Delete the database record regardless of K8s result
+    1. Delete the associated API Key
+    2. Delete the K8s Deployment (404 is ignored)
+    3. Delete the database record
     """
     claw = get_user_claw_by_id(session, user_id, claw_id)
 
+    # Delete associated API Key first
+    if claw.unified_api_key_id:
+        from api.services.unified_api_key_service import (
+            block_unified_api_key_async,
+            delete_unified_api_key_async
+        )
+        user_stmt = select(User).where(User.id == user_id)
+        current_user = session.exec(user_stmt).first()
+
+        try:
+            # 先 block（revoke）
+            await block_unified_api_key_async(
+                session=session,
+                user=current_user,
+                api_key_id=claw.unified_api_key_id
+            )
+            # 再删除
+            await delete_unified_api_key_async(
+                session=session,
+                user=current_user,
+                api_key_id=claw.unified_api_key_id
+            )
+        except Exception as e:
+            logger.error(f"Error deleting API key for claw {claw.id}: {e}")
+            # 继续执行，不阻止龙虾删除
+
+    # Delete K8s Deployment
     if claw.k8s_deployment_name:
         try:
             k8s_service.delete_deployment(claw.k8s_deployment_name)

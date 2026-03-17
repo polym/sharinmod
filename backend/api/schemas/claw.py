@@ -13,7 +13,6 @@ class ClawCreate(BaseModel):
     type: ClawType = Field(description="Type of QQ bot (NanoBot, OpenClaw, ZeroBot)")
     qq_bot_id: str = Field(max_length=255, description="QQ Bot ID")
     qq_bot_secret: str = Field(max_length=255, description="QQ Bot Secret")
-    unified_api_key_id: int = Field(description="Unified API Key ID to bind")
 
     @validator('name')
     def validate_name(cls, v):

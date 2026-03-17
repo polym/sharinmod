@@ -193,18 +193,19 @@ async def regenerate_litellm_key(
 
 def count_active_user_api_keys(session: Session, user_id: int) -> int:
     """
-    Count active unified API keys for a user
-    
+    Count active unified API keys for a user (excluding auto-created keys)
+
     Args:
         session: Database session
         user_id: User ID
-        
+
     Returns:
-        Count of ACTIVE API keys
+        Count of ACTIVE API keys (excluding auto-created ones)
     """
     statement = select(UnifiedAPIKey).where(
         UnifiedAPIKey.user_id == user_id,
-        UnifiedAPIKey.status == UnifiedAPIKeyStatus.ACTIVE
+        UnifiedAPIKey.status == UnifiedAPIKeyStatus.ACTIVE,
+        UnifiedAPIKey.is_auto_created == False  # 只统计手动创建的
     )
     api_keys = session.exec(statement).all()
     return len(api_keys)
@@ -214,30 +215,33 @@ async def create_unified_api_key_async(
     session: Session,
     user: User,
     api_key_name: Optional[str] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    is_auto_created: bool = False
 ) -> UnifiedAPIKey:
     """
     Generate a new unified API key for user with LiteLLM integration
-    
+
     Args:
         session: Database session
         user: Current authenticated user
         api_key_name: Optional user-friendly name
         description: Optional description
-        
+        is_auto_created: If True, this key was auto-created for claw and doesn't count toward quota
+
     Returns:
         Created UnifiedAPIKey object with litellm_key
-        
+
     Raises:
-        HTTPException: If user has reached 5-key limit, key generation fails, or LiteLLM sync fails
+        HTTPException: If user has reached 5-key limit (only for manual keys), or LiteLLM sync fails
     """
-    # Check 5-key limit
-    active_count = count_active_user_api_keys(session, user.id)
-    if active_count >= MAX_API_KEYS_PER_USER:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Maximum {MAX_API_KEYS_PER_USER} API keys per user. Please revoke an existing API key first."
-        )
+    # 只有手动创建的 Key 才检查配额
+    if not is_auto_created:
+        active_count = count_active_user_api_keys(session, user.id)
+        if active_count >= MAX_API_KEYS_PER_USER:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Maximum {MAX_API_KEYS_PER_USER} API keys per user. Please revoke an existing API key first."
+            )
     
     # Generate unique API key (try up to 10 times)
     max_attempts = 10
@@ -273,7 +277,8 @@ async def create_unified_api_key_async(
         api_key_name=api_key_name,
         description=description,
         litellm_key=litellm_key,
-        api_key_hash=api_key_hash  # Store token_id for callback matching
+        api_key_hash=api_key_hash,  # Store token_id for callback matching
+        is_auto_created=is_auto_created
     )
     
     session.add(unified_api_key)

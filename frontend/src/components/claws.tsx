@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import { clawAPI, apiKeyAPI } from '@/lib/services';
+import { clawAPI } from '@/lib/services';
 
 interface Claw {
   id: number;
@@ -21,13 +21,6 @@ interface Claw {
   status: string;
   created_at: string;
   updated_at: string;
-}
-
-interface UnifiedAPIKey {
-  id: number;
-  api_key_name: string | null;
-  status: string;
-  litellm_key: string | null;
 }
 
 const CLAW_TYPES = [
@@ -70,9 +63,6 @@ export function ClawsPage() {
   const [newType, setNewType] = useState('NANOBOT');
   const [newQqBotId, setNewQqBotId] = useState('');
   const [newQqBotSecret, setNewQqBotSecret] = useState('');
-  const [apiKeys, setApiKeys] = useState<UnifiedAPIKey[]>([]);
-  const [selectedApiKeyId, setSelectedApiKeyId] = useState<number | null>(null);
-  const [creatingKey, setCreatingKey] = useState(false);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -98,57 +88,19 @@ export function ClawsPage() {
     }
   };
 
-  const loadApiKeys = async () => {
-    try {
-      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
-      const active = (response.data.items ?? response.data ?? []).filter(
-        (k: UnifiedAPIKey) => k.status === 'active'
-      );
-      setApiKeys(active);
-      if (active.length > 0 && !selectedApiKeyId) {
-        setSelectedApiKeyId(active[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load API keys:', error);
-    }
-  };
-
   useEffect(() => {
     loadClaws();
-    loadApiKeys();
   }, []);
-
-  const handleCreateApiKey = async () => {
-    setCreatingKey(true);
-    try {
-      const response = await apiKeyAPI.createUnifiedAPIKey({
-        api_key_name: '默认 Key',
-        api_key_ids: [],
-      });
-      toast({ title: '成功', description: 'API Key 已创建' });
-      await loadApiKeys();
-      setSelectedApiKeyId(response.data.id);
-    } catch (error: any) {
-      toast({
-        title: '错误',
-        description: error.response?.data?.detail || '创建 Key 失败',
-        variant: 'destructive',
-      });
-    } finally {
-      setCreatingKey(false);
-    }
-  };
 
   const resetCreateForm = () => {
     setNewName('');
     setNewType('NANOBOT');
     setNewQqBotId('');
     setNewQqBotSecret('');
-    // 不重置 selectedApiKeyId，保留上次选择
   };
 
   const handleCreate = async () => {
-    if (!newName.trim() || !newQqBotId.trim() || !newQqBotSecret.trim() || !selectedApiKeyId) {
+    if (!newName.trim() || !newQqBotId.trim() || !newQqBotSecret.trim()) {
       toast({ title: '错误', description: '请填写所有必填字段', variant: 'destructive' });
       return;
     }
@@ -159,7 +111,6 @@ export function ClawsPage() {
         type: newType,
         qq_bot_id: newQqBotId.trim(),
         qq_bot_secret: newQqBotSecret.trim(),
-        unified_api_key_id: selectedApiKeyId,
       });
       toast({ title: '成功', description: '龙虾创建成功！' });
       setCreateOpen(false);
@@ -269,7 +220,7 @@ export function ClawsPage() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>类型</TableHead>
-                  <TableHead>QQ Bot ID</TableHead>
+                  <TableHead>机器人</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
                   <TableHead className="text-right">操作</TableHead>
@@ -376,40 +327,6 @@ export function ClawsPage() {
                 className="rounded-xl"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>绑定 API Key <span className="text-red-500">*</span></Label>
-              {apiKeys.length > 0 ? (
-                <Select
-                  value={selectedApiKeyId?.toString() ?? ''}
-                  onValueChange={(v) => setSelectedApiKeyId(parseInt(v))}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="选择 API Key" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {apiKeys.map((k) => (
-                      <SelectItem key={k.id} value={k.id.toString()}>
-                        {k.api_key_name || `Key #${k.id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="flex items-center gap-2 p-3 rounded-xl border border-dashed border-gray-300 bg-gray-50">
-                  <span className="text-sm text-gray-500 flex-1">暂无可用 Key</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={creatingKey}
-                    onClick={handleCreateApiKey}
-                    className="rounded-lg text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                  >
-                    {creatingKey ? '创建中...' : '一键创建'}
-                  </Button>
-                </div>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">取消</Button>
@@ -459,7 +376,7 @@ export function ClawsPage() {
           <DialogHeader>
             <DialogTitle>销毁龙虾</DialogTitle>
             <DialogDescription>
-              确定要销毁龙虾「{deletingClaw?.name}」吗？此操作将删除 K8s Deployment 和数据库记录，不可撤销。
+              确定要销毁龙虾「{deletingClaw?.name}」吗？销毁后将无法恢复。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
