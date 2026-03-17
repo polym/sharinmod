@@ -540,11 +540,21 @@ async def delete_unified_api_key_async(
             # Log but don't fail if LiteLLM delete fails
             import logging
             logging.warning(f"Failed to delete LiteLLM key: {e.detail}")
-    
+
+    # Clear foreign key references in usage_logs before deleting
+    from api.models.usage_log import UsageLog
+    from sqlalchemy import update
+
+    session.exec(
+        update(UsageLog)
+        .where(UsageLog.unified_api_key_id == api_key_id)
+        .values(unified_api_key_id=None)  # 保留 unified_api_key_name 供历史记录查看
+    )
+
     # Delete API key
     session.delete(api_key)
     session.commit()
-    
+
     # Log deletion action
     log_api_key_usage(
         db=session,
