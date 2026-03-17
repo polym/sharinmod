@@ -347,4 +347,9 @@ export const clawAPI = {
 
   deleteClaw: (id: number) =>
     api.delete(`/api/claws/${id}`),
+
+  getLogs: (id: number, token: string): Promise<Response> =>
+    fetch(`/api/claws/${id}/logs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
 };

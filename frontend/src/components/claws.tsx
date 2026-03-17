@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, ChevronsDown } from 'lucide-react';
 import { clawAPI } from '@/lib/services';
+import { useAuthStore } from '@/lib/store';
 
 interface Claw {
   id: number;
@@ -75,7 +76,23 @@ export function ClawsPage() {
   const [deletingClaw, setDeletingClaw] = useState<Claw | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Logs dialog
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logsClawName, setLogsClawName] = useState('');
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsAutoFollow, setLogsAutoFollow] = useState(true);
+  const logsAbortRef = useRef<AbortController | null>(null);
+  const logsScrollRef = useRef<HTMLDivElement | null>(null);
+
   const { toast } = useToast();
+
+  // Auto-scroll to bottom when new log lines arrive
+  useEffect(() => {
+    if (logsAutoFollow && logsScrollRef.current) {
+      logsScrollRef.current.scrollTop = logsScrollRef.current.scrollHeight;
+    }
+  }, [logLines, logsAutoFollow]);
 
   const loadClaws = async () => {
     try {
@@ -161,6 +178,76 @@ export function ClawsPage() {
     setDeleteOpen(true);
   };
 
+  const openLogs = async (claw: Claw) => {
+    if (logsAbortRef.current) {
+      logsAbortRef.current.abort();
+    }
+    setLogsClawName(claw.name);
+    setLogLines([]);
+    setLogsLoading(true);
+    setLogsAutoFollow(true);
+    setLogsOpen(true);
+
+    const abort = new AbortController();
+    logsAbortRef.current = abort;
+
+    while (!abort.signal.aborted) {
+      try {
+        const token = useAuthStore.getState().token || '';
+        const resp = await fetch(`/api/claws/${claw.id}/logs`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: abort.signal,
+        });
+        if (!resp.ok || !resp.body) {
+          setLogLines((prev) => [...prev, `[错误] 无法获取日志: HTTP ${resp.status}`]);
+          setLogsLoading(false);
+          break;
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        setLogsLoading(false);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+          for (const part of parts) {
+            if (part.startsWith('data: ')) {
+              const line = part.slice(6);
+              setLogLines((prev) => [...prev.slice(-500), line]);
+            }
+          }
+        }
+        // Stream ended cleanly (pod exited)
+        if (!abort.signal.aborted) {
+          setLogLines((prev) => [...prev, '--- [日志流已结束] ---']);
+        }
+        break;
+      } catch (err: any) {
+        if (err.name === 'AbortError') break;
+        setLogLines((prev) => [...prev, `[连接中断，3 秒后自动重连...]`]);
+        setLogsLoading(true);
+        await new Promise<void>((r) => {
+          const timer = setTimeout(r, 3000);
+          abort.signal.addEventListener('abort', () => { clearTimeout(timer); r(); }, { once: true });
+        });
+      }
+    }
+    setLogsLoading(false);
+  };
+
+  const closeLogs = () => {
+    if (logsAbortRef.current) {
+      logsAbortRef.current.abort();
+      logsAbortRef.current = null;
+    }
+    setLogsOpen(false);
+    setLogLines([]);
+  };
+
   const handleDelete = async () => {
     if (!deletingClaw) return;
     setDeleting(true);
@@ -240,6 +327,15 @@ export function ClawsPage() {
                     <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openLogs(claw)}
+                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          title="查看日志"
+                        >
+                          <ScrollText className="w-3.5 h-3.5" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -390,6 +486,42 @@ export function ClawsPage() {
               {deleting ? '销毁中...' : '确认销毁'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logs Dialog */}
+      <Dialog open={logsOpen} onOpenChange={(open) => { if (!open) closeLogs(); }}>
+        <DialogContent className="sm:max-w-5xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+              <span className="flex items-center gap-2">
+                <ScrollText className="w-4 h-4 text-indigo-500" />
+                龙虾「{logsClawName}」实时日志
+                {logsLoading && <span className="text-xs font-normal text-indigo-400">连接中...</span>}
+              </span>
+              <button
+                onClick={() => setLogsAutoFollow((v) => !v)}
+                className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors ${
+                  logsAutoFollow
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <ChevronsDown className="w-3 h-3" />
+                自动跟随
+              </button>
+            </DialogTitle>
+          </DialogHeader>
+          <div
+            ref={logsScrollRef}
+            className="h-[42rem] w-full rounded-xl bg-gray-950 overflow-y-auto"
+          >
+            <pre className="p-3 text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
+              {logLines.length === 0 && !logsLoading
+                ? '暂无日志...'
+                : logLines.join('\n')}
+            </pre>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

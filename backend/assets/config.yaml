@@ -12,6 +12,10 @@
 #                     {{YOUR_APP_ID}}     - QQ Bot App ID
 #                     {{YOUR_APP_SECRET}} - QQ Bot App Secret
 
+# 工作区持久化存储配置
+workspace_storage_class: ""     # 空字符串使用集群默认 StorageClass
+workspace_storage_size: "10Gi"  # 每只龙虾的 /app/workspace 数据盘大小
+
 claw_types:
   NANOBOT:
     image: "hub.upyun.xxkc/nanobot/nanobot:latest"

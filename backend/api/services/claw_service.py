@@ -124,9 +124,9 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         for filename, content in config_template.items()
     }
 
-    # Create K8s Deployment
+    # Create K8s StatefulSet
     try:
-        deployment_name = k8s_service.create_deployment(
+        deployment_name = k8s_service.create_statefulset(
             claw_id=claw.id,
             image=image,
             config_files=config_files,
@@ -134,7 +134,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
             user_email=current_user.email or "",
         )
     except Exception as e:
-        logger.error(f"Failed to create K8s deployment for claw {claw.id}: {e}")
+        logger.error(f"Failed to create K8s statefulset for claw {claw.id}: {e}")
         # Roll back: 删除已创建的 API Key 和数据库记录
         try:
             await block_unified_api_key_async(session, current_user, api_key_obj.id)
@@ -145,7 +145,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         session.commit()
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to create K8s Deployment: {str(e)}"
+            detail=f"Failed to create K8s StatefulSet: {str(e)}"
         )
 
     # Update with deployment name and running status
@@ -204,13 +204,13 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
             logger.error(f"Error deleting API key for claw {claw.id}: {e}")
             # 继续执行，不阻止龙虾删除
 
-    # Delete K8s Deployment
+    # Delete K8s StatefulSet
     if claw.k8s_deployment_name:
         try:
-            k8s_service.delete_deployment(claw.k8s_deployment_name)
+            k8s_service.delete_statefulset(claw.k8s_deployment_name)
         except Exception as e:
             # Log but do not block deletion of the database record
-            logger.error(f"Error deleting K8s deployment {claw.k8s_deployment_name}: {e}")
+            logger.error(f"Error deleting K8s statefulset {claw.k8s_deployment_name}: {e}")
 
     session.delete(claw)
     session.commit()
