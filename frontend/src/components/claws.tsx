@@ -493,12 +493,10 @@ export function ClawsPage() {
       <Dialog open={logsOpen} onOpenChange={(open) => { if (!open) closeLogs(); }}>
         <DialogContent className="sm:max-w-5xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between gap-2 pr-6">
-              <span className="flex items-center gap-2">
-                <ScrollText className="w-4 h-4 text-indigo-500" />
-                龙虾「{logsClawName}」实时日志
-                {logsLoading && <span className="text-xs font-normal text-indigo-400">连接中...</span>}
-              </span>
+            <DialogTitle className="flex items-center gap-2">
+              <ScrollText className="w-4 h-4 text-indigo-500" />
+              龙虾「{logsClawName}」实时日志
+              {logsLoading && <span className="text-xs font-normal text-indigo-400">连接中...</span>}
               <button
                 onClick={() => setLogsAutoFollow((v) => !v)}
                 className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors ${
