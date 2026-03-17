@@ -54,22 +54,86 @@ claw_types:
         }
 
   OPENCLAW:
-    image: "registry.example.com/openclaw:latest"
-    model_id: "gpt-4o"
+    image: "openclaw:local"
+    model_id: "minimax-m2.5"
+    command: ["bash", "-c", "cp /config/config.json /root/.openclaw/openclaw.json && openclaw gateway --allow-unconfigured"]
     config_template:
-      config.toml: |
-        [model]
-        model_id = "{{MODEL_ID}}"
-        api_key = "{{OPENAI_KEY}}"
-        base_url = "{{OPENAI_BASE_URL}}"
-
-        [bot]
-        app_id = "{{YOUR_APP_ID}}"
-        app_secret = "{{YOUR_APP_SECRET}}"
-
-        [server]
-        host = "0.0.0.0"
-        port = 8080
+      config.json: |
+        {
+          "models": {
+            "mode": "merge",
+            "providers": {
+              "custom": {
+                "baseUrl": "{{OPENAI_BASE_URL}}",
+                "apiKey": "{{OPENAI_KEY}}",
+                "api": "anthropic-messages",
+                "models": [
+                  {
+                    "id": "{{MODEL_ID}}",
+                    "name": "{{MODEL_ID}} (Custom Provider)",
+                    "reasoning": false,
+                    "input": [
+                      "text"
+                    ],
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0
+                    },
+                    "contextWindow": 131072,
+                    "maxTokens": 4096
+                  }
+                ]
+              }
+            }
+          },
+          "agents": {
+            "defaults": {
+              "model": {
+                "primary": "custom/{{MODEL_ID}}"
+              },
+              "models": {
+                "custom/{{MODEL_ID}}": {}
+              },
+              "workspace": "/app/workspace",
+              "compaction": {
+                "mode": "safeguard"
+              }
+            },
+            "list": [
+              {
+                "id": "main"
+              }
+            ]
+          },
+          "commands": {
+            "native": "auto",
+            "nativeSkills": "auto",
+            "restart": true,
+            "ownerDisplay": "raw"
+          },
+          "session": {
+            "dmScope": "per-channel-peer"
+          },
+          "channels": {
+            "qqbot": {
+              "enabled": true,
+              "allowFrom": [
+                "*"
+              ],
+              "appId": "{{YOUR_APP_ID}}",
+              "clientSecret": "{{YOUR_APP_SECRET}}"
+            }
+          },
+          "plugins": {
+            "entries": {
+              "openclaw-qqbot": {
+                "enabled": true
+              }
+            }
+          }
+        }
 
   ZEROBOT:
     image: "registry.example.com/zerobot:latest"
