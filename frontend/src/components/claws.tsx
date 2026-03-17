@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import Anser from 'ansi-to-html';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -43,6 +44,15 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   FAILED:   { label: '失败',   className: 'bg-red-100    text-red-700    border border-red-200' },
   STOPPED:  { label: '已停止', className: 'bg-gray-100   text-gray-700   border border-gray-200' },
 };
+
+// ANSI 转换器实例
+const anser = new Anser({
+  fg: '#CCC',           // 默认前景色
+  bg: '#000',           // 默认背景色
+  newline: true,        // 保留换行
+  escapeXML: true,      // 转义 XML 特殊字符
+  stream: false,
+});
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_LABELS[status] ?? { label: status, className: 'bg-gray-100 text-gray-700' };
@@ -514,11 +524,25 @@ export function ClawsPage() {
             ref={logsScrollRef}
             className="h-[42rem] w-full rounded-xl bg-gray-950 overflow-y-auto"
           >
-            <pre className="p-3 text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
-              {logLines.length === 0 && !logsLoading
-                ? '暂无日志...'
-                : logLines.join('\n')}
-            </pre>
+            {logLines.length === 0 && !logsLoading ? (
+              <div className="p-3 text-xs text-gray-100 font-mono">暂无日志...</div>
+            ) : (
+              <div className="font-mono text-xs flex flex-col">
+                {logLines.map((line, idx) => (
+                  <div key={`line-${idx}`} className="flex">
+                    {/* 行号 */}
+                    <div className="w-12 flex-shrink-0 text-right text-gray-500 text-xs select-none pl-2 pr-[2px] leading-5">
+                      {idx + 1}
+                    </div>
+                    {/* 日志内容 */}
+                    <div
+                      className="flex-1 text-gray-100 px-3 leading-5 whitespace-pre-wrap break-all"
+                      dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
