@@ -1,17 +1,3 @@
-# Claw Types Configuration
-# 每个 claw_type 定义：
-#   image          - 容器镜像地址
-#   model_id       - 传入 config_template 的 {{MODEL_ID}} 占位符
-#   command        - （可选）覆盖容器 entrypoint，对应 K8s spec.containers[].command
-#                    省略时使用镜像默认 entrypoint
-#   config_template - dict，key 为挂载到 /config/ 目录下的文件名，value 为文件内容模版
-#                     每个 value 支持以下占位符：
-#                     {{MODEL_ID}}        - AI 模型 ID
-#                     {{OPENAI_KEY}}      - LiteLLM 生成的 API Key
-#                     {{OPENAI_BASE_URL}} - OpenAI-compatible API 基地址
-#                     {{YOUR_APP_ID}}     - QQ Bot App ID
-#                     {{YOUR_APP_SECRET}} - QQ Bot App Secret
-
 # 工作区持久化存储配置
 workspace_storage_class: ""     # 空字符串使用集群默认 StorageClass
 workspace_storage_size: "10Gi"  # 每只龙虾的 /app/workspace 数据盘大小
@@ -57,12 +43,12 @@ app:
   assets_path: "/app/assets"
 
   # Redis
-  redis_database: "redis://redis:6379/"
+  redis_database: "redis://redis:6379/0"
 
   # Admin User (敏感配置，支持环境变量 fallback: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD)
   # 使用环境变量: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD
-  sharinmod_admin_email: ""
-  sharinmod_admin_password: ""
+  sharinmod_admin_email: "admin@sharin.mod"
+  sharinmod_admin_password: "Aha12345!"
 
   # JWT
   access_token_expire_minutes: 10080  # 7 days
@@ -75,6 +61,20 @@ app:
     moonshot: "https://api.kimi.com/coding"
     minimax: "https://api.minimaxi.com/anthropic"
     openrouter: "https://openrouter.ai/api/v1"
+
+# Claw Types Configuration
+# 每个 claw_type 定义：
+#   image          - 容器镜像地址
+#   model_id       - 传入 config_template 的 {{MODEL_ID}} 占位符
+#   command        - （可选）覆盖容器 entrypoint，对应 K8s spec.containers[].command
+#                    省略时使用镜像默认 entrypoint
+#   config_template - dict，key 为挂载到 /config/ 目录下的文件名，value 为文件内容模版
+#                     每个 value 支持以下占位符：
+#                     {{MODEL_ID}}        - AI 模型 ID
+#                     {{OPENAI_KEY}}      - LiteLLM 生成的 API Key
+#                     {{OPENAI_BASE_URL}} - OpenAI-compatible API 基地址
+#                     {{YOUR_APP_ID}}     - QQ Bot App ID
+#                     {{YOUR_APP_SECRET}} - QQ Bot App Secret
 
 claw_types:
   NANOBOT:
