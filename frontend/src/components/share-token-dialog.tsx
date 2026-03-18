@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -27,22 +27,6 @@ interface Provider {
   is_enabled: boolean;
 }
 
-// Debounce hook
-function useDebounce<T extends (...args: any[]) => any>(callback: T, delay: number): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  const debouncedCallback = useCallback((...args: Parameters<T>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      callback(...args);
-    }, delay);
-  }, [callback, delay]);
-
-  return debouncedCallback as T;
-}
-
 export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialogProps) {
   const t = useTranslations('shareDialog');
   const tToast = useTranslations('shareDialog.toast');
@@ -56,44 +40,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerModels, setProviderModels] = useState<Record<string, string[]>>({});
-  const [unavailableModels, setUnavailableModels] = useState<string[]>([]);
-  const [modelErrors, setModelErrors] = useState<Record<string, string>>({});
-  const [validating, setValidating] = useState(false);
   const { toast } = useToast();
-
-  // Debounced model validation function
-  const validateModels = useCallback(async () => {
-    if (!provider || !apiKey || selectedModels.length === 0) {
-      setUnavailableModels([]);
-      setModelErrors({});
-      setValidating(false);
-      return;
-    }
-
-    setValidating(true);
-    try {
-      const response = await apiKeyAPI.validateModels({
-        provider,
-        api_key: apiKey,
-        selected_models: selectedModels,
-      });
-      setUnavailableModels(response.data.unavailable_models || []);
-      setModelErrors(response.data.model_errors || {});
-    } catch (error) {
-      // Ignore validation errors, keep empty lists
-      setUnavailableModels([]);
-      setModelErrors({});
-    } finally {
-      setValidating(false);
-    }
-  }, [provider, apiKey, selectedModels]);
-
-  const debouncedValidate = useDebounce(validateModels, 800);
-
-  // Trigger validation when apiKey, selectedModels, or provider changes
-  useEffect(() => {
-    debouncedValidate();
-  }, [debouncedValidate, apiKey, selectedModels, provider]);
 
   // Load enabled providers on mount
   useEffect(() => {
@@ -129,8 +76,6 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
     setProvider(value);
     setSelectedModels([]);
     setModelError('');
-    setUnavailableModels([]);  // Reset unavailable models
-    setModelErrors({});  // Reset model errors
 
     // Load models for this provider
     try {
@@ -160,10 +105,6 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       return;
     }
 
-    // 不再阻止用户提交包含不可用模型的请求
-    // 用户可以看到错误信息，但仍可尝试提交
-    // 如果后端验证失败，会返回错误
-
     setLoading(true);
     setModelError('');
     try {
@@ -184,28 +125,13 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
       setAPIKey('');
       setSelectedModels([]);
       setModelError('');
-      setUnavailableModels([]);
-      setModelErrors({});
       onAPIKeyShared();
     } catch (error: any) {
-      // Handle backend validation error for unavailable models
-      if (error.response?.data?.code === 'models_unavailable') {
-        const unavailableList = error.response.data.unavailable_models || [];
-        const errors = error.response.data.model_errors || {};
-        setUnavailableModels(unavailableList);
-        setModelErrors(errors);
-        toast({
-          title: tToast('error'),
-          description: tToast('modelsUnavailable', { models: unavailableList.join(', ') }),
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: tToast('error'),
-          description: error.response?.data?.message || tToast('bindFailed'),
-          variant: 'destructive',
-        });
-      }
+      toast({
+        title: tToast('error'),
+        description: error.response?.data?.message || tToast('bindFailed'),
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -284,9 +210,6 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
                 onChange={setSelectedModels}
                 error={modelError}
                 enabledModels={providerModels[provider] || []}
-                unavailableModels={unavailableModels}
-                modelErrors={modelErrors}
-                validating={validating}
               />
             )}
           </div>
