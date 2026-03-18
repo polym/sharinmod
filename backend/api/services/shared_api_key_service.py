@@ -361,26 +361,6 @@ async def create_shared_api_key(
             detail=f"API key validation failed: {validation_result['message']}"
         )
 
-    # 验证模型可用性（通过真实 API 调用）
-    if selected_models:
-        from api.services.api_key_validation_service import validate_models_availability
-        model_validation = await validate_models_availability(
-            provider=provider,
-            api_key=api_key,
-            selected_models=selected_models,
-            session=session
-        )
-
-        if not model_validation["valid"]:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "code": "models_unavailable",
-                    "message": f"以下模型不可用: {', '.join(model_validation['unavailable_models'])}",
-                    "unavailable_models": model_validation["unavailable_models"]
-                }
-            )
-
     # Encrypt API key before storage
     encrypted = encrypt_token(api_key)
 
