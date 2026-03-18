@@ -206,10 +206,10 @@ def create_statefulset(
     """
     import yaml as _yaml
     from kubernetes import client
-    from api.config import settings
+    from api.config import _get_config_path
 
     # 读取存储配置
-    config_path = os.path.join(settings.ASSETS_PATH, "config.yaml")
+    config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         root_cfg = _yaml.safe_load(f)
     storage_class = root_cfg.get("workspace_storage_class", "")

@@ -57,7 +57,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     1. Check quota (max 10 per user)
     2. Auto-create API Key with claw name
     3. Persist a PENDING record to obtain the ID
-    4. Build IMAGE, COMMAND and CONFIG_FILES dict from /app/assets/config.yaml
+    4. Build IMAGE, COMMAND and CONFIG_FILES dict from config.yaml
     5. Create K8s ConfigMap (all files mounted at /config) + Deployment
     6. Update record with deployment name and RUNNING status
     If any step fails, rollback everything.
