@@ -16,9 +16,69 @@
 workspace_storage_class: ""     # 空字符串使用集群默认 StorageClass
 workspace_storage_size: "10Gi"  # 每只龙虾的 /app/workspace 数据盘大小
 
+# Application Configuration
+# 敏感配置（如密钥、密码等）支持环境变量 fallback
+# 环境变量优先级：YAML 值 > 环境变量（当 YAML 中值为 null 或空字符串时）
+app:
+  # Environment
+  env: "development"  # development | staging | production
+
+  # Database (敏感配置，支持环境变量 fallback: DATABASE_URI)
+  # 使用环境变量: DATABASE_URI
+  database_uri: ""
+
+  # JWT Secret Key (敏感配置，支持环境变量 fallback: SECRET_KEY)
+  # 使用环境变量: SECRET_KEY
+  # 如果未设置，将自动生成随机密钥（每次重启会变化）
+  secret_key: ""
+
+  # GitHub OAuth (敏感配置，支持环境变量 fallback: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)
+  # 使用环境变量: GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET
+  github_client_id: ""
+  github_client_secret: ""
+  github_redirect_uri: "http://localhost:18888/api/oauth/github/callback"
+
+  # GitLab OAuth (敏感配置，支持环境变量 fallback: GITLAB_CLIENT_ID, GITLAB_CLIENT_SECRET)
+  # 使用环境变量: GITLAB_CLIENT_ID, GITLAB_CLIENT_SECRET
+  gitlab_client_id: ""
+  gitlab_client_secret: ""
+  gitlab_base_url: "https://gitlab.com"
+  gitlab_redirect_uri: "http://localhost:18888/api/oauth/gitlab/callback"
+
+  # Website
+  website_base_url: "http://localhost:18888"
+
+  # LiteLLM (敏感配置，支持环境变量 fallback: LITELLM_BASE_URL, LITELLM_MASTER_KEY)
+  # 使用环境变量: LITELLM_BASE_URL, LITELLM_MASTER_KEY
+  litellm_base_url: ""
+  litellm_master_key: ""
+
+  # Assets
+  assets_path: "/app/assets"
+
+  # Redis
+  redis_database: "redis://redis:6379/"
+
+  # Admin User (敏感配置，支持环境变量 fallback: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD)
+  # 使用环境变量: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD
+  sharinmod_admin_email: ""
+  sharinmod_admin_password: ""
+
+  # JWT
+  access_token_expire_minutes: 10080  # 7 days
+
+  # Vendor API Base URLs
+  vendor_base_urls:
+    bigmodel: "https://open.bigmodel.cn/api/anthropic"
+    "z.ai": "https://z.ai/api/anthropic"
+    volcengine: "https://ark.cn-beijing.volces.com/api/coding"
+    moonshot: "https://api.kimi.com/coding"
+    minimax: "https://api.minimaxi.com/anthropic"
+    openrouter: "https://openrouter.ai/api/v1"
+
 claw_types:
   NANOBOT:
-    image: "hub.upyun.xxkc/nanobot/nanobot:latest"
+    image: "hub.upyun.com/huixingyun/nanobot:latest"
     model_id: "minimax-m2.5"
     command: ["bash", "-c", "cp /config/config.json /app/config.json && nanobot gateway -c /app/config.json"]
     config_template:

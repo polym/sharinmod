@@ -26,19 +26,15 @@ services:
     networks:
       - my-network
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
-      - DATABASE_URI=postgresql://postgres:postgres@db:5432/sharinmod
-      - REDIS_DATABASE=redis://redis:6379/0
+      - CONFIG_PATH=/app/config.yaml
       - LITELLM_WEBHOOK_IP_WHITELIST_STR=192.168.96.7
       - PYTHONUNBUFFERED=1
-      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
-      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI}
-      - WEBSITE_BASE_URL=${WEBSITE_BASE_URL}
     volumes:
       - ./backend:/app
       - ./frontend/public:/app/frontend/public
+      - ./etc/config.yaml:/app/config.yaml:ro
 
   # Consumer for LiteLLM callback processing
   litellm-callback-consumer:
@@ -52,14 +48,14 @@ services:
     networks:
       - my-network
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
-      - DATABASE_URI=postgresql://postgres:postgres@db:5432/sharinmod
-      - REDIS_DATABASE=redis://redis:6379/0
+      - CONFIG_PATH=/app/config.yaml
     restart: unless-stopped
     command: ["python", "-m", "api.consumers.litellm_callback_consumer"]
     volumes:
       - ./backend:/app
+      - ./etc/config.yaml:/app/config.yaml:ro
 
   db:
     image: postgres:15-alpine

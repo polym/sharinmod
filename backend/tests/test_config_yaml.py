@@ -10,7 +10,14 @@ from pathlib import Path
 
 import pytest
 
-# Import at module level
+
+# Set CONFIG_PATH before importing config module
+# The config file is located at ../../etc/config.yaml relative to backend/api/
+os.environ.setdefault("CONFIG_PATH", os.path.join(
+    os.path.dirname(__file__), "..", "api", "..", "..", "etc", "config.yaml"
+))
+
+# Import after setting CONFIG_PATH
 from api.config import Settings, TestSettings, _load_yaml_config
 
 

@@ -192,4 +192,5 @@ nohup.out
 docs/plans
 
 # Configuration files with sensitive data
-backend/assets/config.yaml
+etc/config.yaml
+etc/kubeconfig

@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 def _load_claw_type_config(claw_type: str) -> dict:
-    """Load image, model_id and config_template from /app/assets/config.yaml for given claw_type."""
+    """Load image, model_id and config_template from config.yaml for given claw_type."""
     import yaml
-    from api.config import settings
-    config_path = os.path.join(settings.ASSETS_PATH, "config.yaml")
+    from api.config import _get_config_path
+    config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     return config["claw_types"][claw_type]

@@ -11,12 +11,12 @@
 
 ## 配置管理
 
-**重要**: 后端配置统一通过 `backend/assets/config.yaml` 文件管理。
+**重要**: 后端配置统一通过 `etc/config.yaml` 文件管理。
 
 ### 配置文件路径
 
-- **默认路径**: `backend/assets/config.yaml`
-- **自定义路径**: 通过 `CONFIG_PATH` 环境变量指定
+- **默认路径**: `etc/config.yaml`
+- **自定义路径**: 通过 `CONFIG_PATH` 环境变量指定（相对于项目根目录）
   ```bash
   export CONFIG_PATH=/path/to/custom/config.yaml
   ```

@@ -39,17 +39,22 @@ def _get_fallback_value(field_name: str) -> str:
     return ""
 
 
-def _load_yaml_config() -> Dict[str, Any]:
-    """Load configuration from YAML file.
+def _get_config_path() -> str:
+    """Get the absolute path to the configuration file.
 
     Returns:
-        Dict[str, Any]: The 'app' section from config.yaml, or empty dict if not found.
+        str: Absolute path to config.yaml
 
     Raises:
+        ValueError: If CONFIG_PATH environment variable is not set.
         FileNotFoundError: If config file doesn't exist.
-        ValueError: If config file is malformed.
     """
-    config_path = os.getenv("CONFIG_PATH", "../assets/config.yaml")
+    config_path = os.getenv("CONFIG_PATH")
+    if not config_path:
+        raise ValueError(
+            "CONFIG_PATH environment variable is not set. "
+            "Please set it to the path of config.yaml (e.g., /app/config.yaml)"
+        )
 
     # Resolve relative path - use __file__ as base for consistent resolution
     if not os.path.isabs(config_path):
@@ -64,6 +69,21 @@ def _load_yaml_config() -> Dict[str, Any]:
             f"Configuration file not found: {config_path}\n"
             f"Please create the file or set CONFIG_PATH environment variable."
         )
+
+    return config_path
+
+
+def _load_yaml_config() -> Dict[str, Any]:
+    """Load configuration from YAML file.
+
+    Returns:
+        Dict[str, Any]: The 'app' section from config.yaml, or empty dict if not found.
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist.
+        ValueError: If config file is malformed.
+    """
+    config_path = _get_config_path()
 
     try:
         with open(config_path, "r", encoding="utf-8") as f:
@@ -124,7 +144,7 @@ class YamlConfigSource(PydanticBaseSettingsSource):
 class Settings(BaseSettings):
     """Application settings loaded from YAML config file with environment variable fallback.
 
-    The configuration is loaded from `backend/assets/config.yaml` by default.
+    The configuration is loaded from `etc/config.yaml` by default.
     The path can be overridden using the `CONFIG_PATH` environment variable.
 
     Sensitive configuration values support environment variable fallback:
@@ -183,6 +203,7 @@ class Settings(BaseSettings):
     )
 
     ASSETS_PATH: str = "/app/assets"
+    CONFIG_PATH: str = Field(default="", description="Configuration file path")
     REDIS_DATABASE: str = "redis://redis:6379/"
 
     # Admin User (supports fallback to SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD env vars)
