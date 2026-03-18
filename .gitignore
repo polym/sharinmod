@@ -190,3 +190,6 @@ nohup.out
 .worktrees/
 
 docs/plans
+
+# Configuration files with sensitive data
+backend/assets/config.yaml

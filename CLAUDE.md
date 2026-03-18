@@ -9,6 +9,62 @@
 - **基础设施**: Docker Compose (db, redis, backend, frontend, nginx)
 - **数据库迁移**: Alembic
 
+## 配置管理
+
+**重要**: 后端配置统一通过 `backend/assets/config.yaml` 文件管理。
+
+### 配置文件路径
+
+- **默认路径**: `backend/assets/config.yaml`
+- **自定义路径**: 通过 `CONFIG_PATH` 环境变量指定
+  ```bash
+  export CONFIG_PATH=/path/to/custom/config.yaml
+  ```
+
+### 配置结构
+
+`config.yaml` 包含两个主要部分：
+
+1. **`app`**: 应用配置（数据库、OAuth、LiteLLM 等）
+2. **`claw_types`**: Claw 类型配置（NANOBOT、OPENCLAW 等）
+3. **`workspace_*`**: 工作区存储配置
+
+### 敏感配置 Fallback
+
+敏感配置（如密钥、密码）支持环境变量 fallback：
+- 优先级: YAML 值 > 环境变量
+- 当 YAML 中值为 `null` 或空字符串时，使用对应环境变量
+
+支持 fallback 的配置项：
+- `DATABASE_URI` → `DATABASE_URI` 环境变量
+- `GITHUB_CLIENT_ID` → `GITHUB_CLIENT_ID` 环境变量
+- `GITHUB_CLIENT_SECRET` → `GITHUB_CLIENT_SECRET` 环境变量
+- `GITLAB_CLIENT_ID` → `GITLAB_CLIENT_ID` 环境变量
+- `GITLAB_CLIENT_SECRET` → `GITLAB_CLIENT_SECRET` 环境变量
+- `LITELLM_BASE_URL` → `LITELLM_BASE_URL` 环境变量
+- `LITELLM_MASTER_KEY` → `LITELLM_MASTER_KEY` 环境变量
+- `SHARINMOD_ADMIN_EMAIL` → `SHARINMOD_ADMIN_EMAIL` 环境变量
+- `SHARINMOD_ADMIN_PASSWORD` → `SHARINMOD_ADMIN_PASSWORD` 环境变量
+
+### 配置示例
+
+```yaml
+# Application Configuration
+app:
+  # Environment
+  env: "development"
+
+  # Database (敏感配置，支持环境变量 fallback)
+  database_uri: "postgresql://postgres:postgres@db:5432/sharinmod"
+
+  # GitHub OAuth
+  github_client_id: ""
+  github_client_secret: ""
+  github_redirect_uri: "http://localhost:28888/api/oauth/github/callback"
+
+  # ... 其他配置
+```
+
 ## Docker 容器化环境
 
 **重要**: 项目使用 Docker Compose 管理所有服务，数据库运行在容器内。
@@ -39,6 +95,8 @@
 - `HOST_PORT`: 服务对外暴露的主端口（如 `28888`）
   - Nginx 反向代理将此端口映射到容器的内部端口
   - 访问地址：`http://localhost:{HOST_PORT}`
+
+- `CONFIG_PATH`: 可选，指定自定义配置文件路径
 
 ## 数据库迁移
 

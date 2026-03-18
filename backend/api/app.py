@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 import logging
+import os
 import traceback
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi_pagination import  add_pagination
+from fastapi_pagination import add_pagination
 from sqlalchemy.exc import IntegrityError
 
 # 日志由 asgi.py 统一配置；此处只获取模块 logger
@@ -39,28 +40,19 @@ from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from prometheus_fastapi_instrumentator import Instrumentator
 import redis.asyncio as redis
-from fastapi import FastAPI
-from dotenv import load_dotenv
-import os
 from fastapi_limiter import FastAPILimiter
 
-env_path = "../.env"
-load_dotenv(env_path)
 
-REDIS_ENV = os.getenv("REDIS_DATABASE" ,"redis://redis:6379/")
-
-
-def run_alembic_migrations():
+def run_alembic_migrations(settings: Settings):
     """运行 Alembic 数据库迁移"""
     try:
         alembic_dir = os.path.join(os.path.dirname(__file__), "alembic")
         alembic_ini = os.path.join(os.path.dirname(__file__), "alembic.ini")
         config = Config(alembic_ini)
         config.set_main_option("script_location", alembic_dir)
-        # 使用环境变量中的 DATABASE_URI
-        database_uri = os.getenv("DATABASE_URI")
-        if database_uri:
-            config.set_main_option("sqlalchemy.url", database_uri)
+        # 使用 settings 中的 DATABASE_URI
+        if settings.DATABASE_URI:
+            config.set_main_option("sqlalchemy.url", settings.DATABASE_URI)
         command.upgrade(config, "head")
         logger.info("✓ Alembic migrations applied successfully")
     except Exception as e:
@@ -71,11 +63,15 @@ def run_alembic_migrations():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 首先运行 Alembic 迁移
-    run_alembic_migrations()
+    run_alembic_migrations(app.state.settings)
 
     db = next(get_db())  # Fetching the database session
     create_db_and_tables()  # 作为兜底，创建任何可能缺失的表
-    redis_connection= redis.from_url(REDIS_ENV, encoding="utf-8", decode_responses=True)
+    redis_connection = redis.from_url(
+        app.state.settings.REDIS_DATABASE,
+        encoding="utf-8",
+        decode_responses=True
+    )
     await FastAPILimiter.init(redis_connection)
     try:
         initialize_sharinmod_data(db)
@@ -93,6 +89,8 @@ def create_app(settings: Settings):
         description=settings.DESCRIPTION,
         lifespan=lifespan,
     )
+    # Store settings in app state for access in lifespan
+    app.state.settings = settings
 
     # 添加全局异常处理器
     @app.exception_handler(Exception)
