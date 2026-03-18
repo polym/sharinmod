@@ -29,12 +29,14 @@ services:
       - ./.env
     environment:
       - CONFIG_PATH=/app/config.yaml
+      - KUBECONFIG_PATH=/app/kubeconfig
       - LITELLM_WEBHOOK_IP_WHITELIST_STR=192.168.96.7
       - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app
       - ./frontend/public:/app/frontend/public
       - ./etc/config.yaml:/app/config.yaml:ro
+      - ./etc/kubeconfig:/app/kubeconfig:ro
 
   # Consumer for LiteLLM callback processing
   litellm-callback-consumer:
