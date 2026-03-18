@@ -174,14 +174,17 @@ async def update_api_key(
 
     Supports updating API Key and/or model list
     """
-    api_key = await update_shared_api_key(
+    api_key, auto_removed = await update_shared_api_key(
         session=session,
         api_key_id=api_key_id,
         user_id=current_user.id,
         new_api_key=update_data.api_key,
         selected_models=update_data.selected_models
     )
-    return api_key
+    response_data = api_key.model_dump()
+    if auto_removed:
+        response_data["warnings"] = [f"以下模型已不在当前供应商支持列表中，已自动移除: {', '.join(auto_removed)}"]
+    return response_data
 
 
 @router.get("/shared/{api_key_id}/metrics", response_model=SharedAPIKeyMetrics)

@@ -52,6 +52,7 @@ class SharedAPIKey(SQLModel, table=True):
     api_key_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
     litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM (deprecated, use litellm_model_ids)
     litellm_model_ids: Optional[str] = Field(default=None, max_length=1000)  # JSON string mapping model_name -> litellm_model_id
+    user_selected_models: Optional[str] = Field(default=None, max_length=1000)  # JSON array of user-selected model keys; persisted through disable/enable cycles
 
     # Token statistics
     api_key_hash: Optional[str] = Field(default=None, max_length=255)  # LiteLLM token_id for identifying user API key in callbacks

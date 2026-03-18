@@ -89,6 +89,7 @@ class SharedAPIKeyResponse(BaseModel):
     provider_website: Optional[str] = Field(None, description="Provider official website URL")
     provider_display_name: Optional[str] = Field(None, description="Provider display name (e.g., '智谱AI')")
     provider_logo_path: Optional[str] = Field(None, description="Path to provider logo in frontend")
+    warnings: Optional[List[str]] = Field(None, description="Warnings about auto-removed unsupported models")
     
     class Config:
         schema_extra = {

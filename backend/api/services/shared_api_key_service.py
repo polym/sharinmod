@@ -400,13 +400,11 @@ async def create_shared_api_key(
     # Sync with LiteLLM (create credential and models) - skip in testing
     if not settings.TESTING:
         try:
-            try:
-                model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
-            except ValueError:
-                # 如果是动态提供商（不在 PROVIDER_INFO 中），跳过 LiteLLM 同步
-                model_ids = None
+            logger.info(f"[CREATE] Syncing to LiteLLM: provider={provider}, user={user.email}, models={selected_models}")
+            model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
+            logger.info(f"[CREATE] LiteLLM sync result: {list(model_ids.keys()) if model_ids else 'skipped (dynamic provider without base_url)'}")
 
-            # Handle dynamic providers (model_ids is None)
+            # model_ids == {} means dynamic provider that skips LiteLLM sync
             if not model_ids:
                 # For dynamic providers, get models from database and create subscriptions
                 from api.services.provider_config_service import get_provider_by_key
@@ -440,6 +438,9 @@ async def create_shared_api_key(
                     shared_api_key.litellm_model_ids = json.dumps({m: m for m in db_models})
                     if db_models:
                         shared_api_key.litellm_model_id = db_models[0]
+                    # Persist user's model selection (survives disable/enable cycles)
+                    shared_api_key.user_selected_models = json.dumps(list(db_models))
+                    logger.info(f"[CREATE] Saved user_selected_models (dynamic): {list(db_models)}")
                     session.add(shared_api_key)
                     session.commit()
                     session.refresh(shared_api_key)
@@ -450,6 +451,9 @@ async def create_shared_api_key(
                 # Keep first model ID for backward compatibility
                 first_model = list(model_ids.keys())[0]
                 shared_api_key.litellm_model_id = model_ids[first_model]
+                # Persist user's model selection (survives disable/enable cycles)
+                shared_api_key.user_selected_models = json.dumps(list(model_ids.keys()))
+                logger.info(f"[CREATE] Saved user_selected_models (static): {list(model_ids.keys())}")
                 session.add(shared_api_key)
                 session.commit()
                 session.refresh(shared_api_key)
@@ -641,7 +645,8 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
                     )
                     _handle_litellm_delete_response(delete_response, "DISABLE_LEGACY_MODEL_DELETE")
 
-            # Clear model ID fields
+            # Clear live LiteLLM model IDs (user_selected_models is intentionally kept
+            # so enable_shared_api_key can restore the exact models the user chose)
             api_key.litellm_model_ids = None
             api_key.litellm_model_id = None
             session.add(api_key)
@@ -741,37 +746,71 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
     session.commit()
     session.refresh(api_key)
     
-    # Sync with LiteLLM - recreate all models (skip in testing)
+    # Sync with LiteLLM - recreate user-selected models (skip in testing)
     if not settings.TESTING:
         try:
-            credential_name = f"{api_key.provider}/{user.email}"
-            try:
-                model_ids = await _create_models_for_credential(user, api_key.provider, credential_name)
-            except Exception as credential_error:
-                # Credential may have been externally deleted, recreate it with models
-                print(f"[ENABLE] Credential creation failed, attempting full recreate: {credential_error}")
-                plain_api_key = decrypt_token(api_key.encrypted_api_key)
-                model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key)
-            # Store all model IDs as JSON
+            # Restore user's previously selected models
+            saved_models = None
+            if api_key.user_selected_models:
+                try:
+                    saved_models = json.loads(api_key.user_selected_models)
+                    logger.info(f"[ENABLE] Restoring user-selected models: {saved_models}")
+                except json.JSONDecodeError:
+                    logger.warning(f"[ENABLE] Failed to parse user_selected_models: {api_key.user_selected_models!r}, falling back to provider defaults")
+
+            # Decrypt key and re-sync to LiteLLM (handles both static and dynamic providers)
+            plain_api_key = decrypt_token(api_key.encrypted_api_key)
+            logger.info(f"[ENABLE] Syncing to LiteLLM: provider={api_key.provider}, user={user.email}, models={saved_models}")
+            model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key, saved_models)
+            logger.info(f"[ENABLE] LiteLLM sync result: {list(model_ids.keys()) if model_ids else 'skipped (dynamic provider without base_url)'}")
+
             if not model_ids:
-                raise ValueError(f"No models were created for provider: {api_key.provider}")
-            api_key.litellm_model_ids = json.dumps(model_ids)
-            # Keep first model ID for backward compatibility
-            first_model = list(model_ids.keys())[0]
-            api_key.litellm_model_id = model_ids[first_model]
-            session.add(api_key)
-            session.commit()
-            session.refresh(api_key)
-            
-            # Recreate subscriptions for all models since they are now available again
-            for model_name, model_id in model_ids.items():
-                subscription = Subscription(
-                    model_id=model_id,
-                    shared_api_key_id=api_key.id,
-                    user_id=user.id
-                )
-                session.add(subscription)
-            session.commit()
+                # Dynamic provider without LiteLLM - recreate subscriptions from DB
+                from api.services.provider_config_service import get_provider_by_key
+                provider_config = get_provider_by_key(session, api_key.provider)
+                if provider_config:
+                    models_statement = select(ProviderModel).where(
+                        ProviderModel.provider_config_id == provider_config.id,
+                        ProviderModel.is_enabled == True
+                    )
+                    db_model_keys = [m.model_key for m in session.exec(models_statement).all()]
+                    if saved_models:
+                        db_model_keys = [m for m in db_model_keys if m in saved_models]
+                    logger.info(f"[ENABLE] Dynamic provider, recreating subscriptions for: {db_model_keys}")
+                    for model_key in db_model_keys:
+                        subscription = Subscription(
+                            model_id=model_key,
+                            shared_api_key_id=api_key.id,
+                            user_id=user.id
+                        )
+                        session.add(subscription)
+                    session.commit()
+                    api_key.litellm_model_ids = json.dumps({m: m for m in db_model_keys})
+                    api_key.litellm_model_id = db_model_keys[0] if db_model_keys else None
+                    session.add(api_key)
+                    session.commit()
+                    session.refresh(api_key)
+                else:
+                    logger.warning(f"[ENABLE] Dynamic provider {api_key.provider} config not found, skipping subscription recreation")
+            else:
+                # Store all model IDs as JSON
+                api_key.litellm_model_ids = json.dumps(model_ids)
+                # Keep first model ID for backward compatibility
+                first_model = list(model_ids.keys())[0]
+                api_key.litellm_model_id = model_ids[first_model]
+                session.add(api_key)
+                session.commit()
+                session.refresh(api_key)
+
+                # Recreate subscriptions for all models since they are now available again
+                for model_name, model_id in model_ids.items():
+                    subscription = Subscription(
+                        model_id=model_id,
+                        shared_api_key_id=api_key.id,
+                        user_id=user.id
+                    )
+                    session.add(subscription)
+                session.commit()
 
         except Exception as e:
             # Rollback status change if LiteLLM sync fails
@@ -1107,11 +1146,14 @@ async def update_shared_api_key(
         supported_models = [m[0] for m in db_models]  # 只取 model_key 列表
         real_model_map = {m[0]: m[1] for m in db_models}  # model_key -> real_model 映射
 
-    invalid_models = [m for m in selected_models if m not in supported_models]
-    if invalid_models:
+    auto_removed_models = [m for m in selected_models if m not in supported_models]
+    selected_models = [m for m in selected_models if m in supported_models]
+    if auto_removed_models:
+        logger.warning(f"[UPDATE] Auto-removing unsupported models for provider={api_key_obj.provider}: {auto_removed_models}")
+    if not selected_models:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid models for provider {api_key_obj.provider}: {invalid_models}. Supported: {supported_models}"
+            detail=f"所有已选模型均不在当前供应商支持列表中，请重新选择。不支持的模型: {', '.join(auto_removed_models)}"
         )
 
     # Store original data for rollback
@@ -1287,13 +1329,16 @@ async def update_shared_api_key(
                     )
                     session.add(subscription)
 
+        # Persist updated model selection
+        api_key_obj.user_selected_models = json.dumps(selected_models)
+        logger.info(f"[UPDATE] Saved user_selected_models: {selected_models}")
         # Update timestamp
         api_key_obj.updated_at = datetime.utcnow()
         session.add(api_key_obj)
         session.commit()
         session.refresh(api_key_obj)
 
-        return api_key_obj
+        return api_key_obj, auto_removed_models
 
     except Exception as e:
         # Rollback on error
