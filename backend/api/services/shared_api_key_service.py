@@ -221,7 +221,7 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         # Step 2: Create selected models in LiteLLM
         model_ids = {}
         # 构建 model_key 到 real_model 的映射
-        real_model_map = {m[0]: m[1] for m in supported_models if isinstance(m, tuple)}
+        real_model_map = {m[0]: m[1] for m in supported_models}
 
         for model_name in models_to_create:
             # 从映射中查找 real_model
@@ -297,7 +297,7 @@ async def _create_models_for_credential(
         raise ValueError(f"No supported models configured for provider: {provider}")
 
     # 构建 model_key 到 real_model 的映射
-    real_model_map = {m[0]: m[1] for m in supported_models if isinstance(m, tuple)}
+    real_model_map = {m[0]: m[1] for m in supported_models}
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         model_ids = {}
