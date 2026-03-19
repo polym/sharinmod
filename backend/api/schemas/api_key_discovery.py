@@ -1,18 +1,17 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List
-from api.models.shared_api_key import APIKeyProvider
 
 
 class APIKeyDiscoveryItem(BaseModel):
     """
     Shared API key information for discovery (no sensitive data)
-    
+
     Excludes actual API key value and owner's identity details
     Shows only what consumers need to see
     """
     id: int = Field(description="API key ID for reference")
-    provider: APIKeyProvider = Field(description="API key provider (bigmodel, z.ai)")
+    provider: str = Field(description="API key provider (bigmodel, z.ai, volcengine, moonshot, minimax, openrouter, etc.)")
     provider_username: str = Field(description="Username of API key provider (email prefix)")
     shared_duration_days: int = Field(description="Days since API key was shared")
     total_uses: int = Field(description="Total number of times API key was used")

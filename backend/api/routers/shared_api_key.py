@@ -188,26 +188,18 @@ async def get_provider_models(
     """
     Get supported models for a provider from the unified model catalog.
 
-    Returns enabled models only (built-in + DB, DB takes priority).
-    Disabled models (either via DB override or DB record) are excluded.
+    Returns enabled models only (from database, including those imported from YAML).
+    Disabled models are excluded.
     """
     from api.services.provider_config_service import get_unified_model_catalog, get_provider_by_key
-    from api.models.shared_api_key import APIKeyProvider
-    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
 
     catalog = get_unified_model_catalog(session, provider_key=provider, enabled_only=True)
 
     # If catalog is empty, verify the provider actually exists before returning 404
     if not catalog:
         provider_config = get_provider_by_key(session, provider)
-        try:
-            provider_enum = APIKeyProvider(provider)
-        except ValueError:
-            provider_enum = None
 
-        if not provider_config and (
-            provider_enum is None or provider_enum not in BUILTIN_PROVIDER_INFO
-        ):
+        if not provider_config:
             raise HTTPException(
                 status_code=404,
                 detail=f"Provider not found: {provider}"

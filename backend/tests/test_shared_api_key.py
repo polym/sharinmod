@@ -8,7 +8,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token, decrypt_token
 

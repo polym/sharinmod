@@ -14,7 +14,7 @@ from api.database import get_db
 from api.models.user import User
 from api.models.unified_api_key import UnifiedAPIKey
 from api.models.subscription import Subscription
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider
+from api.models.shared_api_key import SharedAPIKey
 from api.models.usage_log import UsageLog, UsageLogStatus
 from api.services.litellm_callback_service import process_callback
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
@@ -84,7 +84,7 @@ def full_setup_fixture(session: Session):
     # Create shared API key
     shared_key = SharedAPIKey(
         user_id=contributor.id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key="dummy_encrypted_key_for_testing"
     )
     session.add(shared_key)

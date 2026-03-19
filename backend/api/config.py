@@ -134,7 +134,7 @@ class YamlConfigSource(PydanticBaseSettingsSource):
             if field_key in result:
                 continue
 
-            # Handle nested dict values (e.g., vendor_base_urls)
+            # Handle nested dict values (e.g., nested configuration structures)
             if isinstance(yaml_value, dict):
                 result[field_key] = yaml_value
 
@@ -189,18 +189,6 @@ class Settings(BaseSettings):
     # LiteLLM (supports fallback to LITELLM_BASE_URL, LITELLM_MASTER_KEY env vars)
     LITELLM_BASE_URL: str = ""
     LITELLM_MASTER_KEY: str = ""
-
-    # Vendor API Base URLs
-    VENDOR_BASE_URLS: dict = Field(
-        default_factory=lambda: {
-            "bigmodel": "https://open.bigmodel.cn/api/anthropic",
-            "z.ai": "https://z.ai/api/anthropic",
-            "volcengine": "https://ark.cn-beijing.volces.com/api/coding",
-            "moonshot": "https://api.kimi.com/coding",
-            "minimax": "https://api.minimaxi.com/anthropic",
-            "openrouter": "https://openrouter.ai/api/v1"
-        }
-    )
 
     ASSETS_PATH: str = "/app/assets"
     CONFIG_PATH: str = Field(default="", description="Configuration file path")

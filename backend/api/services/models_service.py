@@ -2,8 +2,7 @@ from sqlmodel import Session, select, func
 from sqlalchemy.exc import SQLAlchemyError
 from api.models.subscription import Subscription
 from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
-from api.services.shared_api_key_service import PROVIDER_INFO
-from api.services.provider_config_service import get_unified_model_catalog
+from api.services.provider_config_service import get_unified_model_catalog, get_provider_by_key
 from api.models.user import User
 from api.models.usage_log import UsageLog
 from api.schemas.models import ModelInfo, SharedBy, ProviderInfo
@@ -46,7 +45,7 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     2. JOIN SharedAPIKey 获取 provider 信息（只包含 ACTIVE 状态）
     3. JOIN User 获取共享者信息
     4. 按 model_name 分组（不按 provider），收集所有提供商和共享者列表
-    5. 从 PROVIDER_INFO 获取模型元数据
+    5. 从数据库获取模型元数据
     6. 从 usage_logs 表统计已使用 Token 总量
 
     Args:
@@ -121,6 +120,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
     # 过滤：只保留模型配置中已启用的模型
     enabled_catalog = get_unified_model_catalog(db, enabled_only=True)
     enabled_model_keys = {item["model_key"] for item in enabled_catalog}
+    # 构建模型元数据查找 map: (provider_key, model_key) -> catalog_item
+    catalog_map = {(item["provider_key"], item["model_key"]): item for item in enabled_catalog}
 
     # 批量查询 GlobalModel 获取所有元数据
     from api.models.provider_config import GlobalModel
@@ -140,74 +141,59 @@ def get_available_models(db: Session) -> List[ModelInfo]:
         providers_list = list(data["providers"])
         first_provider = next((p for p in providers_list if p == "bigmodel"), providers_list[0])
 
-        # 从 PROVIDER_INFO 获取模型元数据（provider 现在是 str 类型）
-        # 需要尝试转换为 APIKeyProvider 枚举
-        from api.models.shared_api_key import APIKeyProvider
-        try:
-            provider_enum = APIKeyProvider(first_provider)
-            provider_config = PROVIDER_INFO.get(provider_enum)
-        except ValueError:
-            # 动态供应商，不在 PROVIDER_INFO 中
-            provider_config = None
+        # 从数据库获取模型元数据（通过 provider_key 和 model_key）
+        catalog_key = (first_provider, model_name)
+        catalog_item = catalog_map.get(catalog_key)
 
-        models_config = provider_config.get("models", {}) if provider_config else {}
-        model_config = models_config.get(model_name, {})
-
-        # 构建 display_name: 优先级 GlobalModel > PROVIDER_INFO > model_name.upper()
+        # 构建 display_name: 优先级 GlobalModel > catalog > model_name.upper()
         if global_model and global_model.display_name:
             display_name = global_model.display_name
+        elif catalog_item:
+            display_name = catalog_item.get("display_name", model_name.upper())
         else:
-            display_name = model_config.get("display_name", model_name.upper())
+            display_name = model_name.upper()
 
         # 构建提供商列表
         provider_infos = []
         for provider in providers_list:
-            try:
-                provider_enum = APIKeyProvider(provider)
-                p_config = PROVIDER_INFO.get(provider_enum)
-                if p_config:
-                    provider_infos.append(ProviderInfo(
-                        code=provider,
-                        name=p_config.get("name", provider),
-                        logo_path=p_config.get("logo_path", "")
-                    ))
-            except ValueError:
-                # 动态供应商，尝试从数据库获取配置
-                from api.services.provider_config_service import get_provider_by_key
-                db_provider = get_provider_by_key(db, provider)
-                if db_provider:
-                    provider_infos.append(ProviderInfo(
-                        code=provider,
-                        name=db_provider.name or provider,
-                        logo_path=db_provider.logo_path or ""
-                    ))
+            db_provider = get_provider_by_key(db, provider)
+            if db_provider:
+                provider_infos.append(ProviderInfo(
+                    code=provider,
+                    name=db_provider.name or provider,
+                    logo_path=db_provider.logo_path or ""
+                ))
 
-        # 获取元数据：优先 GlobalModel，其次 PROVIDER_INFO，最后默认值
+        # 获取元数据：优先 GlobalModel，其次 catalog，最后默认值
         if global_model:
-            description = global_model.description or model_config.get("description", "暂无描述")
-            context_length = global_model.context_length or model_config.get("context_length", "N/A")
-            max_output_length = global_model.max_output_length or model_config.get("max_output_length", "N/A")
-            input_types = global_model.input_types or model_config.get("input_types", ["Text"])
-            output_types = global_model.output_types or model_config.get("output_types", ["Text"])
-            coding_score = global_model.coding_score if global_model.coding_score is not None else model_config.get("coding_score")
+            description = global_model.description or (catalog_item.get("description") if catalog_item else "暂无描述")
+            context_length = global_model.context_length or (catalog_item.get("context_length") if catalog_item else "N/A")
+            max_output_length = global_model.max_output_length or (catalog_item.get("max_output_length") if catalog_item else "N/A")
+            input_types = global_model.input_types or (catalog_item.get("input_types") if catalog_item else ["Text"])
+            output_types = global_model.output_types or (catalog_item.get("output_types") if catalog_item else ["Text"])
+            coding_score = global_model.coding_score if global_model.coding_score is not None else (catalog_item.get("coding_score") if catalog_item else None)
             model_logo_url = global_model.logo_url
-        else:
-            description = model_config.get("description", "暂无描述")
-            context_length = model_config.get("context_length", "N/A")
-            max_output_length = model_config.get("max_output_length", "N/A")
-            input_types = model_config.get("input_types", ["Text"])
-            output_types = model_config.get("output_types", ["Text"])
-            coding_score = model_config.get("coding_score")
+        elif catalog_item:
+            description = catalog_item.get("description", "暂无描述")
+            context_length = catalog_item.get("context_length", "N/A")
+            max_output_length = catalog_item.get("max_output_length", "N/A")
+            input_types = catalog_item.get("input_types", ["Text"])
+            output_types = catalog_item.get("output_types", ["Text"])
+            coding_score = catalog_item.get("coding_score")
             model_logo_url = None
-
-        # 如果 provider 不在配置中，记录警告
-        if not provider_config and not global_model:
-            logger.warning(f"No config found for {first_provider}, using defaults for model {model_name}")
+        else:
+            description = "暂无描述"
+            context_length = "N/A"
+            max_output_length = "N/A"
+            input_types = ["Text"]
+            output_types = ["Text"]
+            coding_score = None
+            model_logo_url = None
 
         model_info = ModelInfo(
             display_name=display_name,
             model_name=model_name,  # 原始模型名称，如 "glm-4.7"（显示为「模型 ID」）
-            provider=first_provider,  # 使用第一个提供商作为主提供商（现在是 str 类型）
+            provider=first_provider,  # 使用第一个提供商作为主提供商
             description=description,
             input_types=input_types,
             output_types=output_types,

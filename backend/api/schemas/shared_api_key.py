@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List, Any, Dict
-from api.models.shared_api_key import APIKeyProvider, APIKeyStatus
+from api.models.shared_api_key import APIKeyStatus
 
 
 class SharedAPIKeyCreate(BaseModel):

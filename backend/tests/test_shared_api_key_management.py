@@ -8,7 +8,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token
 
@@ -318,7 +318,7 @@ def test_cannot_disable_other_user_api_key(
     encrypted_api_key = encrypt_token("other-user-api-key")
     other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key=encrypted_api_key,
         status=APIKeyStatus.ACTIVE
     )
@@ -361,7 +361,7 @@ def test_cannot_enable_other_user_api_key(
     encrypted_api_key = encrypt_token("other-user-api-key")
     other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key=encrypted_api_key,
         status=APIKeyStatus.INACTIVE
     )
@@ -404,7 +404,7 @@ def test_cannot_delete_other_user_api_key(
     encrypted_api_key = encrypt_token("other-user-api-key")
     other_api_key = SharedAPIKey(
         user_id=other_user.id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key=encrypted_api_key,
         status=APIKeyStatus.ACTIVE
     )

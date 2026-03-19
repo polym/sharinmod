@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.models.user import User
 from api.models.subscription import Subscription
 from api.models.provider_config import ProviderModel
@@ -17,6 +17,7 @@ import json
 import random
 import redis
 import logging
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ def _handle_litellm_response(response, operation_name: str) -> bool:
         return True
     elif response.status_code == 404:
         print(f"[{operation_name}] Object not found (404), treating as success")
+        return True
+    # For credential delete operations, 403 might mean credential is in use or other permissions issue
+    # Treat it as success for idempotency, but log a warning
+    elif response.status_code == 403 and "DELETE" in operation_name:
+        print(f"[{operation_name}] 403 Forbidden - credential may be in use, treating as success for idempotency")
         return True
     else:
         print(f"[{operation_name}] Unexpected status code: {response.status_code}")
@@ -81,9 +87,6 @@ def _handle_litellm_delete_response(response, operation_name: str) -> bool:
         return True
 
 
-# Import PROVIDER_INFO from model_catalog for backward compatibility.
-# All callers in this file continue to reference PROVIDER_INFO unchanged.
-from api.services.model_catalog import BUILTIN_PROVIDER_INFO as PROVIDER_INFO  # noqa: E402
 
 
 def check_provider_api_key_exists(session: Session, user_id: int, provider: str) -> bool:
@@ -125,34 +128,27 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
     # Prepare credential and model data
     credential_name = f"{provider}/{user.email}"
 
-    # Try to convert provider string to APIKeyProvider enum for accessing PROVIDER_INFO
-    try:
-        provider_enum = APIKeyProvider(provider)
-        api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
-        supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
-        custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
-        # 静态提供商的 supported_models 已经是字符串列表
-        supported_model_keys = supported_models
-    except ValueError:
-        # Dynamic provider — look up from database
-        from api.services.provider_config_service import get_provider_by_key
-        from api.models.provider_config import ProviderModel as ProviderModelDB
-        from api.database import engine
-        from sqlmodel import Session as SyncSession
-        with SyncSession(engine) as _db:
-            provider_config = get_provider_by_key(_db, provider)
-            if not provider_config or not provider_config.base_url:
-                print(f"[SYNC_TO_LITELLM] Dynamic provider {provider} has no base_url configured, skipping LiteLLM sync")
-                return {}
-            api_base = provider_config.base_url
-            custom_provider = provider_config.custom_llm_provider or "openai"
-            db_models_q = select(ProviderModelDB.model_key, ProviderModelDB.real_model).where(
-                ProviderModelDB.provider_config_id == provider_config.id,
-                ProviderModelDB.is_enabled == True
-            )
-            supported_models = list(_db.exec(db_models_q).all())  # 返回 (model_key, real_model) 元组列表
-        # 对于动态提供商，将元组列表转换为 model_key 列表以支持正确的模型验证
-        supported_model_keys = [m[0] for m in supported_models]
+    # Look up provider configuration from database (dynamic providers only)
+    from api.services.provider_config_service import get_provider_by_key
+    from api.models.provider_config import ProviderModel as ProviderModelDB
+    from api.database import engine
+    from sqlmodel import Session as SyncSession
+
+    with SyncSession(engine) as _db:
+        provider_config = get_provider_by_key(_db, provider)
+        if not provider_config or not provider_config.base_url:
+            print(f"[SYNC_TO_LITELLM] Provider {provider} not configured or has no base_url, skipping LiteLLM sync")
+            return {}
+        api_base = provider_config.base_url
+        custom_provider = provider_config.custom_llm_provider or "openai"
+        db_models_q = select(ProviderModelDB.model_key, ProviderModelDB.real_model).where(
+            ProviderModelDB.provider_config_id == provider_config.id,
+            ProviderModelDB.is_enabled == True
+        )
+        supported_models = list(_db.exec(db_models_q).all())  # 返回 (model_key, real_model) 元组列表
+
+    # 将元组列表转换为 model_key 列表以支持正确的模型验证
+    supported_model_keys = [m[0] for m in supported_models]
 
     if not api_base:
         raise ValueError(f"No API base URL configured for provider: {provider}")
@@ -189,8 +185,10 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         }
 
         # Check if credential exists
+        # URL encode the credential name to handle special characters like @
+        encoded_credential_name = urllib.parse.quote(credential_name, safe="/")
         credential_check_response = await client.get(
-            f"{settings.LITELLM_BASE_URL}/credentials/by_name/{credential_name}",
+            f"{settings.LITELLM_BASE_URL}/credentials/by_name/{encoded_credential_name}",
             headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
         )
         _handle_litellm_response(credential_check_response, "CREDENTIAL_CHECK")
@@ -202,7 +200,7 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
                 **credential_payload
             }
             credential_response = await client.patch(
-                f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                f"{settings.LITELLM_BASE_URL}/credentials/{encoded_credential_name}",
                 json=update_payload,
                 headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
             )
@@ -222,13 +220,13 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
 
         # Step 2: Create selected models in LiteLLM
         model_ids = {}
-        # 构建 model_key 到 real_model 的映射（用于动态提供商）
+        # 构建 model_key 到 real_model 的映射
         real_model_map = {m[0]: m[1] for m in supported_models if isinstance(m, tuple)}
 
         for model_name in models_to_create:
-            # 对于动态提供商，从映射中查找 real_model
+            # 从映射中查找 real_model
             real_model_val = real_model_map.get(model_name)
-            # 对于静态提供商，real_model 为 None，使用 model_name
+            # 如果没有 real_model，使用 model_name
             actual_real_model = real_model_val if real_model_val else model_name
             litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
             model_payload = {
@@ -277,24 +275,39 @@ async def _create_models_for_credential(
     Raises:
         Exception: If LiteLLM API calls fail
     """
-    # Try to convert provider string to APIKeyProvider enum
-    try:
-        provider_enum = APIKeyProvider(provider)
-        supported_models = PROVIDER_INFO[provider_enum]["supported_models"]
-        custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
-    except ValueError:
-        raise ValueError(f"Provider {provider} is not a supported static provider")
+    # Look up provider configuration from database
+    from api.services.provider_config_service import get_provider_by_key
+    from api.models.provider_config import ProviderModel as ProviderModelDB
+    from api.database import engine
+    from sqlmodel import Session as SyncSession
+
+    with SyncSession(engine) as _db:
+        provider_config = get_provider_by_key(_db, provider)
+        if not provider_config:
+            raise ValueError(f"Provider {provider} not found in database")
+
+        custom_provider = provider_config.custom_llm_provider or "openai"
+        db_models_q = select(ProviderModelDB.model_key, ProviderModelDB.real_model).where(
+            ProviderModelDB.provider_config_id == provider_config.id,
+            ProviderModelDB.is_enabled == True
+        )
+        supported_models = list(_db.exec(db_models_q).all())  # 返回 (model_key, real_model) 元组列表
 
     if not supported_models:
         raise ValueError(f"No supported models configured for provider: {provider}")
 
+    # 构建 model_key 到 real_model 的映射
+    real_model_map = {m[0]: m[1] for m in supported_models if isinstance(m, tuple)}
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         model_ids = {}
-        for model_name in supported_models:
+        for model_key, real_model in supported_models:
+            # 如果没有 real_model，使用 model_key
+            actual_real_model = real_model if real_model else model_key
             # For OpenRouter: pony-alpha -> openrouter/pony-alpha -> openrouter/openrouter/pony-alpha
-            litellm_model = f"openrouter/openrouter/{model_name}" if provider == "openrouter" else model_name
+            litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
             model_payload = {
-                "model_name": model_name,
+                "model_name": model_key,
                 "litellm_params": {
                     "custom_llm_provider": custom_provider,
                     "litellm_credential_name": credential_name,
@@ -304,18 +317,18 @@ async def _create_models_for_credential(
                 "litellm_model_name": litellm_model,
             }
 
-            print(f"[ENABLE_MODEL_CREATE] Creating model '{model_name}' with payload:", json.dumps(model_payload, indent=2))
+            print(f"[ENABLE_MODEL_CREATE] Creating model '{model_key}' with payload:", json.dumps(model_payload, indent=2))
 
             model_response = await client.post(
                 f"{settings.LITELLM_BASE_URL}/model/new",
                 json=model_payload,
                 headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
             )
-            _handle_litellm_response(model_response, f"ENABLE_MODEL_CREATE_{model_name}")
+            _handle_litellm_response(model_response, f"ENABLE_MODEL_CREATE_{model_key}")
 
             response_data = model_response.json()
-            model_ids[model_name] = response_data["model_id"]
-            print(f"[ENABLE_MODEL_CREATE] Model '{model_name}' created with ID: {model_ids[model_name]}")
+            model_ids[model_key] = response_data["model_id"]
+            print(f"[ENABLE_MODEL_CREATE] Model '{model_key}' created with ID: {model_ids[model_key]}")
 
         return model_ids
 
@@ -353,7 +366,7 @@ async def create_shared_api_key(
         )
 
     # Validate API key with provider API
-    validation_result = await validate_api_key(provider, api_key)
+    validation_result = await validate_api_key(provider, api_key, session)
 
     if not validation_result["valid"]:
         raise HTTPException(
@@ -507,23 +520,18 @@ def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     api_keys = []
     for api_key in results:
         api_key_dict = api_key.model_dump()
-        # Try to get provider info from PROVIDER_INFO (for static providers)
-        try:
-            provider_enum = APIKeyProvider(api_key.provider)
-            provider_info = PROVIDER_INFO.get(provider_enum, {})
-        except ValueError:
-            # Dynamic provider - get info from database
-            from api.services.provider_config_service import get_provider_by_key
-            provider_config = get_provider_by_key(session, api_key.provider)
-            if provider_config:
-                provider_info = {
-                    "name": provider_config.name,
-                    "website": provider_config.website,
-                    "logo_path": provider_config.logo_path,
-                    "supported_models": []  # Will be loaded from database separately
-                }
-            else:
-                provider_info = {}
+        # Get provider info from database
+        from api.services.provider_config_service import get_provider_by_key
+        provider_config = get_provider_by_key(session, api_key.provider)
+        if provider_config:
+            provider_info = {
+                "name": provider_config.name,
+                "website": provider_config.website,
+                "logo_path": provider_config.logo_path,
+                "supported_models": []  # Will be loaded from database separately
+            }
+        else:
+            provider_info = {}
 
         # Get actual bound models from litellm_model_ids
         bound_models = []
@@ -891,9 +899,11 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
                     _handle_litellm_delete_response(delete_response, "DELETE_LEGACY_MODEL")
 
                 # Step 2: Delete credential SECOND
-                print(f"[DELETE] Deleting credential: {credential_name}")
+                # URL encode the credential name to handle special characters like @
+                encoded_credential_name = urllib.parse.quote(credential_name, safe="/")
+                print(f"[DELETE] Deleting credential: {credential_name} (encoded: {encoded_credential_name})")
                 delete_credential_response = await client.delete(
-                    f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                    f"{settings.LITELLM_BASE_URL}/credentials/{encoded_credential_name}",
                     headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                 )
                 _handle_litellm_response(delete_credential_response, "DELETE_CREDENTIAL")
@@ -1107,24 +1117,19 @@ async def update_shared_api_key(
 
     provider_config = get_provider_by_key(session, api_key_obj.provider)
     if not provider_config:
-        # Fallback to hardcoded PROVIDER_INFO if database config not found
-        provider_info = PROVIDER_INFO.get(api_key_obj.provider)
-        if not provider_info:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid provider: {api_key_obj.provider}"
-            )
-        supported_models = provider_info.get("supported_models", [])
-        real_model_map = {}  # 静态提供商暂不支持 real_model
-    else:
-        # Load enabled models from database (include real_model)
-        models_statement = select(ProviderModel.model_key, ProviderModel.real_model).where(
-            ProviderModel.provider_config_id == provider_config.id,
-            ProviderModel.is_enabled == True
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid provider: {api_key_obj.provider}"
         )
-        db_models = session.exec(models_statement).all()
-        supported_models = [m[0] for m in db_models]  # 只取 model_key 列表
-        real_model_map = {m[0]: m[1] for m in db_models}  # model_key -> real_model 映射
+
+    # Load enabled models from database (include real_model)
+    models_statement = select(ProviderModel.model_key, ProviderModel.real_model).where(
+        ProviderModel.provider_config_id == provider_config.id,
+        ProviderModel.is_enabled == True
+    )
+    db_models = session.exec(models_statement).all()
+    supported_models = [m[0] for m in db_models]  # 只取 model_key 列表
+    real_model_map = {m[0]: m[1] for m in db_models}  # model_key -> real_model 映射
 
     auto_removed_models = [m for m in selected_models if m not in supported_models]
     selected_models = [m for m in selected_models if m in supported_models]
@@ -1145,7 +1150,7 @@ async def update_shared_api_key(
         api_key_to_validate = None
         if new_api_key:
             # Validate new API key with provider API
-            validation_result = await validate_api_key(api_key_obj.provider, new_api_key)
+            validation_result = await validate_api_key(api_key_obj.provider, new_api_key, session)
             if not validation_result["valid"]:
                 raise HTTPException(
                     status_code=400,
@@ -1171,25 +1176,21 @@ async def update_shared_api_key(
         # Step 3: Sync with LiteLLM (skip in testing)
         if not settings.TESTING:
             credential_name = f"{api_key_obj.provider}/{user.email}"
+            # URL encode the credential name to handle special characters like @
+            encoded_credential_name = urllib.parse.quote(credential_name, safe="/")
 
             # If new API key provided, update credential
             if new_api_key:
-                # Try to convert provider string to APIKeyProvider enum for accessing VENDOR_BASE_URLS
-                try:
-                    provider_enum = APIKeyProvider(api_key_obj.provider)
-                    api_base = settings.VENDOR_BASE_URLS.get(provider_enum)
-                    custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
-                except ValueError:
-                    # Dynamic provider — look up from database
-                    from api.services.provider_config_service import get_provider_by_key
-                    from api.database import engine
-                    from sqlmodel import Session as SyncSession
-                    with SyncSession(engine) as _db:
-                        _pc = get_provider_by_key(_db, api_key_obj.provider)
-                    if not _pc or not _pc.base_url:
-                        raise ValueError(f"Dynamic provider {api_key_obj.provider} has no base_url configured")
-                    api_base = _pc.base_url
-                    custom_provider = _pc.custom_llm_provider or "openai"
+                # Look up provider configuration from database
+                from api.services.provider_config_service import get_provider_by_key
+                from api.database import engine
+                from sqlmodel import Session as SyncSession
+                with SyncSession(engine) as _db:
+                    _pc = get_provider_by_key(_db, api_key_obj.provider)
+                if not _pc or not _pc.base_url:
+                    raise ValueError(f"Provider {api_key_obj.provider} has no base_url configured")
+                api_base = _pc.base_url
+                custom_provider = _pc.custom_llm_provider or "openai"
 
                 if not api_base:
                     raise ValueError(f"No API base URL configured for provider: {api_key_obj.provider}")
@@ -1210,7 +1211,7 @@ async def update_shared_api_key(
                         **credential_payload
                     }
                     credential_response = await client.patch(
-                        f"{settings.LITELLM_BASE_URL}/credentials/{credential_name}",
+                        f"{settings.LITELLM_BASE_URL}/credentials/{encoded_credential_name}",
                         json=update_payload,
                         headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
                     )
@@ -1236,18 +1237,13 @@ async def update_shared_api_key(
 
             # Add new models
             if models_to_add:
-                # Determine the custom_llm_provider based on vendor type
-                try:
-                    provider_enum = APIKeyProvider(api_key_obj.provider)
-                    custom_provider = "openrouter" if provider_enum == APIKeyProvider.OPENROUTER else "anthropic"
-                except ValueError:
-                    # Dynamic provider — look up from database
-                    from api.services.provider_config_service import get_provider_by_key
-                    from api.database import engine
-                    from sqlmodel import Session as SyncSession
-                    with SyncSession(engine) as _db:
-                        _pc2 = get_provider_by_key(_db, api_key_obj.provider)
-                    custom_provider = (_pc2.custom_llm_provider or "openai") if _pc2 else "openai"
+                # Determine the custom_llm_provider from database
+                from api.services.provider_config_service import get_provider_by_key
+                from api.database import engine
+                from sqlmodel import Session as SyncSession
+                with SyncSession(engine) as _db:
+                    _pc2 = get_provider_by_key(_db, api_key_obj.provider)
+                custom_provider = (_pc2.custom_llm_provider or "openai") if _pc2 else "openai"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     credential_name = f"{api_key_obj.provider}/{user.email}"

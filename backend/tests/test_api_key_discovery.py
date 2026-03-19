@@ -9,7 +9,7 @@ from api.app import create_app
 from api.config import settings
 from api.database import get_db
 from api.models.user import User
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider, APIKeyStatus
+from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.utils.jwt import create_access_token
 from api.utils.encryption import encrypt_token
 
@@ -71,17 +71,17 @@ def shared_api_keys_fixture(session: Session, users):
     # User B shares a bigmodel API key
     api_key_b = SharedAPIKey(
         user_id=users["user_b"].id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key=encrypt_token("userb-bigmodel-api-key"),
         status=APIKeyStatus.ACTIVE,
         total_uses=5,
         created_at=datetime.utcnow()
     )
-    
+
     # User C shares a z.ai API key
     api_key_c = SharedAPIKey(
         user_id=users["user_c"].id,
-        provider=APIKeyProvider.ZAI,
+        provider="z.ai",
         encrypted_api_key=encrypt_token("userc-zai-api-key"),
         status=APIKeyStatus.ACTIVE,
         total_uses=10,

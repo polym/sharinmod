@@ -31,10 +31,30 @@ def get_db():
 def initialize_sharinmod_data(db: Session):
     """
     Initialize sharinmod-specific data on startup.
-    - Sync global models from built-in catalog
+    - Import providers and models from YAML configuration
+    - Sync global models from built-in catalog (deprecated, kept for backward compatibility)
     """
-    from api.services.provider_config_service import sync_global_models_from_catalog
-    sync_global_models_from_catalog(db)
+    import os
+    from api.config import settings
+    from api.services.provider_config_service import import_providers_from_yaml
+
+    # Import providers from YAML configuration
+    # YAML file is expected to be in the same directory as config.yaml
+    config_path = settings.CONFIG_PATH
+    if config_path:
+        config_dir = os.path.dirname(os.path.abspath(config_path))
+        providers_yaml_path = os.path.join(config_dir, "providers.yaml")
+
+        try:
+            stats = import_providers_from_yaml(db, providers_yaml_path)
+            if stats.get("providers_created") or stats.get("providers_updated"):
+                print(f"✓ Imported {stats['providers_created']} new providers, "
+                      f"{stats['providers_updated']} updated providers from YAML")
+                print(f"✓ Imported {stats['models_created']} new models, "
+                      f"{stats['models_updated']} updated models from YAML")
+        except Exception as e:
+            print(f"⚠ Failed to import providers from YAML: {e}")
+            # Continue startup even if YAML import fails
 
 
 def initialize_admin_user(db: Session):

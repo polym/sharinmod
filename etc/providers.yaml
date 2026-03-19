@@ -1,0 +1,184 @@
+# Provider and Model Configuration
+# This file defines the built-in providers and models that will be imported into the database
+# on application startup. Each provider can have multiple models with their configurations.
+
+providers:
+  - provider_key: "bigmodel"
+    name: "智谱 AI Coding Plan"
+    website: "https://bigmodel.cn"
+    base_url: "https://open.bigmodel.cn/api/anthropic"
+    custom_llm_provider: "anthropic"
+    models:
+      - model_key: "glm-5"
+        display_name: "GLM-5"
+        description: "智谱 AI 最新一代旗舰模型，超长上下文支持"
+        context_length: "200k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+      - model_key: "glm-4.7"
+        display_name: "GLM-4.7"
+        description: "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1441
+      - model_key: "glm-4.6"
+        display_name: "GLM-4.6"
+        description: "智谱 AI 高性能模型，平衡速度与质量"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1356
+      - model_key: "glm-4.5-air"
+        display_name: "GLM-4.5 Air"
+        description: "智谱 AI 轻量级模型，快速响应适合简单任务"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+
+  - provider_key: "z.ai"
+    name: "Z.AI Coding Plan"
+    website: "https://z.ai"
+    base_url: "https://z.ai/api/anthropic"
+    custom_llm_provider: "anthropic"
+    models:
+      - model_key: "glm-5"
+        display_name: "GLM-5"
+        description: "智谱 AI 最新一代旗舰模型，超长上下文支持"
+        context_length: "200k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+      - model_key: "glm-4.7"
+        display_name: "GLM-4.7"
+        description: "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1441
+      - model_key: "glm-4.6"
+        display_name: "GLM-4.6"
+        description: "智谱 AI 高性能模型，平衡速度与质量"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1356
+      - model_key: "glm-4.5-air"
+        display_name: "GLM-4.5 Air"
+        description: "智谱 AI 轻量级模型，快速响应适合简单任务"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+
+  - provider_key: "volcengine"
+    name: "火山引擎 Coding Plan"
+    website: "https://volcengine.com"
+    base_url: "https://ark.cn-beijing.volces.com/api/coding"
+    custom_llm_provider: "anthropic"
+    models:
+      - model_key: "deepseek-v3.2"
+        display_name: "DeepSeek V3.2"
+        description: "DeepSeek V3.2 高性能模型"
+        context_length: "128k"
+        max_output_length: "8k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1377
+      - model_key: "doubao-seed-2.0-lite"
+        display_name: "Doubao Seed 2.0 Lite"
+        description: "豆包种子 2.0 轻量级模型"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+      - model_key: "doubao-seed-2.0-pro"
+        display_name: "Doubao Seed 2.0 Pro"
+        description: "豆包种子 2.0 专业版模型"
+        context_length: "128k"
+        max_output_length: "8k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+      - model_key: "doubao-seed-code"
+        display_name: "Doubao Seed Code"
+        description: "豆包种子代码模型，专注于代码生成和理解"
+        context_length: "256k"
+        max_output_length: "32k"
+        input_types: ["Text", "Image"]
+        output_types: ["Text"]
+        coding_score: 1014
+      - model_key: "glm-4.7"
+        display_name: "GLM-4.7"
+        description: "智谱 AI 最新一代旗舰模型，具备强大的理解和生成能力"
+        context_length: "128k"
+        max_output_length: "4k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1441
+      - model_key: "kimi-k2"
+        display_name: "Kimi K2"
+        description: "Kimi K2 模型"
+        context_length: "128k"
+        max_output_length: "128k"
+        input_types: ["Text", "Image", "Video"]
+        output_types: ["Text"]
+        coding_score: 1330
+      - model_key: "kimi-k2.5"
+        display_name: "Kimi K2.5"
+        description: "Kimi K2.5 高性能模型"
+        context_length: "128k"
+        max_output_length: "128k"
+        input_types: ["Text", "Image", "Video"]
+        output_types: ["Text"]
+        coding_score: 1447
+      - model_key: "minimax-m2.5"
+        display_name: "MiniMax M2.5"
+        description: "MiniMax M2.5 高性能代码模型"
+        context_length: "196k"
+        max_output_length: "65k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1420
+
+  - provider_key: "moonshot"
+    name: "月之暗面 Coding Plan"
+    website: "https://kimi.com"
+    base_url: "https://api.kimi.com/coding"
+    custom_llm_provider: "anthropic"
+    models:
+      - model_key: "kimi-k2.5"
+        display_name: "Kimi K2.5"
+        description: "Kimi K2.5 高性能模型"
+        context_length: "128k"
+        max_output_length: "128k"
+        input_types: ["Text", "Image", "Video"]
+        output_types: ["Text"]
+        coding_score: 1447
+
+  - provider_key: "minimax"
+    name: "MiniMax Coding Plan"
+    website: "https://www.minimaxi.com"
+    base_url: "https://api.minimaxi.com/anthropic"
+    custom_llm_provider: "anthropic"
+    models:
+      - model_key: "minimax-m2.1"
+        display_name: "MiniMax M2.1"
+        description: "MiniMax M2.1 高性能代码模型，230B 总参数，10B 激活参数"
+        context_length: "196k"
+        max_output_length: "65k"
+        input_types: ["Text"]
+        output_types: ["Text"]
+        coding_score: 1409
+
+  - provider_key: "openrouter"
+    name: "OpenRouter"
+    website: "https://openrouter.ai"
+    base_url: "https://openrouter.ai/api"
+    custom_llm_provider: "openrouter"
+    models: []

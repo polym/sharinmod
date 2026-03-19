@@ -17,7 +17,7 @@ from api.services.litellm_callback_service import (
     extract_model_id
 )
 from api.models.user import User
-from api.models.shared_api_key import SharedAPIKey, APIKeyProvider
+from api.models.shared_api_key import SharedAPIKey
 from api.models.subscription import Subscription
 from api.models.unified_api_key import UnifiedAPIKey
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
@@ -73,7 +73,7 @@ def test_shared_api_key_fixture(session: Session, test_user_contributor: User):
     """Create a test shared API key"""
     api_key = SharedAPIKey(
         user_id=test_user_contributor.id,
-        provider=APIKeyProvider.BIGMODEL,
+        provider="bigmodel",
         encrypted_api_key="encrypted_key",
         total_requests=0,
         total_tokens=0

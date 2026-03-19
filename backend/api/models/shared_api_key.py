@@ -4,16 +4,6 @@ from typing import Optional
 from enum import Enum
 
 
-class APIKeyProvider(str, Enum):
-    """Supported API key providers"""
-    BIGMODEL = "bigmodel"      # 智谱AI - https://open.bigmodel.cn
-    ZAI = "z.ai"               # Z.AI - https://z.ai
-    VOLCENGINE = "volcengine"  # 火山引擎 - https://volcengine.com
-    MOONSHOT = "moonshot"      # 月之暗面 - https://kimi.com
-    MINIMAX = "minimax"        # MiniMax - https://www.minimaxi.com
-    OPENROUTER = "openrouter"   # OpenRouter - https://openrouter.ai
-
-
 class APIKeyStatus(str, Enum):
     """API key sharing status"""
     ACTIVE = "active"           # Available for sharing

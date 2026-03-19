@@ -11,6 +11,7 @@ import os
 import aiofiles
 from datetime import datetime, timezone
 
+import yaml
 from api.models.provider_config import ProviderConfig, ProviderModel, GlobalModel
 from api.schemas.provider_config import (
     ProviderConfigCreate,
@@ -22,6 +23,9 @@ from api.schemas.provider_config import (
     GlobalModelResponse,
     SupportedProviderInfo,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ==================== File Upload Handling ====================
@@ -519,12 +523,10 @@ def get_unified_model_catalog(
     enabled_only: bool = False,
 ) -> List[dict]:
     """
-    Return a merged model catalog combining DB records and BUILTIN_PROVIDER_INFO.
+    Return model catalog from database records.
 
-    Merge strategy:
-    - DB records take priority over built-in defaults (same provider_key + model_key).
-    - Built-in models absent from DB are included with source="builtin" and is_enabled=True.
-    - DB models have source="db" and use their actual is_enabled value.
+    This function now only returns models from the database.
+    Built-in providers are imported via import_providers_from_yaml on startup.
 
     Args:
         db: Database session
@@ -537,9 +539,7 @@ def get_unified_model_catalog(
           context_length, max_output_length, input_types, output_types,
           coding_score, is_enabled, source
     """
-    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
-
-    # --- Step 1: Load DB models ---
+    # Load DB models
     stmt = (
         select(ProviderModel, ProviderConfig)
         .join(ProviderConfig, ProviderModel.provider_config_id == ProviderConfig.id)
@@ -549,11 +549,10 @@ def get_unified_model_catalog(
 
     rows = db.exec(stmt).all()
 
-    # Build lookup map: (provider_key, model_key) -> catalog entry
-    catalog_map: dict = {}
+    # Build catalog list
+    catalog_list = []
     for pm, pc in rows:
-        k = (pc.provider_key, pm.model_key)
-        catalog_map[k] = {
+        catalog_list.append({
             "db_id": pm.id,
             "provider_key": pc.provider_key,
             "provider_name": pc.name,
@@ -568,40 +567,12 @@ def get_unified_model_catalog(
             "coding_score": pm.coding_score,
             "is_enabled": pm.is_enabled,
             "source": "db",
-        }
-
-    # --- Step 2: Fill missing built-in models ---
-    for provider_enum, pinfo in BUILTIN_PROVIDER_INFO.items():
-        pkey = provider_enum.value  # e.g. "bigmodel"
-        if provider_key and pkey != provider_key:
-            continue
-        pname = pinfo.get("name", pkey)
-        for mkey, mdata in pinfo.get("models", {}).items():
-            k = (pkey, mkey)
-            if k not in catalog_map:
-                catalog_map[k] = {
-                    "db_id": None,
-                    "provider_key": pkey,
-                    "provider_name": pname,
-                    "model_key": mkey,
-                    "real_model": None,  # 内置模型暂不支持 real_model
-                    "display_name": mdata.get("display_name", mkey),
-                    "description": mdata.get("description"),
-                    "context_length": mdata.get("context_length", "N/A"),
-                    "max_output_length": mdata.get("max_output_length", "N/A"),
-                    "input_types": mdata.get("input_types"),
-                    "output_types": mdata.get("output_types"),
-                    "coding_score": mdata.get("coding_score"),
-                    "is_enabled": True,
-                    "source": "builtin",
-                }
-
-    items = list(catalog_map.values())
+        })
 
     if enabled_only:
-        items = [item for item in items if item["is_enabled"]]
+        catalog_list = [item for item in catalog_list if item["is_enabled"]]
 
-    return items
+    return catalog_list
 
 
 def update_provider_models_batch(
@@ -754,54 +725,158 @@ def delete_global_model(db: Session, model_id: int) -> None:
 
 # ==================== Startup Sync ====================
 
-def sync_global_models_from_catalog(db: Session) -> int:
-    """从 BUILTIN_PROVIDER_INFO 同步全局模型到 global_models 表。
+def import_providers_from_yaml(db: Session, yaml_path: str) -> dict:
+    """Import providers and models from a YAML configuration file.
 
-    幂等操作：只插入 model_key 不存在的记录，不更新已有记录。
-    同一 model_key 跨多个 provider 时取首次出现的元数据。
+    This function performs an upsert operation:
+    - If a provider_key exists in DB, update it (preserve logo_path)
+    - If a provider_key doesn't exist, create it
+    - For models, also perform upsert (provider_key + model_key as unique key)
+
+    Args:
+        db: Database session
+        yaml_path: Path to the YAML configuration file
 
     Returns:
-        新增的全局模型数量
+        Dictionary with statistics:
+        {
+            "providers_created": int,
+            "providers_updated": int,
+            "models_created": int,
+            "models_updated": int
+        }
     """
-    from api.services.model_catalog import BUILTIN_PROVIDER_INFO
+    stats = {
+        "providers_created": 0,
+        "providers_updated": 0,
+        "models_created": 0,
+        "models_updated": 0
+    }
 
-    # 提取所有唯一 model_key 及其元数据（首次出现优先）
-    unique_models: dict = {}
-    for _provider_enum, pinfo in BUILTIN_PROVIDER_INFO.items():
-        for mkey, mdata in pinfo.get("models", {}).items():
-            if mkey not in unique_models:
-                unique_models[mkey] = mdata
+    try:
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            yaml_data = yaml.safe_load(f)
+    except FileNotFoundError:
+        logger.warning(f"Provider YAML file not found: {yaml_path}")
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to parse provider YAML file {yaml_path}: {e}")
+        return stats
 
-    if not unique_models:
-        return 0
+    if not yaml_data or "providers" not in yaml_data:
+        logger.warning(f"Invalid YAML: 'providers' section not found")
+        return stats
 
-    # 查询已存在的 model_key
-    existing_keys = set(
-        db.exec(select(GlobalModel.model_key)).all()
+    for provider_data in yaml_data["providers"]:
+        provider_key = provider_data.get("provider_key")
+        if not provider_key:
+            logger.warning("Provider entry missing 'provider_key', skipping")
+            continue
+
+        # Check if provider exists
+        existing_provider = get_provider_by_key(db, provider_key)
+
+        if existing_provider:
+            # Update existing provider (preserve logo_path)
+            existing_provider.name = provider_data.get("name", existing_provider.name)
+            existing_provider.website = provider_data.get("website", existing_provider.website)
+            existing_provider.base_url = provider_data.get("base_url", existing_provider.base_url)
+            existing_provider.custom_llm_provider = provider_data.get("custom_llm_provider", existing_provider.custom_llm_provider)
+            # logo_path is explicitly preserved, not updated
+            existing_provider.updated_at = datetime.now(timezone.utc)
+
+            stats["providers_updated"] += 1
+            provider = existing_provider
+        else:
+            # Create new provider
+            provider = ProviderConfig(
+                provider_key=provider_key,
+                name=provider_data.get("name", provider_key),
+                website=provider_data.get("website"),
+                base_url=provider_data.get("base_url"),
+                custom_llm_provider=provider_data.get("custom_llm_provider"),
+                is_enabled=True
+            )
+            db.add(provider)
+            db.flush()  # Get the ID
+            stats["providers_created"] += 1
+
+        # Handle models
+        models_data = provider_data.get("models", [])
+        for model_data in models_data:
+            model_key = model_data.get("model_key")
+            if not model_key:
+                continue
+
+            # Check if model exists for this provider
+            existing_model = db.exec(
+                select(ProviderModel).where(
+                    and_(
+                        ProviderModel.provider_config_id == provider.id,
+                        ProviderModel.model_key == model_key
+                    )
+                )
+            ).first()
+
+            if existing_model:
+                # Update existing model
+                if "display_name" in model_data:
+                    existing_model.display_name = model_data["display_name"]
+                if "description" in model_data:
+                    existing_model.description = model_data["description"]
+                if "context_length" in model_data:
+                    existing_model.context_length = model_data["context_length"]
+                if "max_output_length" in model_data:
+                    existing_model.max_output_length = model_data["max_output_length"]
+                if "input_types" in model_data:
+                    existing_model.input_types = model_data["input_types"]
+                if "output_types" in model_data:
+                    existing_model.output_types = model_data["output_types"]
+                if "coding_score" in model_data:
+                    existing_model.coding_score = model_data["coding_score"]
+                existing_model.updated_at = datetime.now(timezone.utc)
+
+                stats["models_updated"] += 1
+            else:
+                # Create new model
+                new_model = ProviderModel(
+                    provider_config_id=provider.id,
+                    model_key=model_key,
+                    display_name=model_data.get("display_name", model_key),
+                    description=model_data.get("description"),
+                    context_length=model_data.get("context_length"),
+                    max_output_length=model_data.get("max_output_length"),
+                    input_types=model_data.get("input_types"),
+                    output_types=model_data.get("output_types"),
+                    coding_score=model_data.get("coding_score"),
+                    is_enabled=True
+                )
+                db.add(new_model)
+                stats["models_created"] += 1
+
+        db.commit()
+        db.refresh(provider)
+
+    logger.info(
+        f"✓ Imported providers from YAML: "
+        f"{stats['providers_created']} created, {stats['providers_updated']} updated, "
+        f"{stats['models_created']} models created, {stats['models_updated']} models updated"
     )
 
-    # 批量创建缺失的全局模型
-    created = 0
-    for mkey, mdata in unique_models.items():
-        if mkey in existing_keys:
-            continue
-        gm = GlobalModel(
-            model_key=mkey,
-            display_name=mdata.get("display_name", mkey),
-            description=mdata.get("description"),
-            context_length=mdata.get("context_length", "N/A"),
-            max_output_length=mdata.get("max_output_length", "N/A"),
-            input_types=mdata.get("input_types"),
-            output_types=mdata.get("output_types"),
-            coding_score=mdata.get("coding_score"),
-        )
-        db.add(gm)
-        created += 1
+    return stats
 
-    if created > 0:
-        db.commit()
-        print(f"✓ Synced {created} global models from built-in catalog")
-    else:
-        print("✓ Global models already up-to-date")
 
-    return created
+def sync_global_models_from_catalog(db: Session) -> int:
+    """从数据库同步全局模型到 global_models 表（已废弃）。
+
+    此函数已废弃。请使用 import_providers_from_yaml 代替。
+    保留此函数仅为向后兼容，现在直接返回 0。
+
+    Returns:
+        0 (不再执行任何操作)
+
+    Deprecated: This function is deprecated. Use import_providers_from_yaml instead.
+    """
+    logger.warning("sync_global_models_from_catalog is deprecated and no longer performs any action. "
+                   "Use import_providers_from_yaml to import providers from etc/providers.yaml")
+    return 0

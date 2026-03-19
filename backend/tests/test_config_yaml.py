@@ -81,15 +81,6 @@ class TestSettingsBasic:
         assert isinstance(settings.PROJECT_NAME, str)
         assert settings.ENV in ["development", "staging", "production"]
 
-    def test_vendor_base_urls_loaded(self):
-        """Test that VENDOR_BASE_URLS is correctly loaded from nested YAML."""
-        settings = Settings()
-        assert isinstance(settings.VENDOR_BASE_URLS, dict)
-        # Check that expected vendors are present
-        expected_vendors = ["bigmodel", "z.ai", "volcengine", "moonshot", "minimax", "openrouter"]
-        for vendor in expected_vendors:
-            assert vendor in settings.VENDOR_BASE_URLS
-
     def test_default_jwt_settings(self):
         """Test default JWT configuration values."""
         settings = Settings()

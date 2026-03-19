@@ -1,61 +1,18 @@
 import httpx
-import json
 import logging
-from api.models.shared_api_key import APIKeyProvider
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
-# Provider API configurations
-PROVIDER_CONFIGS = {
-    APIKeyProvider.BIGMODEL: {
-        "base_url": "https://open.bigmodel.cn/api/paas/v4",
-        "test_endpoint": "/models",
-        "header_name": "Authorization",
-        "test_model": "glm-4"
-    },
-    APIKeyProvider.ZAI: {
-        "base_url": "https://api.z.ai/api/paas/v4",
-        "test_endpoint": "/models",
-        "header_name": "Authorization",
-        "test_model": "gpt-4"
-    },
-    APIKeyProvider.VOLCENGINE: {
-        "base_url": "https://ark.cn-beijing.volces.com/api/coding",
-        "test_endpoint": "/v1/models",
-        "header_name": "Authorization",
-        "test_model": "doubao-seed-code"
-    },
-    APIKeyProvider.MOONSHOT: {
-        "base_url": "https://api.kimi.com/coding/v1",
-        "test_endpoint": "/models",
-        "header_name": "Authorization",
-        "test_model": "moonshot-v1-8k"
-    },
-    APIKeyProvider.MINIMAX: {
-        "base_url": "https://api.minimaxi.com/anthropic",
-        # HACK: minmax no model endpoint
-        "test_endpoint": "/../v1/files/list",
-        "header_name": "Authorization",
-        "test_model": "minimax-m2.1"
-    },
-    APIKeyProvider.OPENROUTER: {
-        "base_url": "https://openrouter.ai/api/v1",
-        "test_endpoint": "/models",
-        "header_name": "Authorization",
-        "test_model": "pony-alpha"
-    }
-}
-
-
-async def validate_api_key(provider: str, api_key: str) -> Dict[str, any]:
+async def validate_api_key(provider: str, api_key: str, db) -> Dict[str, any]:
     """
     Validate API key by making a test API call to provider
 
     Args:
         provider: API key provider (supports dynamic providers from database)
         api_key: Plain text API key to validate
+        db: Database session for looking up provider configuration
 
     Returns:
         Dict with validation result:
@@ -66,33 +23,46 @@ async def validate_api_key(provider: str, api_key: str) -> Dict[str, any]:
         }
 
     Raises:
-        ValueError: If provider is not supported
+        ValueError: If provider is not configured in database
     """
-    # Try to convert provider string to APIKeyProvider enum
-    try:
-        provider_enum = APIKeyProvider(provider)
-        if provider_enum not in PROVIDER_CONFIGS:
-            raise ValueError(f"Unsupported provider: {provider}")
-        config = PROVIDER_CONFIGS[provider_enum]
-    except ValueError:
-        # Dynamic provider - skip validation for now
-        # In the future, could fetch validation config from database
+    from api.services.provider_config_service import get_provider_by_key
+
+    # Look up provider configuration from database
+    provider_config = get_provider_by_key(db, provider)
+
+    if not provider_config or not provider_config.base_url:
+        # Provider not found or no base_url configured - skip validation
+        # This allows dynamic providers to be added without requiring validation endpoints
+        logger.info(f"Provider {provider} has no validation configuration - skipping API validation")
         return {
             "valid": True,
-            "message": f"Provider {provider} is a dynamic provider - skipping API validation",
+            "message": f"Provider {provider} has no validation endpoint configured - API key accepted",
             "provider_info": {
                 "provider": provider,
                 "status_code": 200
             }
         }
 
-    config = PROVIDER_CONFIGS[provider_enum]
-    url = f"{config['base_url']}{config['test_endpoint']}"
+    base_url = provider_config.base_url
+    custom_provider = provider_config.custom_llm_provider or "openai"
+
+    # For OpenRouter-style providers, use /models endpoint
+    # For Anthropic-style providers, use /v1/models endpoint
+    # Default to /v1/models for most providers
+    test_endpoint = "/v1/models"
+    if custom_provider == "anthropic":
+        # Anthropic-compatible API
+        test_endpoint = "/v1/models"
+    elif provider == "minimax":
+        # HACK: minimax no model endpoint
+        test_endpoint = "/../v1/files/list"
+
+    url = f"{base_url}{test_endpoint}"
 
     # Prepare authorization header
     # For most OpenAI-compatible APIs, format is "Bearer <api_key>"
     headers = {
-        config["header_name"]: f"Bearer {api_key}"
+        "Authorization": f"Bearer {api_key}"
     }
 
     try:
