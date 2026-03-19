@@ -10,6 +10,10 @@ from api.services.user_service import update_user_profile, get_user_profile, cha
 from api.dependencies.auth import get_current_user
 from api.models.user import User
 import re
+import logging
+from api.services.oauth_service import create_user_in_litellm
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -71,7 +75,7 @@ class ChangePasswordRequest(BaseModel):
 
 
 @router.patch("/me/password")
-def change_my_password(
+async def change_my_password(
     request: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -89,4 +93,16 @@ def change_my_password(
     - At least one digit
     """
     change_password(db, current_user, request.new_password)
+
+    # 如果用户尚未在 LiteLLM 中注册，同步创建（best-effort）
+    if not current_user.litellm_user_id:
+        try:
+            litellm_user_id = await create_user_in_litellm(current_user.email)
+            current_user.litellm_user_id = litellm_user_id
+            db.add(current_user)
+            db.commit()
+            logger.info(f"[LiteLLM] Created user for {current_user.email}: {litellm_user_id}")
+        except Exception as e:
+            logger.warning(f"[LiteLLM] Failed to create user {current_user.email}: {e}")
+
     return {"message": "密码修改成功"}
