@@ -46,16 +46,19 @@ async def validate_api_key(provider: str, api_key: str, db) -> Dict[str, any]:
     base_url = provider_config.base_url
     custom_provider = provider_config.custom_llm_provider or "openai"
 
-    # For OpenRouter-style providers, use /models endpoint
-    # For Anthropic-style providers, use /v1/models endpoint
-    # Default to /v1/models for most providers
-    test_endpoint = "/v1/models"
-    if custom_provider == "anthropic":
-        # Anthropic-compatible API
-        test_endpoint = "/v1/models"
-    elif provider == "minimax":
-        # HACK: minimax no model endpoint
-        test_endpoint = "/../v1/files/list"
+    # Skip validation if no validation_endpoint is configured
+    if not provider_config.validation_endpoint:
+        logger.info(f"Provider {provider} has no validation_endpoint configured - skipping API validation")
+        return {
+            "valid": True,
+            "message": f"Provider {provider} has no validation endpoint configured - API key accepted",
+            "provider_info": {
+                "provider": provider,
+                "status_code": 200
+            }
+        }
+
+    test_endpoint = provider_config.validation_endpoint
 
     url = f"{base_url}{test_endpoint}"
 

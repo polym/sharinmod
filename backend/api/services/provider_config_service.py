@@ -257,6 +257,7 @@ def create_provider(
         website=provider_data.website,
         base_url=provider_data.base_url,
         custom_llm_provider=provider_data.custom_llm_provider,
+        validation_endpoint=provider_data.validation_endpoint,
         is_enabled=True
     )
     db.add(provider)
@@ -315,6 +316,8 @@ def update_provider(
         provider.base_url = provider_data.base_url
     if provider_data.custom_llm_provider is not None:
         provider.custom_llm_provider = provider_data.custom_llm_provider
+    if provider_data.validation_endpoint is not None:
+        provider.validation_endpoint = provider_data.validation_endpoint or None
     if provider_data.is_enabled is not None:
         provider.is_enabled = provider_data.is_enabled
 
@@ -782,6 +785,7 @@ def import_providers_from_yaml(db: Session, yaml_path: str) -> dict:
             existing_provider.website = provider_data.get("website", existing_provider.website)
             existing_provider.base_url = provider_data.get("base_url", existing_provider.base_url)
             existing_provider.custom_llm_provider = provider_data.get("custom_llm_provider", existing_provider.custom_llm_provider)
+            existing_provider.validation_endpoint = provider_data.get("validation_endpoint", existing_provider.validation_endpoint)
             # logo_path is explicitly preserved, not updated
             existing_provider.updated_at = datetime.now(timezone.utc)
 
@@ -795,6 +799,7 @@ def import_providers_from_yaml(db: Session, yaml_path: str) -> dict:
                 website=provider_data.get("website"),
                 base_url=provider_data.get("base_url"),
                 custom_llm_provider=provider_data.get("custom_llm_provider"),
+                validation_endpoint=provider_data.get("validation_endpoint"),
                 is_enabled=True
             )
             db.add(provider)

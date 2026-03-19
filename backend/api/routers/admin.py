@@ -206,6 +206,7 @@ async def create_provider_endpoint(
     website: str = Form(...),
     base_url: str = Form(...),
     custom_llm_provider: str = Form("openai"),
+    validation_endpoint: Optional[str] = Form(None),
     logo: Optional[UploadFile] = File(None),
     models_json: Optional[str] = Form(None),
     db: Session = Depends(get_db)
@@ -232,6 +233,7 @@ async def create_provider_endpoint(
         website=website,
         base_url=base_url,
         custom_llm_provider=custom_llm_provider,
+        validation_endpoint=validation_endpoint,
     )
 
     # Parse models from JSON if provided
@@ -270,6 +272,7 @@ async def update_provider_endpoint(
     website: Optional[str] = Form(None),
     base_url: Optional[str] = Form(None),
     custom_llm_provider: Optional[str] = Form(None),
+    validation_endpoint: Optional[str] = Form(None),
     logo: Optional[UploadFile] = File(None),
     is_enabled: Optional[bool] = Form(None),
     db: Session = Depends(get_db)
@@ -293,6 +296,7 @@ async def update_provider_endpoint(
         website=website,
         base_url=base_url,
         custom_llm_provider=custom_llm_provider,
+        validation_endpoint=validation_endpoint,
         is_enabled=is_enabled
     )
 

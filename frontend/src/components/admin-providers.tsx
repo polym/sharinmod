@@ -38,6 +38,7 @@ interface ProviderConfig {
   logo_path?: string;
   base_url?: string;
   custom_llm_provider?: string;
+  validation_endpoint?: string;
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -64,6 +65,7 @@ export function AdminProviders() {
   const [website, setWebsite] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [customLlmProvider, setCustomLlmProvider] = useState('openai');
+  const [validationEndpoint, setValidationEndpoint] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState('');
 
@@ -113,6 +115,7 @@ export function AdminProviders() {
         website,
         base_url: baseUrl,
         custom_llm_provider: customLlmProvider,
+        validation_endpoint: validationEndpoint || undefined,
         logo: logoFile || undefined,
         models: [],
       });
@@ -128,6 +131,7 @@ export function AdminProviders() {
       setWebsite('');
       setBaseUrl('');
       setCustomLlmProvider('openai');
+      setValidationEndpoint('');
       setLogoFile(null);
       setLogoPreview('');
       loadProviders();
@@ -149,6 +153,7 @@ export function AdminProviders() {
         website: website || editProvider.website,
         base_url: baseUrl || undefined,
         custom_llm_provider: customLlmProvider || undefined,
+        validation_endpoint: validationEndpoint,
         logo: logoFile || undefined,
         is_enabled: undefined,
       });
@@ -163,6 +168,7 @@ export function AdminProviders() {
       setWebsite('');
       setBaseUrl('');
       setCustomLlmProvider('openai');
+      setValidationEndpoint('');
       setLogoFile(null);
       setLogoPreview('');
       loadProviders();
@@ -218,6 +224,7 @@ export function AdminProviders() {
     setWebsite(provider.website);
     setBaseUrl(provider.base_url || defaults?.base_url || '');
     setCustomLlmProvider(provider.custom_llm_provider || defaults?.custom_llm_provider || 'openai');
+    setValidationEndpoint(provider.validation_endpoint || '');
     setLogoFile(null);
     setLogoPreview(provider.logo_path || '');
     setEditDialogOpen(true);
@@ -240,6 +247,7 @@ export function AdminProviders() {
                   setWebsite('');
                   setBaseUrl('');
                   setCustomLlmProvider('openai');
+                  setValidationEndpoint('');
                   setLogoFile(null);
                   setLogoPreview('');
                 }}>
@@ -300,6 +308,15 @@ export function AdminProviders() {
                       value={baseUrl}
                       onChange={(e) => setBaseUrl(e.target.value)}
                       placeholder="https://api.example.com/v1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="validation-endpoint">验证端点</Label>
+                    <Input
+                      id="validation-endpoint"
+                      value={validationEndpoint}
+                      onChange={(e) => setValidationEndpoint(e.target.value)}
+                      placeholder="留空则跳过验证，例如 /v1/models"
                     />
                   </div>
                   <div>
@@ -488,6 +505,15 @@ export function AdminProviders() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://api.example.com/v1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-validation-endpoint">验证端点</Label>
+              <Input
+                id="edit-validation-endpoint"
+                value={validationEndpoint}
+                onChange={(e) => setValidationEndpoint(e.target.value)}
+                placeholder="留空则跳过验证，例如 /v1/models"
               />
             </div>
             <div>

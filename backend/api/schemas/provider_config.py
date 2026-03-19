@@ -51,6 +51,7 @@ class ProviderConfigResponse(BaseModel):
     logo_path: Optional[str] = None
     base_url: Optional[str] = None
     custom_llm_provider: str = "openai"
+    validation_endpoint: Optional[str] = None
     is_enabled: bool
     created_at: datetime
     updated_at: datetime
@@ -82,6 +83,7 @@ class ProviderConfigCreate(BaseModel):
     website: str = Field(..., min_length=1, max_length=500)
     base_url: str = Field(..., min_length=1, max_length=500, description="API endpoint base URL")
     custom_llm_provider: str = Field(default="openai", max_length=50, description="LiteLLM provider type")
+    validation_endpoint: Optional[str] = Field(None, max_length=500)
     models: Optional[List[ProviderModelCreate]] = []
 
 
@@ -107,6 +109,7 @@ class ProviderConfigUpdate(BaseModel):
     logo_path: Optional[str] = Field(None, max_length=500)
     base_url: Optional[str] = Field(None, max_length=500, description="API endpoint base URL")
     custom_llm_provider: Optional[str] = Field(None, max_length=50, description="LiteLLM provider type")
+    validation_endpoint: Optional[str] = Field(None, max_length=500)
     is_enabled: Optional[bool] = None
 
 

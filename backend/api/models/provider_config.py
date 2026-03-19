@@ -32,6 +32,7 @@ class ProviderConfig(SQLModel, table=True):
     logo_path: Optional[str] = Field(default=None, max_length=500)
     base_url: Optional[str] = Field(default=None, max_length=500, description="API endpoint base URL (e.g. https://api.example.com/v1)")
     custom_llm_provider: str = Field(default="openai", max_length=50, description="LiteLLM provider type: openai / anthropic / openrouter")
+    validation_endpoint: Optional[str] = Field(default=None, max_length=500, description="API key validation endpoint (e.g. /v1/models). Defaults to /models if empty.")
     is_enabled: bool = Field(default=True, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

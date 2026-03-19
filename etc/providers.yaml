@@ -166,6 +166,7 @@ providers:
     website: "https://www.minimaxi.com"
     base_url: "https://api.minimaxi.com/anthropic"
     custom_llm_provider: "anthropic"
+    validation_endpoint: "/../v1/files/list"
     models:
       - model_key: "minimax-m2.1"
         display_name: "MiniMax M2.1"

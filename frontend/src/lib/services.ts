@@ -154,6 +154,7 @@ export const adminAPI = {
     website: string;
     base_url: string;
     custom_llm_provider?: string;
+    validation_endpoint?: string;
     logo?: File;
     models?: any[];
   }) => {
@@ -163,6 +164,7 @@ export const adminAPI = {
     formData.append('website', data.website);
     formData.append('base_url', data.base_url);
     formData.append('custom_llm_provider', data.custom_llm_provider || 'openai');
+    if (data.validation_endpoint) formData.append('validation_endpoint', data.validation_endpoint);
     if (data.logo) formData.append('logo', data.logo);
     if (data.models) formData.append('models_json', JSON.stringify(data.models));
     return api.post('/api/admin/providers', formData, {
@@ -175,6 +177,7 @@ export const adminAPI = {
     website?: string;
     base_url?: string;
     custom_llm_provider?: string;
+    validation_endpoint?: string;
     logo?: File;
     is_enabled?: boolean;
   }) => {
@@ -183,6 +186,7 @@ export const adminAPI = {
     if (data.website !== undefined) formData.append('website', data.website);
     if (data.base_url !== undefined) formData.append('base_url', data.base_url);
     if (data.custom_llm_provider !== undefined) formData.append('custom_llm_provider', data.custom_llm_provider);
+    if (data.validation_endpoint !== undefined) formData.append('validation_endpoint', data.validation_endpoint);
     if (data.is_enabled !== undefined) formData.append('is_enabled', String(data.is_enabled));
     if (data.logo) formData.append('logo', data.logo);
     return api.put(`/api/admin/providers/${id}`, formData, {
