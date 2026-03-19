@@ -45,6 +45,13 @@ app:
   # Redis
   redis_database: "redis://redis:6379/0"
 
+  # LiteLLM Webhook IP 白名单（支持精确 IP 和 CIDR 段，空列表表示不限制）
+  # 示例：精确 IP + CIDR 混合
+  litellm_webhook_ip_whitelist:
+    - "192.168.96.7"
+    # - "10.0.0.0/8"
+    # - "172.16.0.0/12"
+
   # Admin User (敏感配置，支持环境变量 fallback: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD)
   # 使用环境变量: SHARINMOD_ADMIN_EMAIL, SHARINMOD_ADMIN_PASSWORD
   sharinmod_admin_email: "admin@sharin.mod"

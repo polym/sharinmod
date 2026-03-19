@@ -30,7 +30,6 @@ services:
     environment:
       - CONFIG_PATH=/app/config.yaml
       - KUBECONFIG_PATH=/app/kubeconfig
-      - LITELLM_WEBHOOK_IP_WHITELIST_STR=192.168.96.7
       - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app

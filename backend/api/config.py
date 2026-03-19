@@ -210,8 +210,7 @@ class Settings(BaseSettings):
     SHARINMOD_ADMIN_EMAIL: str = ""
     SHARINMOD_ADMIN_PASSWORD: str = ""
 
-    # LiteLLM webhook IP whitelist (comma-separated string, will be parsed to list)
-    LITELLM_WEBHOOK_IP_WHITELIST_STR: str = ""
+    # LiteLLM webhook IP whitelist (supports exact IPs and CIDR ranges)
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
 
     @classmethod
@@ -316,14 +315,26 @@ class Settings(BaseSettings):
     @field_validator("LITELLM_WEBHOOK_IP_WHITELIST", mode="before")
     @classmethod
     def parse_whitelist(cls, v: str | list) -> list[str]:
-        """Parse IP whitelist from environment variable"""
-        # If already a list (from default), return as is
+        """Parse and validate IP whitelist, supporting exact IPs and CIDR ranges."""
+        import ipaddress
+        import logging
+        _logger = logging.getLogger(__name__)
+
+        raw_entries: list[str] = []
         if isinstance(v, list):
-            return [ip.strip() for ip in v if ip.strip()]
-        # If string, split by comma
-        if isinstance(v, str):
-            return [ip.strip() for ip in v.split(",") if ip.strip()]
-        return []
+            raw_entries = [str(ip).strip() for ip in v if str(ip).strip()]
+        elif isinstance(v, str):
+            # Support space- or comma-separated env var value
+            raw_entries = [ip.strip() for ip in v.replace(",", " ").split() if ip.strip()]
+
+        validated: list[str] = []
+        for entry in raw_entries:
+            try:
+                ipaddress.ip_network(entry, strict=False)
+                validated.append(entry)
+            except ValueError:
+                _logger.warning(f"[IP_WHITELIST] Invalid whitelist entry skipped: {entry}")
+        return validated
 
     model_config = SettingsConfigDict(
         case_sensitive=True,

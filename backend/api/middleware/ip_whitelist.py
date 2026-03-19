@@ -4,14 +4,34 @@ IP whitelist middleware for protecting webhook endpoints
 This middleware checks if the request source IP is in the configured whitelist.
 If not in whitelist, returns 403 Forbidden.
 """
+import ipaddress
 import logging
-from fastapi import Request, HTTPException, status
+from fastapi import Request, status
+from starlette.responses import JSONResponse
 from api.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Trusted proxy IPs that can set X-Forwarded-For header
 TRUSTED_PROXIES = {"127.0.0.1", "::1", "localhost"}
+
+
+def _ip_in_whitelist(client_ip: str, whitelist: list[str]) -> bool:
+    """Check whether client_ip matches any entry in the whitelist.
+
+    Supports exact IPs and CIDR notation (e.g. 10.0.0.0/8).
+    """
+    try:
+        addr = ipaddress.ip_address(client_ip)
+    except ValueError:
+        return False
+    for entry in whitelist:
+        try:
+            if addr in ipaddress.ip_network(entry, strict=False):
+                return True
+        except ValueError:
+            logger.warning(f"[IP_WHITELIST] Invalid whitelist entry skipped: {entry}")
+    return False
 
 
 async def ip_whitelist_middleware(request: Request, call_next):
@@ -48,11 +68,11 @@ async def ip_whitelist_middleware(request: Request, call_next):
 
     # Check whitelist
     whitelist = settings.LITELLM_WEBHOOK_IP_WHITELIST
-    if whitelist and client_ip not in whitelist:
+    if whitelist and not _ip_in_whitelist(client_ip, whitelist):
         logger.warning(f"[IP_WHITELIST] REJECTED: IP {client_ip} not in whitelist")
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"IP {client_ip} is not authorized to access this endpoint"
+            content={"detail": f"IP {client_ip} is not authorized to access this endpoint"},
         )
 
     logger.debug(f"[IP_WHITELIST] ALLOWED: IP {client_ip} passed whitelist check")
