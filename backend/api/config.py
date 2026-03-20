@@ -17,7 +17,7 @@ _FALLBACK_CONFIG: Dict[str, Tuple[str, str]] = {
     "GITHUB_CLIENT_SECRET": ("GITHUB_CLIENT_SECRET", ""),
     "GITLAB_CLIENT_ID": ("GITLAB_CLIENT_ID", ""),
     "GITLAB_CLIENT_SECRET": ("GITLAB_CLIENT_SECRET", ""),
-    "LITELLM_BASE_URL": ("LITELLM_BASE_URL", "http://10.0.5.176:4000"),
+    "LITELLM_BASE_URL": ("LITELLM_BASE_URL", "http://litellm:4000"),
     "LITELLM_MASTER_KEY": ("LITELLM_MASTER_KEY", "sk-1234"),
     "SHARINMOD_ADMIN_EMAIL": ("SHARINMOD_ADMIN_EMAIL", "admin@sharin.mod"),
     "SHARINMOD_ADMIN_PASSWORD": ("SHARINMOD_ADMIN_PASSWORD", "Aha12345!"),
@@ -74,10 +74,10 @@ def _get_config_path() -> str:
 
 
 def _load_yaml_config() -> Dict[str, Any]:
-    """Load configuration from YAML file.
+    """Load complete configuration from YAML file.
 
     Returns:
-        Dict[str, Any]: The 'app' section from config.yaml, or empty dict if not found.
+        Dict[str, Any]: Full configuration including all sections (app, feature_flags, etc.).
 
     Raises:
         FileNotFoundError: If config file doesn't exist.
@@ -91,7 +91,7 @@ def _load_yaml_config() -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Failed to parse configuration file {config_path}: {e}")
 
-    return full_config.get("app", {})
+    return full_config
 
 
 class YamlConfigSource(PydanticBaseSettingsSource):
@@ -100,7 +100,9 @@ class YamlConfigSource(PydanticBaseSettingsSource):
     def __init__(self, settings_cls: type[BaseSettings]):
         super().__init__(settings_cls)
         # Load YAML config - let exceptions propagate to fail fast on config errors
-        self.yaml_config: Dict[str, Any] = _load_yaml_config()
+        # Load full config to support feature_flags section
+        self.full_config: Dict[str, Any] = _load_yaml_config()
+        self.yaml_config: Dict[str, Any] = self.full_config.get("app", {})
 
     def get_field_value(
         self, field: FieldInfo, field_name: str
@@ -137,6 +139,13 @@ class YamlConfigSource(PydanticBaseSettingsSource):
             # Handle nested dict values (e.g., vendor_base_urls)
             if isinstance(yaml_value, dict):
                 result[field_key] = yaml_value
+
+        # Handle feature_flags section
+        feature_flags = self.full_config.get("feature_flags", {})
+        if isinstance(feature_flags, dict):
+            for key, value in feature_flags.items():
+                field_key = f"FEATURE_FLAG_{key.upper()}"
+                result[field_key] = value
 
         return result
 
@@ -212,6 +221,11 @@ class Settings(BaseSettings):
 
     # LiteLLM webhook IP whitelist (supports exact IPs and CIDR ranges)
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
+
+    # Feature Flags
+    FEATURE_FLAG_ENABLE_CLAW_CREATION: bool = True
+    FEATURE_FLAG_ENABLE_GITHUB_OAUTH: bool = True
+    FEATURE_FLAG_ENABLE_GITLAB_OAUTH: bool = True
 
     @classmethod
     def settings_customise_sources(
@@ -335,6 +349,34 @@ class Settings(BaseSettings):
             except ValueError:
                 _logger.warning(f"[IP_WHITELIST] Invalid whitelist entry skipped: {entry}")
         return validated
+
+    # Feature flag validators - default to True if not specified, with type coercion
+    @field_validator("FEATURE_FLAG_ENABLE_CLAW_CREATION", mode="before")
+    @classmethod
+    def feature_flag_enable_claw_creation_default(cls, v: bool | None | str) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "yes", "on")
+        return bool(v)
+
+    @field_validator("FEATURE_FLAG_ENABLE_GITHUB_OAUTH", mode="before")
+    @classmethod
+    def feature_flag_enable_github_oauth_default(cls, v: bool | None | str) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "yes", "on")
+        return bool(v)
+
+    @field_validator("FEATURE_FLAG_ENABLE_GITLAB_OAUTH", mode="before")
+    @classmethod
+    def feature_flag_enable_gitlab_oauth_default(cls, v: bool | None | str) -> bool:
+        if v is None:
+            return True
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "yes", "on")
+        return bool(v)
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
