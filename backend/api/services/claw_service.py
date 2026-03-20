@@ -111,6 +111,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         qq_bot_secret=data.qq_bot_secret,
         unified_api_key_id=api_key_obj.id,  # 关联自动创建的 API Key
         brain_model=data.brain_model,
+        k8s_namespace=settings.K8S_NAMESPACE,
         status=ClawStatus.PENDING,
     )
     session.add(claw)
@@ -220,7 +221,7 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
     # Delete K8s StatefulSet
     if claw.k8s_deployment_name:
         try:
-            k8s_service.delete_statefulset(claw.k8s_deployment_name, namespace=settings.K8S_NAMESPACE)
+            k8s_service.delete_statefulset(claw.k8s_deployment_name, namespace=claw.k8s_namespace or "default")
         except Exception as e:
             # Log but do not block deletion of the database record
             logger.error(f"Error deleting K8s statefulset {claw.k8s_deployment_name}: {e}")

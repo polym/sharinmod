@@ -117,7 +117,7 @@ def stream_claw_logs(
         raise HTTPException(status_code=400, detail="Claw has no K8s resource")
 
     def sse_generator():
-        for line in k8s_service.stream_statefulset_logs(claw.k8s_deployment_name, namespace=settings.K8S_NAMESPACE):
+        for line in k8s_service.stream_statefulset_logs(claw.k8s_deployment_name, namespace=claw.k8s_namespace or "default"):
             if isinstance(line, bytes):
                 text = line.decode("utf-8", errors="replace").rstrip("\n")
             else:
