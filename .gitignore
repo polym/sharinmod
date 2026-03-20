@@ -194,3 +194,4 @@ docs/plans
 # Configuration files with sensitive data
 etc/config.yaml
 etc/kubeconfig
+backend/config.yaml

@@ -2,3 +2,5 @@
 .vscode/
 
 .gitpod.yml
+config.yaml/
+kubeconfig/

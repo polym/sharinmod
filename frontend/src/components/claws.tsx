@@ -66,6 +66,7 @@ function StatusBadge({ status }: { status: string }) {
 export function ClawsPage() {
   const [claws, setClaws] = useState<Claw[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clawCreationDisabled, setClawCreationDisabled] = useState(false);
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -108,7 +109,8 @@ export function ClawsPage() {
     try {
       const response = await clawAPI.getMyClaws();
       setClaws(response.data.items ?? []);
-    } catch (error) {
+      setClawCreationDisabled(false);
+    } catch (error: any) {
       console.error('Failed to load claws:', error);
     } finally {
       setLoading(false);
@@ -127,6 +129,16 @@ export function ClawsPage() {
   };
 
   const handleCreate = async () => {
+    // 双重检查：如果功能被禁用，直接返回
+    if (clawCreationDisabled) {
+      toast({
+        title: '功能已禁用',
+        description: '龙虾创建功能已被管理员禁用',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!newName.trim() || !newQqBotId.trim() || !newQqBotSecret.trim()) {
       toast({ title: '错误', description: '请填写所有必填字段', variant: 'destructive' });
       return;
@@ -144,11 +156,21 @@ export function ClawsPage() {
       resetCreateForm();
       loadClaws();
     } catch (error: any) {
-      toast({
-        title: '错误',
-        description: error.response?.data?.detail || '创建失败，请重试',
-        variant: 'destructive',
-      });
+      // 检测功能禁用错误
+      if (error.response?.status === 403) {
+        setClawCreationDisabled(true);
+        toast({
+          title: '功能已禁用',
+          description: '龙虾创建功能已被管理员禁用',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: '错误',
+          description: error.response?.data?.detail || '创建失败，请重试',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setCreating(false);
     }
@@ -295,13 +317,20 @@ export function ClawsPage() {
               管理您的龙虾家族（最多 10 只）
             </CardDescription>
           </div>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            创建龙虾
-          </Button>
+          {!clawCreationDisabled && (
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              创建龙虾
+            </Button>
+          )}
+          {clawCreationDisabled && (
+            <div className="text-sm text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg">
+              龙虾创建功能已禁用
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (

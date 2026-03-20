@@ -13,6 +13,7 @@ from api.models.claw import Claw, ClawStatus
 from api.models.user import User
 from api.schemas.claw import ClawCreate, ClawUpdate
 from api.services import k8s_service
+from api.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +55,25 @@ def get_user_claw_by_id(session: Session, user_id: int, claw_id: int) -> Claw:
 async def create_claw_async(session: Session, current_user: User, data: ClawCreate) -> Claw:
     """
     Create a new Claw:
-    1. Check quota (max 10 per user)
-    2. Auto-create API Key with claw name
-    3. Persist a PENDING record to obtain the ID
-    4. Build IMAGE, COMMAND and CONFIG_FILES dict from config.yaml
-    5. Create K8s ConfigMap (all files mounted at /config) + Deployment
-    6. Update record with deployment name and RUNNING status
+    1. Check feature flag
+    2. Check quota (max 10 per user)
+    3. Auto-create API Key with claw name
+    4. Persist a PENDING record to obtain the ID
+    5. Build IMAGE, COMMAND and CONFIG_FILES dict from config.yaml
+    6. Create K8s ConfigMap (all files mounted at /config) + Deployment
+    7. Update record with deployment name and RUNNING status
     If any step fails, rollback everything.
     """
+    # 检查功能开关
+    if not settings.FEATURE_FLAG_ENABLE_CLAW_CREATION:
+        logger.warning(f"[FEATURE_FLAGS] Claw creation attempt blocked for user {current_user.id} (feature disabled)")
+        raise HTTPException(
+            status_code=403,
+            detail="Claw creation is disabled by administrator"
+        )
+
+    logger.info(f"[FEATURE_FLAGS] Claw creation attempt for user {current_user.id} (feature enabled)")
+
     if count_user_claws(session, current_user.id) >= MAX_CLAWS_PER_USER:
         raise HTTPException(
             status_code=400,
@@ -105,7 +117,6 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     session.refresh(claw)
 
     # Build IMAGE, COMMAND and CONFIG_FILES from config.yaml
-    from api.config import settings
     type_config = _load_claw_type_config(claw.type.value)
     image = type_config["image"]
     model_id = type_config["model_id"]
