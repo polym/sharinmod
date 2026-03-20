@@ -66,6 +66,7 @@ services:
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./etc/init-litellm-db.sql:/docker-entrypoint-initdb.d/init-litellm-db.sql:ro
     networks:
       - my-network
     expose:

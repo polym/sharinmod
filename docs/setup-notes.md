@@ -2,9 +2,25 @@
 
 This document records the database setup for LiteLLM in Docker Compose environment.
 
-## Database Initialization
+## Automated Initialization (Recommended)
 
-The LiteLLM database was initialized with the following steps:
+The LiteLLM database is now automatically initialized on first startup using the init script at `etc/init-litellm-db.sql`. This script:
+
+- Creates the `llmproxy` user with password `dbpassword9090`
+- Creates the `litellm` database owned by `llmproxy`
+- Grants all privileges on the database
+
+Simply start the services and the database will be initialized automatically:
+
+```bash
+docker-compose up -d
+```
+
+The init script is idempotent and can be run multiple times safely.
+
+## Manual Database Initialization (Legacy)
+
+The LiteLLM database can also be initialized manually if needed:
 
 ```bash
 # Start database service
