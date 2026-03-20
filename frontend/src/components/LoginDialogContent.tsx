@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,14 @@ interface ApiError {
   detail?: string | { msg: string }[] | unknown;
 }
 
+// OAuth provider type
+interface OAuthProvider {
+  id: string;
+  name: string;
+  enabled: boolean;
+  login_url: string;
+}
+
 export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const t = useTranslations('auth');
   const tValidation = useTranslations('auth.validation');
@@ -33,14 +41,26 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [gitlabLoading, setGitlabLoading] = useState(false);
   const [error, setError] = useState('');
+  const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([]);
+  const [providersError, setProvidersError] = useState('');
   const login = useAuthStore((state) => state.login);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
   const setShowChangePasswordDialog = useAuthStore((state) => state.setShowChangePasswordDialog);
   const redirectAfterLogin = useAuthStore((state) => state.redirectAfterLogin);
   const setRedirectAfterLogin = useAuthStore((state) => state.setRedirectAfterLogin);
   const router = useRouter();
+
+  // Load available OAuth providers on mount
+  useEffect(() => {
+    authAPI.getOAuthProviders().then(response => {
+      setOauthProviders(response.data.providers || []);
+      setProvidersError('');
+    }).catch(err => {
+      console.error('Failed to load OAuth providers:', err);
+      setProvidersError('无法加载登录方式');
+    });
+  }, []);
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -114,7 +134,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   };
 
   const handleGitlabLogin = () => {
-    setGitlabLoading(true);
+    setOauthLoading(true);
     // 跳转到后端 OAuth 端点，使用相对路径
     window.location.href = '/api/oauth/gitlab/login';
   };
@@ -147,6 +167,9 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       {error && (
         <div className="text-red-600 text-sm">{error}</div>
       )}
+      {providersError && (
+        <div className="text-yellow-600 text-sm">{providersError}</div>
+      )}
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? t('loggingIn') : t('login')}
       </Button>
@@ -160,45 +183,40 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGithubLogin}
-        disabled={oauthLoading || gitlabLoading || loading}
-      >
-        {oauthLoading ? (
-          <span className="animate-spin mr-2">
-            <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </span>
-        ) : (
-          <GithubIcon className="h-4 w-4 mr-2" />
-        )}
-        使用 GitHub 登录
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGitlabLogin}
-        disabled={oauthLoading || gitlabLoading || loading}
-      >
-        {gitlabLoading ? (
-          <span className="animate-spin mr-2">
-            <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </span>
-        ) : (
-          <GitlabIcon className="h-4 w-4 mr-2" />
-        )}
-        使用 GitLab 登录
-      </Button>
+      {oauthProviders.length > 0 ? (
+        oauthProviders.map(provider => (
+          <Button
+            key={provider.id}
+            type="button"
+            variant="outline"
+            className="w-full mb-3 last:mb-0"
+            onClick={() => {
+              if (provider.id === 'github') {
+                handleGithubLogin();
+              } else if (provider.id === 'gitlab') {
+                handleGitlabLogin();
+              }
+            }}
+            disabled={oauthLoading || loading}
+          >
+            {oauthLoading && (
+              <span className="animate-spin mr-2">
+                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+            )}
+            {!oauthLoading && provider.id === 'github' && <GithubIcon className="h-4 w-4 mr-2" />}
+            {!oauthLoading && provider.id === 'gitlab' && <GitlabIcon className="h-4 w-4 mr-2" />}
+            使用 {provider.name} 登录
+          </Button>
+        ))
+      ) : (
+        <div className="text-center text-sm text-gray-500">
+          暂无可用的登录方式
+        </div>
+      )}
 
     </form>
   );

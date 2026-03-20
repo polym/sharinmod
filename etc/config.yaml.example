@@ -223,3 +223,10 @@ claw_types:
         [server]
         host = "0.0.0.0"
         port = 8080
+
+# Feature Flags Configuration
+# 控制各项功能的开启/关闭状态
+feature_flags:
+  enable_claw_creation: true      # 是否允许用户创建/领取龙虾
+  enable_github_oauth: true       # 是否启用 GitHub OAuth 登录
+  enable_gitlab_oauth: true       # 是否启用 GitLab OAuth 登录

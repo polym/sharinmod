@@ -1,4 +1,5 @@
 """OAuth router for GitHub login"""
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
@@ -8,12 +9,22 @@ from api.services.oauth_service import oauth, register_github_client, register_g
 from api.schemas.user import UserResponse
 from api.config import settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/oauth", tags=["oauth"])
 
-# 注册 GitHub OAuth 客户端
-register_github_client()
-# 注册 GitLab OAuth 客户端
-register_gitlab_client()
+# 根据功能开关有条件地注册 OAuth 客户端
+if settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
+    register_github_client()
+    logger.info("[FEATURE_FLAGS] GitHub OAuth client registered (enabled)")
+else:
+    logger.warning("[FEATURE_FLAGS] GitHub OAuth client registration skipped (disabled)")
+
+if settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
+    register_gitlab_client()
+    logger.info("[FEATURE_FLAGS] GitLab OAuth client registered (enabled)")
+else:
+    logger.warning("[FEATURE_FLAGS] GitLab OAuth client registration skipped (disabled)")
 
 
 @router.get("/github/login")
@@ -24,6 +35,16 @@ async def github_login(request: Request):
     Returns:
         RedirectResponse to GitHub authorization URL
     """
+    # 检查功能开关
+    if not settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
+        logger.warning("[FEATURE_FLAGS] GitHub OAuth login attempt blocked (feature disabled)")
+        raise HTTPException(
+            status_code=403,
+            detail="GitHub OAuth login is disabled by administrator"
+        )
+
+    logger.info("[FEATURE_FLAGS] GitHub OAuth login attempt (feature enabled)")
+
     # 将 FastAPI Request 转换为 Starlette Request
     starlette_request = StarletteRequest(request.scope, request.receive)
     client = oauth.create_client('github')
@@ -69,27 +90,43 @@ async def github_callback(
 @router.get("/providers")
 async def get_oauth_providers():
     """
-    Get list of available OAuth providers
+    Get list of available OAuth providers based on feature flags.
 
     Returns:
-        List of supported OAuth providers
+        List of supported and enabled OAuth providers.
+        A provider is only included if both the feature flag is enabled
+        AND the OAuth client credentials are configured.
     """
-    return {
-        "providers": [
-            {
+    providers = []
+
+    if settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
+        has_credentials = bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET)
+        if has_credentials:
+            providers.append({
                 "id": "github",
                 "name": "GitHub",
-                "enabled": bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET),
+                "enabled": True,
                 "login_url": "/api/oauth/github/login"
-            },
-            {
+            })
+            logger.debug("[FEATURE_FLAGS] GitHub OAuth provider available (credentials configured)")
+        else:
+            logger.warning("[FEATURE_FLAGS] GitHub OAuth feature enabled but credentials missing")
+
+    if settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
+        has_credentials = bool(settings.GITLAB_CLIENT_ID and settings.GITLAB_CLIENT_SECRET)
+        if has_credentials:
+            providers.append({
                 "id": "gitlab",
                 "name": "GitLab",
-                "enabled": bool(settings.GITLAB_CLIENT_ID and settings.GITLAB_CLIENT_SECRET),
+                "enabled": True,
                 "login_url": "/api/oauth/gitlab/login"
-            }
-        ]
-    }
+            })
+            logger.debug("[FEATURE_FLAGS] GitLab OAuth provider available (credentials configured)")
+        else:
+            logger.warning("[FEATURE_FLAGS] GitLab OAuth feature enabled but credentials missing")
+
+    logger.info(f"[FEATURE_FLAGS] Returning {len(providers)} available OAuth provider(s)")
+    return {"providers": providers}
 
 
 @router.get("/gitlab/login")
@@ -100,6 +137,16 @@ async def gitlab_login(request: Request):
     Returns:
         RedirectResponse to GitLab authorization URL
     """
+    # 检查功能开关
+    if not settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
+        logger.warning("[FEATURE_FLAGS] GitLab OAuth login attempt blocked (feature disabled)")
+        raise HTTPException(
+            status_code=403,
+            detail="GitLab OAuth login is disabled by administrator"
+        )
+
+    logger.info("[FEATURE_FLAGS] GitLab OAuth login attempt (feature enabled)")
+
     starlette_request = StarletteRequest(request.scope, request.receive)
     client = oauth.create_client('gitlab')
     # 使用环境变量中配置的回调地址，如果没有则使用默认值
