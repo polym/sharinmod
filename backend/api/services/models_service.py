@@ -166,11 +166,11 @@ def get_available_models(db: Session) -> List[ModelInfo]:
 
         # 获取元数据：优先 GlobalModel，其次 catalog，最后默认值
         if global_model:
-            description = global_model.description or (catalog_item.get("description") if catalog_item else "暂无描述")
-            context_length = global_model.context_length or (catalog_item.get("context_length") if catalog_item else "N/A")
-            max_output_length = global_model.max_output_length or (catalog_item.get("max_output_length") if catalog_item else "N/A")
-            input_types = global_model.input_types or (catalog_item.get("input_types") if catalog_item else ["Text"])
-            output_types = global_model.output_types or (catalog_item.get("output_types") if catalog_item else ["Text"])
+            description = global_model.description or (catalog_item.get("description") if catalog_item else None) or "暂无描述"
+            context_length = global_model.context_length or (catalog_item.get("context_length") if catalog_item else None) or "N/A"
+            max_output_length = global_model.max_output_length or (catalog_item.get("max_output_length") if catalog_item else None) or "N/A"
+            input_types = global_model.input_types or (catalog_item.get("input_types") if catalog_item else None) or ["Text"]
+            output_types = global_model.output_types or (catalog_item.get("output_types") if catalog_item else None) or ["Text"]
             coding_score = global_model.coding_score if global_model.coding_score is not None else (catalog_item.get("coding_score") if catalog_item else None)
             model_logo_url = global_model.logo_url
         elif catalog_item:
