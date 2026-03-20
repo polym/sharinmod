@@ -4,11 +4,13 @@ REST API endpoints for Claw (QQ bot) management
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session
+from typing import List
 
 from api.database import get_db
 from api.dependencies.auth import get_current_user
 from api.models.user import User
 from api.schemas.claw import ClawCreate, ClawResponse, ClawUpdate, ClawList
+from api.config import settings
 from api.services import k8s_service
 from api.services.claw_service import (
     create_claw_async,
@@ -19,6 +21,21 @@ from api.services.claw_service import (
 )
 
 router = APIRouter(prefix="/api/claws", tags=["claws"])
+
+
+@router.get("/config")
+def get_claw_config(
+    current_user: User = Depends(get_current_user),
+):
+    """返回龙虾相关前端配置，包括主流大脑模型列表"""
+    import yaml
+    from api.config import _get_config_path
+    config_path = _get_config_path()
+    with open(config_path, "r", encoding="utf-8") as f:
+        full_config = yaml.safe_load(f) or {}
+    claw_types_config = full_config.get("claw_types", {})
+    featured = claw_types_config.get("featured_brain_models", ["glm-4.7", "minimax-m2.5", "kimi-k2.5"])
+    return {"featured_brain_models": featured}
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=ClawResponse)
@@ -100,7 +117,7 @@ def stream_claw_logs(
         raise HTTPException(status_code=400, detail="Claw has no K8s resource")
 
     def sse_generator():
-        for line in k8s_service.stream_statefulset_logs(claw.k8s_deployment_name):
+        for line in k8s_service.stream_statefulset_logs(claw.k8s_deployment_name, namespace=settings.K8S_NAMESPACE):
             if isinstance(line, bytes):
                 text = line.decode("utf-8", errors="replace").rstrip("\n")
             else:

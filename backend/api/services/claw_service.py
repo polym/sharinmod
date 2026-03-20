@@ -110,6 +110,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         qq_bot_id=data.qq_bot_id,
         qq_bot_secret=data.qq_bot_secret,
         unified_api_key_id=api_key_obj.id,  # 关联自动创建的 API Key
+        brain_model=data.brain_model,
         status=ClawStatus.PENDING,
     )
     session.add(claw)
@@ -119,7 +120,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     # Build IMAGE, COMMAND and CONFIG_FILES from config.yaml
     type_config = _load_claw_type_config(claw.type.value)
     image = type_config["image"]
-    model_id = type_config["model_id"]
+    model_id = data.brain_model if data.brain_model else type_config["model_id"]
     command = type_config.get("command")
     config_template = type_config["config_template"]  # dict[str, str]
     openai_base_url = settings.WEBSITE_BASE_URL + "/api/openai"
@@ -143,6 +144,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
             config_files=config_files,
             command=command,
             user_email=current_user.email or "",
+            namespace=settings.K8S_NAMESPACE,
         )
     except Exception as e:
         logger.error(f"Failed to create K8s statefulset for claw {claw.id}: {e}")
@@ -218,7 +220,7 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
     # Delete K8s StatefulSet
     if claw.k8s_deployment_name:
         try:
-            k8s_service.delete_statefulset(claw.k8s_deployment_name)
+            k8s_service.delete_statefulset(claw.k8s_deployment_name, namespace=settings.K8S_NAMESPACE)
         except Exception as e:
             # Log but do not block deletion of the database record
             logger.error(f"Error deleting K8s statefulset {claw.k8s_deployment_name}: {e}")

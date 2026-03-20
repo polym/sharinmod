@@ -31,6 +31,9 @@ app:
   gitlab_base_url: "https://gitlab.com"
   gitlab_redirect_uri: "http://localhost:18888/api/oauth/gitlab/callback"
 
+  # Kubernetes
+  k8s_namespace: "default"  # 龙虾部署目标 namespace
+
   # Website
   website_base_url: "http://localhost:18888"
 
@@ -84,6 +87,12 @@ app:
 #                     {{YOUR_APP_SECRET}} - QQ Bot App Secret
 
 claw_types:
+  # 龙虾大脑主流模型列表（在创建表单中置顶展示，仅展示广场中实际可用的模型）
+  featured_brain_models:
+    - "glm-4.7"
+    - "minimax-m2.5"
+    - "kimi-k2.5"
+
   NANOBOT:
     image: "hub.upyun.com/huixingyun/nanobot:latest"
     model_id: "minimax-m2.5"

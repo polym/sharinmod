@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { Plus, Edit, Trash2, ScrollText, ChevronsDown } from 'lucide-react';
-import { clawAPI } from '@/lib/services';
+import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
 interface Claw {
@@ -30,6 +30,14 @@ const CLAW_TYPES = [
   { value: 'OPENCLAW', label: '全能型 (OpenClaw)' },
   { value: 'ZEROBOT', label: '安享型 (ZeroClaw)' },
 ];
+
+// 龙虾大脑 featured 模型降级默认列表（后端配置加载失败时使用）
+const DEFAULT_FEATURED_BRAIN_MODELS = ['glm-4.7', 'minimax-m2.5', 'kimi-k2.5'];
+
+interface PlazaModel {
+  model_name: string;
+  display_name: string;
+}
 
 // 类型显示名称映射（用于列表显示）
 const TYPE_DISPLAY_NAMES: Record<string, string> = {
@@ -75,6 +83,10 @@ export function ClawsPage() {
   const [newType, setNewType] = useState('NANOBOT');
   const [newQqBotId, setNewQqBotId] = useState('');
   const [newQqBotSecret, setNewQqBotSecret] = useState('');
+  const [newBrainModel, setNewBrainModel] = useState('glm-4.7');
+  const [plazaModels, setPlazaModels] = useState<PlazaModel[]>([]);
+  const [featuredBrainModels, setFeaturedBrainModels] = useState<string[]>(DEFAULT_FEATURED_BRAIN_MODELS);
+  const [loadingBrainModels, setLoadingBrainModels] = useState(false);
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -121,11 +133,41 @@ export function ClawsPage() {
     loadClaws();
   }, []);
 
+  useEffect(() => {
+    if (!createOpen) return;
+    const load = async () => {
+      setLoadingBrainModels(true);
+      try {
+        const [configRes, modelsRes] = await Promise.all([
+          clawAPI.getConfig(),
+          modelAPI.getModels(),
+        ]);
+        const featured: string[] = configRes.data.featured_brain_models ?? DEFAULT_FEATURED_BRAIN_MODELS;
+        const plaza: PlazaModel[] = modelsRes.data.items ?? [];
+        const plazaNames = new Set(plaza.map((m: PlazaModel) => m.model_name));
+        // 过滤掉广场中不可用的 featured 模型
+        const availableFeatured = featured.filter((m) => plazaNames.has(m));
+        setFeaturedBrainModels(availableFeatured.length > 0 ? availableFeatured : featured);
+        setPlazaModels(plaza);
+        // 默认选中第一个可用 featured
+        const firstFeatured = availableFeatured[0] ?? featured[0];
+        setNewBrainModel((prev) => prev === 'glm-4.7' ? firstFeatured : prev);
+      } catch {
+        // 静默失败，使用默认值
+      } finally {
+        setLoadingBrainModels(false);
+      }
+    };
+    load();
+  }, [createOpen]);
+
   const resetCreateForm = () => {
     setNewName('');
     setNewType('NANOBOT');
     setNewQqBotId('');
     setNewQqBotSecret('');
+    setNewBrainModel('glm-4.7');
+    setPlazaModels([]);
   };
 
   const handleCreate = async () => {
@@ -150,6 +192,7 @@ export function ClawsPage() {
         type: newType,
         qq_bot_id: newQqBotId.trim(),
         qq_bot_secret: newQqBotSecret.trim(),
+        brain_model: newBrainModel,
       });
       toast({ title: '成功', description: '龙虾创建成功！' });
       setCreateOpen(false);
@@ -428,6 +471,36 @@ export function ClawsPage() {
                   {CLAW_TYPES.map((t) => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-brain-model">
+                龙虾大脑🧠 <span className="text-red-500">*</span>
+              </Label>
+              <Select value={newBrainModel} onValueChange={setNewBrainModel}>
+                <SelectTrigger id="create-brain-model" className="rounded-xl">
+                  <SelectValue placeholder={loadingBrainModels ? '加载中...' : '选择模型'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs text-indigo-600 font-semibold">✨ 主流模型</SelectLabel>
+                    {featuredBrainModels.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                  {plazaModels.filter((m) => !featuredBrainModels.includes(m.model_name)).length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-xs text-gray-400 font-normal">广场中的其他模型</SelectLabel>
+                      {plazaModels
+                        .filter((m) => !featuredBrainModels.includes(m.model_name))
+                        .map((m) => (
+                          <SelectItem key={m.model_name} value={m.model_name} className="text-gray-400">
+                            {m.display_name || m.model_name}
+                          </SelectItem>
+                        ))}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
             </div>

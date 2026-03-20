@@ -210,6 +210,9 @@ class Settings(BaseSettings):
     # LiteLLM webhook IP whitelist (supports exact IPs and CIDR ranges)
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
 
+    # Kubernetes
+    K8S_NAMESPACE: str = "default"  # 龙虾部署目标 namespace
+
     # Feature Flags
     FEATURE_FLAG_ENABLE_CLAW_CREATION: bool = True
     FEATURE_FLAG_ENABLE_GITHUB_OAUTH: bool = True

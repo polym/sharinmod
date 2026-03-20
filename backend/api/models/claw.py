@@ -40,6 +40,7 @@ class Claw(SQLModel, table=True):
     qq_bot_id: str = Field(max_length=255)
     qq_bot_secret: str = Field(max_length=255)
     unified_api_key_id: Optional[int] = Field(default=None, foreign_key="unified_api_keys.id")
+    brain_model: Optional[str] = Field(default=None, max_length=100)
     k8s_deployment_name: Optional[str] = Field(default=None, max_length=255)
     status: ClawStatus = Field(default=ClawStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
