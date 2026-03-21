@@ -244,9 +244,10 @@ def create_statefulset(
             name="config-volume",
             config_map=client.V1ConfigMapVolumeSource(name=configmap_name),
         )
+        # claw 容器使用 subPath，只能看到 workspace 子目录
         volume_mounts = [
             client.V1VolumeMount(name="config-volume", mount_path="/config"),
-            client.V1VolumeMount(name="workspace-data", mount_path=mount_path),
+            client.V1VolumeMount(name="workspace-data", mount_path=mount_path, sub_path="workspace"),
         ]
         if prunc_enabled:
             volume_mounts.append(
@@ -259,13 +260,34 @@ def create_statefulset(
             command=command,
             volume_mounts=volume_mounts,
         )
+        # filebrowser 容器不使用 subPath，看到整个 PVC 根目录
+        # .filebrowser.db 在 PVC 根目录，真正的 workspace 在 workspace/ 子目录
         _fb_db = f"{mount_path}/.filebrowser.db"
-        _fb_init = (
-            f'export FB_DB="{_fb_db}"; '
-            f'export FB_NOAUTH=true; '
-            f'exec filebrowser -d "$FB_DB" --address 0.0.0.0 --port 8080 --root "{mount_path}" '
-            f'--noauth --baseurl /api/claws/{claw_id}/filebrowser'
-        )
+        _fb_root = f"{mount_path}/workspace"
+        _fb_base_url = f"/api/claws/{claw_id}/filebrowser"
+        _fb_init = f'''\
+mkdir -p "{_fb_root}"
+DB_PATH="{_fb_db}"
+BASE_URL="{_fb_base_url}"
+ROOT_PATH="{_fb_root}"
+export FB_NOAUTH=true
+
+# 1. 第一次后台启动 (初始化数据库)
+filebrowser -d "$DB_PATH" --address 0.0.0.0 --port 8080 --root "$ROOT_PATH" --noauth --baseurl "$BASE_URL" &
+FB_PID=$!
+sleep 3
+kill $FB_PID
+wait $FB_PID 2>/dev/null || true
+
+# 2. 清理数据库锁文件
+rm -f "${{DB_PATH}}-journal" "${{DB_PATH}}-wal"
+
+# 3. 设置中文
+filebrowser -d "$DB_PATH" config set --locale zh-cn
+
+# 4. 最终持久化启动
+exec filebrowser -d "$DB_PATH" --address 0.0.0.0 --port 8080 --root "$ROOT_PATH" --noauth --baseurl "$BASE_URL"
+'''
         filebrowser_container = client.V1Container(
             name="filebrowser",
             image="filebrowser/filebrowser:latest",
