@@ -265,29 +265,13 @@ def create_statefulset(
         _fb_db = f"{mount_path}/.filebrowser.db"
         _fb_root = f"{mount_path}/workspace"
         _fb_base_url = f"/api/claws/{claw_id}/filebrowser"
-        _fb_init = f'''\
-mkdir -p "{_fb_root}"
-DB_PATH="{_fb_db}"
-BASE_URL="{_fb_base_url}"
-ROOT_PATH="{_fb_root}"
-export FB_NOAUTH=true
-
-# 1. 第一次后台启动 (初始化数据库)
-filebrowser -d "$DB_PATH" --address 0.0.0.0 --port 8080 --root "$ROOT_PATH" --noauth --baseurl "$BASE_URL" &
-FB_PID=$!
-sleep 3
-kill $FB_PID
-wait $FB_PID 2>/dev/null || true
-
-# 2. 清理数据库锁文件
-rm -f "${{DB_PATH}}-journal" "${{DB_PATH}}-wal"
-
-# 3. 设置中文
-filebrowser -d "$DB_PATH" config set --locale zh-cn
-
-# 4. 最终持久化启动
-exec filebrowser -d "$DB_PATH" --address 0.0.0.0 --port 8080 --root "$ROOT_PATH" --noauth --baseurl "$BASE_URL"
-'''
+        _fb_init = (
+            f'mkdir -p "{_fb_root}" && '
+            f'export FB_DB="{_fb_db}"; '
+            f'export FB_NOAUTH=true; '
+            f'exec filebrowser -d "$FB_DB" --address 0.0.0.0 --port 8080 --root "{_fb_root}" '
+            f'--noauth --baseurl /api/claws/{claw_id}/filebrowser'
+        )
         filebrowser_container = client.V1Container(
             name="filebrowser",
             image="filebrowser/filebrowser:latest",

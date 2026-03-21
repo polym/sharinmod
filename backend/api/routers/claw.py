@@ -179,7 +179,7 @@ def _filter_cookie_header(cookie_header: str | None) -> str | None:
         return None
     # 过滤掉 sharinmod-fb-token，保留其他 cookie
     cookies = [
-        c for c in cookie_header.split(";")
+        c.strip() for c in cookie_header.split(";")
         if c.strip() and not c.strip().startswith(f"{_FB_COOKIE_NAME}=")
     ]
     return "; ".join(cookies) if cookies else None
