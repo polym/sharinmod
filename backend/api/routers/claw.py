@@ -158,17 +158,31 @@ def stream_claw_logs(
 
 
 # HTTP/1.1 hop-by-hop headers，转发时需过滤
-# 'cookie' 单独过滤：避免将后端 auth cookie 泄露给上游 filebrowser
+# 'cookie' 单独处理：过滤 sharinmod-fb-token，保留 filebrowser 的 auth 等其他 cookie
 _HOP_BY_HOP_HEADERS = frozenset({
     "connection", "transfer-encoding", "te", "trailers",
     "upgrade", "keep-alive", "proxy-authenticate",
-    "proxy-authorization", "host", "content-length", "cookie",
+    "proxy-authorization", "host", "content-length",
 })
 
 # RFC 1123 label: lowercase alphanumeric and hyphens, 1-63 chars
 _K8S_NS_RE = re.compile(r'^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$')
 
 _FB_COOKIE_NAME = "sharinmod-fb-token"
+
+
+def _filter_cookie_header(cookie_header: str | None) -> str | None:
+    """
+    过滤掉 sharinmod-fb-token cookie，保留其他 cookie（如 filebrowser 的 auth）
+    """
+    if not cookie_header:
+        return None
+    # 过滤掉 sharinmod-fb-token，保留其他 cookie
+    cookies = [
+        c for c in cookie_header.split(";")
+        if c.strip() and not c.strip().startswith(f"{_FB_COOKIE_NAME}=")
+    ]
+    return "; ".join(cookies) if cookies else None
 
 
 def _get_filebrowser_user(request: Request, session: Session = Depends(get_db)) -> User:
@@ -240,6 +254,11 @@ async def proxy_filebrowser(
         k: v for k, v in request.headers.items()
         if k.lower() not in _HOP_BY_HOP_HEADERS
     }
+    # 过滤掉 sharinmod-fb-token，保留 filebrowser 的 auth 等其他 cookie
+    if "cookie" in request.headers:
+        filtered_cookie = _filter_cookie_header(request.headers["cookie"])
+        if filtered_cookie:
+            fwd_headers["cookie"] = filtered_cookie
     fwd_headers["X-Auth-User"] = "sharinmod"
 
     body = await request.body()
