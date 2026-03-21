@@ -192,8 +192,16 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
     """
     claw = get_user_claw_by_id(session, user_id, claw_id)
 
-    # Delete associated API Key first
-    if claw.unified_api_key_id:
+    # Delete associated API Key first.
+    # Important: null out the FK reference on claw BEFORE deleting the UnifiedAPIKey row,
+    # otherwise the DELETE on unified_api_keys will fail with a FK violation because
+    # claws.unified_api_key_id still points to it.
+    api_key_id = claw.unified_api_key_id
+    if api_key_id:
+        claw.unified_api_key_id = None
+        session.add(claw)
+        session.commit()
+
         from api.services.unified_api_key_service import (
             block_unified_api_key_async,
             delete_unified_api_key_async
@@ -206,17 +214,17 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
             await block_unified_api_key_async(
                 session=session,
                 user=current_user,
-                api_key_id=claw.unified_api_key_id
+                api_key_id=api_key_id
             )
             # 再删除
             await delete_unified_api_key_async(
                 session=session,
                 user=current_user,
-                api_key_id=claw.unified_api_key_id
+                api_key_id=api_key_id
             )
         except Exception as e:
             logger.error(f"Error deleting API key for claw {claw.id}: {e}")
-            # 继续执行，不阻止龙虾删除
+            session.rollback()  # 确保 session 处于干净状态，不阻止龙虾删除
 
     # Delete K8s StatefulSet
     if claw.k8s_deployment_name:
