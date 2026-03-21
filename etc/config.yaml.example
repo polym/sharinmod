@@ -1,6 +1,9 @@
 # 工作区持久化存储配置
 workspace_storage_class: ""     # 空字符串使用集群默认 StorageClass
 workspace_storage_size: "10Gi"  # 每只龙虾的 /app/workspace 数据盘大小
+workspace_runtime_class: ""       # 留空则不设置 runtimeClassName；填 "prunc" 启用 prunc RuntimeClass
+workspace_mount_path: "/app/workspace"  # workspace PVC 在容器内的挂载路径；prunc 需填 "/.sysdisk"
+                                          # 警告：修改此值仅影响新建龙虾，已有龙虾的 PVC 数据仍挂载于旧路径
 
 # Application Configuration
 # 敏感配置（如密钥、密码等）支持环境变量 fallback

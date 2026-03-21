@@ -214,6 +214,16 @@ def create_statefulset(
         root_cfg = _yaml.safe_load(f)
     storage_class = root_cfg.get("workspace_storage_class", "")
     storage_size = root_cfg.get("workspace_storage_size", "10Gi")
+    runtime_class = (root_cfg.get("workspace_runtime_class") or "").strip()  # None/空白均视为未设置
+    mount_path = root_cfg.get("workspace_mount_path") or "/app/workspace"   # None/空字符串回退默认值
+    if not mount_path.startswith("/"):
+        raise ValueError(f"workspace_mount_path must be an absolute path, got: {mount_path!r}")
+    if runtime_class and not all(c.islower() or c.isdigit() or c in "-."
+                                 for c in runtime_class):
+        raise ValueError(
+            f"workspace_runtime_class must be a valid DNS name "
+            f"(lowercase alphanumeric, hyphens, dots), got: {runtime_class!r}"
+        )
 
     sts_name = f"claw-{claw_id}"
     configmap_name = create_config_map(claw_id, config_files, namespace)
@@ -229,7 +239,7 @@ def create_statefulset(
         )
         volume_mounts = [
             client.V1VolumeMount(name="config-volume", mount_path="/config"),
-            client.V1VolumeMount(name="workspace-data", mount_path="/app/workspace"),
+            client.V1VolumeMount(name="workspace-data", mount_path=mount_path),
         ]
         container = client.V1Container(
             name="claw",
@@ -255,6 +265,11 @@ def create_statefulset(
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={"app": sts_name}),
                 spec=client.V1PodSpec(
+                    **(
+                        {"runtime_class_name": runtime_class}
+                        if runtime_class
+                        else {}
+                    ),
                     containers=[container],
                     volumes=[volume_config],
                     restart_policy="Always",
