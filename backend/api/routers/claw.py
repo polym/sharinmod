@@ -258,7 +258,7 @@ async def proxy_filebrowser(
 
     async def _stream_response():
         try:
-            async for chunk in upstream_resp.aiter_bytes():
+            async for chunk in upstream_resp.aiter_raw():
                 yield chunk
         finally:
             await upstream_resp.aclose()

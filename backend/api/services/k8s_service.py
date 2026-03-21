@@ -259,18 +259,12 @@ def create_statefulset(
             command=command,
             volume_mounts=volume_mounts,
         )
-        # FileBrowser sidecar：初次启动时自动初始化 DB 并配置 proxy auth
-        # DB 持久化到 workspace PVC，pod 重启不丢失
         _fb_db = f"{mount_path}/.filebrowser.db"
         _fb_init = (
-            f'FB_DB="{_fb_db}"; '
-            f'if [ ! -f "$FB_DB" ]; then '
-            f'  filebrowser config init -d "$FB_DB" && '
-            f'  filebrowser config set -d "$FB_DB" --auth.method=proxy --auth.header=X-Auth-User && '
-            f'  filebrowser users add sharinmod "$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)" -d "$FB_DB" --perm.admin=true; '
-            f'fi; '
-            f'exec filebrowser -d "$FB_DB" --port 8080 --address 0.0.0.0 --root "{mount_path}" '
-            f'--baseurl /api/claws/{claw_id}/filebrowser'
+            f'export FB_DB="{_fb_db}"; '
+            f'export FB_NOAUTH=true; '
+            f'exec filebrowser -d "$FB_DB" --address 0.0.0.0 --port 8080 --root "{mount_path}" '
+            f'--noauth --baseurl /api/claws/{claw_id}/filebrowser'
         )
         filebrowser_container = client.V1Container(
             name="filebrowser",
