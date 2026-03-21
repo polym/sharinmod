@@ -27,7 +27,8 @@
 
 1. **`app`**: 应用配置（数据库、OAuth、LiteLLM 等）
 2. **`claw_types`**: Claw 类型配置（NANOBOT、OPENCLAW 等）
-3. **`workspace_*`**: 工作区存储配置
+3. **`workspace_*`**: 工作区存储配置（`workspace_storage_class`、`workspace_storage_size`、`workspace_mount_path`）
+4. **`prunc_*`**: Prunc RuntimeClass 配置（`prunc_enabled`、`rootfs_storage_class`、`rootfs_storage_size`）
 
 ### 敏感配置 Fallback
 

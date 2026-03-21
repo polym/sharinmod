@@ -214,15 +214,16 @@ def create_statefulset(
         root_cfg = _yaml.safe_load(f)
     storage_class = root_cfg.get("workspace_storage_class", "")
     storage_size = root_cfg.get("workspace_storage_size", "10Gi")
-    runtime_class = (root_cfg.get("workspace_runtime_class") or "").strip()  # None/空白均视为未设置
-    mount_path = root_cfg.get("workspace_mount_path") or "/app/workspace"   # None/空字符串回退默认值
+    mount_path = root_cfg.get("workspace_mount_path") or "/app/workspace"
+    prunc_enabled = root_cfg.get("prunc_enabled", False) is True  # guard against bool("false") == True
+    rootfs_storage_class = root_cfg.get("rootfs_storage_class", "")
+    rootfs_storage_size = root_cfg.get("rootfs_storage_size", "10Gi")
     if not mount_path.startswith("/"):
         raise ValueError(f"workspace_mount_path must be an absolute path, got: {mount_path!r}")
-    if runtime_class and not all(c.islower() or c.isdigit() or c in "-."
-                                 for c in runtime_class):
+    if prunc_enabled and mount_path == "/.sysdisk":
         raise ValueError(
-            f"workspace_runtime_class must be a valid DNS name "
-            f"(lowercase alphanumeric, hyphens, dots), got: {runtime_class!r}"
+            "workspace_mount_path cannot be '/.sysdisk' when prunc_enabled=true: "
+            "/.sysdisk is reserved for the rootfs PVC mount point"
         )
 
     sts_name = f"claw-{claw_id}"
@@ -241,6 +242,10 @@ def create_statefulset(
             client.V1VolumeMount(name="config-volume", mount_path="/config"),
             client.V1VolumeMount(name="workspace-data", mount_path=mount_path),
         ]
+        if prunc_enabled:
+            volume_mounts.append(
+                client.V1VolumeMount(name="rootfs", mount_path="/.sysdisk")
+            )
         container = client.V1Container(
             name="claw",
             image=image,
@@ -258,6 +263,20 @@ def create_statefulset(
             metadata=client.V1ObjectMeta(name="workspace-data"),
             spec=pvc_spec,
         )
+        volume_claim_templates = [pvc_template]
+        if prunc_enabled:
+            rootfs_pvc_spec = client.V1PersistentVolumeClaimSpec(
+                access_modes=["ReadWriteOnce"],
+                resources=client.V1ResourceRequirements(requests={"storage": rootfs_storage_size}),
+            )
+            if rootfs_storage_class:
+                rootfs_pvc_spec.storage_class_name = rootfs_storage_class
+            volume_claim_templates.append(
+                client.V1PersistentVolumeClaim(
+                    metadata=client.V1ObjectMeta(name="rootfs"),
+                    spec=rootfs_pvc_spec,
+                )
+            )
         sts_spec = client.V1StatefulSetSpec(
             service_name=sts_name,
             replicas=1,
@@ -265,17 +284,13 @@ def create_statefulset(
             template=client.V1PodTemplateSpec(
                 metadata=client.V1ObjectMeta(labels={"app": sts_name}),
                 spec=client.V1PodSpec(
-                    **(
-                        {"runtime_class_name": runtime_class}
-                        if runtime_class
-                        else {}
-                    ),
+                    **({"runtime_class_name": "prunc"} if prunc_enabled else {}),
                     containers=[container],
                     volumes=[volume_config],
                     restart_policy="Always",
                 ),
             ),
-            volume_claim_templates=[pvc_template],
+            volume_claim_templates=volume_claim_templates,
         )
         sts = client.V1StatefulSet(
             metadata=client.V1ObjectMeta(
@@ -292,7 +307,10 @@ def create_statefulset(
     except Exception:
         if svc_created:
             try:
-                _get_core_v1_api().delete_namespaced_service(sts_name, namespace)
+                _get_core_v1_api().delete_namespaced_service(
+                    sts_name, namespace,
+                    body=client.V1DeleteOptions(propagation_policy="Foreground"),
+                )
             except Exception as e:
                 logger.warning(f"Rollback: failed to delete headless Service {sts_name}: {e}")
         try:
@@ -328,14 +346,14 @@ def delete_statefulset(sts_name: str, namespace: str = "default") -> None:
         if e.status != 404:
             logger.warning(f"Failed to delete Service {sts_name}: {e}")
 
-    # 3. Delete PVC (StatefulSet 不自动删除 PVC)
-    pvc_name = f"workspace-data-{sts_name}-0"
-    try:
-        core_v1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, body=delete_opts)
-        logger.info(f"Deleted PVC: {pvc_name}")
-    except ApiException as e:
-        if e.status != 404:
-            logger.warning(f"Failed to delete PVC {pvc_name}: {e}")
+    # 3. Delete PVCs (StatefulSet 不自动删除 PVC)
+    for pvc_name in [f"workspace-data-{sts_name}-0", f"rootfs-{sts_name}-0"]:
+        try:
+            core_v1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, body=delete_opts)
+            logger.info(f"Deleted PVC: {pvc_name}")
+        except ApiException as e:
+            if e.status != 404:
+                logger.warning(f"Failed to delete PVC {pvc_name}: {e}")
 
     # 4. Delete ConfigMap
     delete_config_map(f"{sts_name}-config", namespace)
