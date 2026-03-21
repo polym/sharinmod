@@ -420,3 +420,26 @@ def stream_statefulset_logs(
     except Exception as e:
         error_msg = f"data: [error] {str(e)}\n\n"
         yield error_msg.encode()
+
+
+def restart_statefulset_pod(sts_name: str, namespace: str = "default") -> None:
+    """Restart a StatefulSet by deleting its only pod (sts_name-0)."""
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    pod_name = f"{sts_name}-0"
+    core_v1 = _get_core_v1_api()
+
+    try:
+        core_v1.delete_namespaced_pod(
+            name=pod_name,
+            namespace=namespace,
+            body=client.V1DeleteOptions(),
+        )
+        logger.info(f"Restarted StatefulSet {sts_name} by deleting pod {pod_name}")
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"Pod {pod_name} not found, StatefulSet may not be running")
+        else:
+            logger.error(f"Failed to delete pod {pod_name}: {e}")
+            raise

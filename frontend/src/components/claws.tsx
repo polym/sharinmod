@@ -9,8 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -98,6 +105,11 @@ export function ClawsPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingClaw, setDeletingClaw] = useState<Claw | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Restart dialog
+  const [restartOpen, setRestartOpen] = useState(false);
+  const [restartingClaw, setRestartingClaw] = useState<Claw | null>(null);
+  const [restarting, setRestarting] = useState(false);
 
   // Logs dialog
   const [logsOpen, setLogsOpen] = useState(false);
@@ -351,6 +363,31 @@ export function ClawsPage() {
     }
   };
 
+  const openRestart = (claw: Claw) => {
+    setRestartingClaw(claw);
+    setRestartOpen(true);
+  };
+
+  const handleRestart = async () => {
+    if (!restartingClaw) return;
+    setRestarting(true);
+    try {
+      await clawAPI.restartClaw(restartingClaw.id);
+      toast({ title: '成功', description: `龙虾「${restartingClaw.name}」重启成功` });
+      setRestartOpen(false);
+      setRestartingClaw(null);
+      loadClaws();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '重启失败，请重试',
+        variant: 'destructive',
+      });
+    } finally {
+      setRestarting(false);
+    }
+  };
+
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleString('zh-CN', {
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -438,19 +475,30 @@ export function ClawsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openEdit(claw)}
+                          onClick={() => openRestart(claw)}
                           className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          title="重启"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openDelete(claw)}
-                          className="rounded-lg border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="rounded-lg">
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(claw)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              编辑
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openDelete(claw)} className="text-red-600">
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              删除
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -613,6 +661,28 @@ export function ClawsPage() {
               className="rounded-xl"
             >
               {deleting ? '销毁中...' : '确认销毁'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restart Confirmation Dialog */}
+      <Dialog open={restartOpen} onOpenChange={setRestartOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>重启龙虾 🔄</DialogTitle>
+            <DialogDescription>
+              确定要重启龙虾「{restartingClaw?.name}」吗？重启后龙虾将重新连接。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRestartOpen(false)} className="rounded-xl">取消</Button>
+            <Button
+              onClick={handleRestart}
+              disabled={restarting}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+            >
+              {restarting ? '重启中...' : '确认重启'}
             </Button>
           </DialogFooter>
         </DialogContent>

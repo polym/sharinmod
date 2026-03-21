@@ -103,6 +103,24 @@ async def delete_claw(
     await delete_claw_async(session, current_user.id, claw_id)
 
 
+@router.post("/{claw_id}/restart", response_model=ClawResponse)
+async def restart_claw(
+    claw_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Restart a claw by deleting its K8s Pod and letting StatefulSet recreate it."""
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+    if not claw.k8s_deployment_name:
+        raise HTTPException(status_code=400, detail="Claw has no K8s resource")
+
+    k8s_service.restart_statefulset_pod(
+        claw.k8s_deployment_name,
+        namespace=claw.k8s_namespace or "default"
+    )
+    return claw
+
+
 @router.get("/{claw_id}/logs")
 def stream_claw_logs(
     claw_id: int,
