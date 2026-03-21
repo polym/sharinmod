@@ -202,21 +202,12 @@ async def delete_claw_async(session: Session, user_id: int, claw_id: int) -> Non
         session.add(claw)
         session.commit()
 
-        from api.services.unified_api_key_service import (
-            block_unified_api_key_async,
-            delete_unified_api_key_async
-        )
+        from api.services.unified_api_key_service import delete_unified_api_key_async
         user_stmt = select(User).where(User.id == user_id)
         current_user = session.exec(user_stmt).first()
 
         try:
-            # 先 block（revoke）
-            await block_unified_api_key_async(
-                session=session,
-                user=current_user,
-                api_key_id=api_key_id
-            )
-            # 再删除
+            # 直接删除 API Key（不再需要先 block）
             await delete_unified_api_key_async(
                 session=session,
                 user=current_user,

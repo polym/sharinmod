@@ -503,15 +503,15 @@ async def delete_unified_api_key_async(
     api_key_id: int
 ) -> None:
     """
-    Delete a unified API key and its LiteLLM key (must be revoked first)
-    
+    Delete a unified API key and its LiteLLM key (can be deleted in any state)
+
     Args:
         session: Database session
         user: Current authenticated user
         api_key_id: API key ID to delete
-        
+
     Raises:
-        HTTPException: If API key not found, not owned by user, not revoked, or LiteLLM delete fails
+        HTTPException: If API key not found, not owned by user, or LiteLLM delete fails
     """
     statement = select(UnifiedAPIKey).where(
         UnifiedAPIKey.id == api_key_id,
@@ -526,11 +526,8 @@ async def delete_unified_api_key_async(
             detail="API key not found or not owned by you"
         )
     
-    if api_key.status != UnifiedAPIKeyStatus.REVOKED:
-        raise HTTPException(
-            status_code=400,
-            detail="API key must be revoked before deletion. Use block endpoint first."
-        )
+    # Allow deletion in any state (ACTIVE or REVOKED)
+    # Status check removed to allow direct deletion of ACTIVE keys
     
     # Delete LiteLLM key if exists
     if api_key.litellm_key:
