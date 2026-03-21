@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, ChevronsDown } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -109,6 +109,14 @@ export function ClawsPage() {
   const logsScrollRef = useRef<HTMLDivElement | null>(null);
 
   const { toast } = useToast();
+
+  const openFilebrowser = (clawId: number) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      document.cookie = `sharinmod-fb-token=${encodeURIComponent(token)}; path=/; SameSite=Strict`;
+    }
+    window.open(`/api/claws/${clawId}/filebrowser/`, '_blank');
+  };
 
   // Auto-scroll to bottom when new log lines arrive
   useEffect(() => {
@@ -417,6 +425,15 @@ export function ClawsPage() {
                           title="查看日志"
                         >
                           <ScrollText className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openFilebrowser(claw.id)}
+                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          title="文件管理"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="outline"

@@ -184,7 +184,10 @@ def create_headless_service(claw_id: int, namespace: str = "default") -> str:
         spec=client.V1ServiceSpec(
             cluster_ip="None",  # headless
             selector={"app": svc_name},
-            ports=[client.V1ServicePort(port=80, name="placeholder")],
+            ports=[
+                client.V1ServicePort(port=80, name="placeholder"),
+                client.V1ServicePort(port=8080, name="filebrowser"),
+            ],
         ),
     )
     core_v1.create_namespaced_service(namespace=namespace, body=svc)
@@ -220,6 +223,9 @@ def create_statefulset(
     rootfs_storage_size = root_cfg.get("rootfs_storage_size", "10Gi")
     if not mount_path.startswith("/"):
         raise ValueError(f"workspace_mount_path must be an absolute path, got: {mount_path!r}")
+    import re as _re
+    if not _re.match(r'^[/A-Za-z0-9_\-.]+$', mount_path):
+        raise ValueError(f"workspace_mount_path contains invalid characters: {mount_path!r}")
     if prunc_enabled and mount_path == "/.sysdisk":
         raise ValueError(
             "workspace_mount_path cannot be '/.sysdisk' when prunc_enabled=true: "
@@ -253,6 +259,30 @@ def create_statefulset(
             command=command,
             volume_mounts=volume_mounts,
         )
+        # FileBrowser sidecar：初次启动时自动初始化 DB 并配置 proxy auth
+        # DB 持久化到 workspace PVC，pod 重启不丢失
+        _fb_db = f"{mount_path}/.filebrowser.db"
+        _fb_init = (
+            f'FB_DB="{_fb_db}"; '
+            f'if [ ! -f "$FB_DB" ]; then '
+            f'  filebrowser config init -d "$FB_DB" && '
+            f'  filebrowser config set -d "$FB_DB" --auth.method=proxy --auth.header=X-Auth-User && '
+            f'  filebrowser users add sharinmod "$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)" -d "$FB_DB" --perm.admin=true; '
+            f'fi; '
+            f'exec filebrowser -d "$FB_DB" --port 8080 --root "{mount_path}" '
+            f'--baseurl /api/claws/{claw_id}/filebrowser'
+        )
+        filebrowser_container = client.V1Container(
+            name="filebrowser",
+            image="filebrowser/filebrowser:latest",
+            image_pull_policy="IfNotPresent",
+            command=["sh", "-c"],
+            args=[_fb_init],
+            ports=[client.V1ContainerPort(container_port=8080, name="filebrowser")],
+            volume_mounts=[
+                client.V1VolumeMount(name="workspace-data", mount_path=mount_path),
+            ],
+        )
         pvc_spec = client.V1PersistentVolumeClaimSpec(
             access_modes=["ReadWriteOnce"],
             resources=client.V1ResourceRequirements(requests={"storage": storage_size}),
@@ -285,7 +315,7 @@ def create_statefulset(
                 metadata=client.V1ObjectMeta(labels={"app": sts_name}),
                 spec=client.V1PodSpec(
                     **({"runtime_class_name": "prunc"} if prunc_enabled else {}),
-                    containers=[container],
+                    containers=[container, filebrowser_container],
                     volumes=[volume_config],
                     restart_policy="Always",
                 ),
@@ -363,6 +393,7 @@ def stream_statefulset_logs(
     sts_name: str,
     namespace: str = "default",
     tail_lines: int = 200,
+    container: Optional[str] = None,
 ):
     """
     Generator: yield log lines from StatefulSet pod {sts_name}-0.
@@ -379,6 +410,7 @@ def stream_statefulset_logs(
             follow=True,
             tail_lines=tail_lines,
             _preload_content=False,
+            **({"container": container} if container else {}),
         )
         for line in resp:
             yield line
