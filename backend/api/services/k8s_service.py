@@ -269,7 +269,7 @@ def create_statefulset(
             f'  filebrowser config set -d "$FB_DB" --auth.method=proxy --auth.header=X-Auth-User && '
             f'  filebrowser users add sharinmod "$(tr -dc A-Za-z0-9 </dev/urandom | head -c 32)" -d "$FB_DB" --perm.admin=true; '
             f'fi; '
-            f'exec filebrowser -d "$FB_DB" --port 8080 --root "{mount_path}" '
+            f'exec filebrowser -d "$FB_DB" --port 8080 --address 0.0.0.0 --root "{mount_path}" '
             f'--baseurl /api/claws/{claw_id}/filebrowser'
         )
         filebrowser_container = client.V1Container(
