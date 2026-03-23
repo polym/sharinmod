@@ -345,6 +345,9 @@ export const clawAPI = {
   getMyClaws: () =>
     api.get('/api/claws'),
 
+  getClaw: (id: number) =>
+    api.get(`/api/claws/${id}`),
+
   updateClaw: (id: number, data: { name: string }) =>
     api.put(`/api/claws/${id}`, data),
 

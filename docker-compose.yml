@@ -61,6 +61,29 @@ services:
       - ./backend:/app
       - ./etc/config.yaml:/app/config.yaml:ro
 
+  # Consumer for claw status synchronization
+  claw-status-consumer:
+    image: sharinmod-backend:${VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - redis
+    networks:
+      - my-network
+    env_file:
+      - ./.env
+    environment:
+      - CONFIG_PATH=/app/config.yaml
+      - KUBECONFIG_PATH=/app/kubeconfig
+    restart: unless-stopped
+    command: ["python", "-m", "api.consumers.claw_status_consumer"]
+    volumes:
+      - ./backend:/app
+      - ./etc/config.yaml:/app/config.yaml:ro
+      - ./etc/kubeconfig:/app/kubeconfig:ro
+
   db:
     image: postgres:15-alpine
     restart: always

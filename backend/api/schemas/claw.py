@@ -11,8 +11,8 @@ class ClawCreate(BaseModel):
     """Request schema for creating a claw"""
     name: str = Field(max_length=100, description="Friendly name for the claw")
     type: ClawType = Field(description="Type of QQ bot (NanoBot, OpenClaw, ZeroBot)")
-    qq_bot_id: str = Field(max_length=255, description="QQ Bot ID")
-    qq_bot_secret: str = Field(max_length=255, description="QQ Bot Secret")
+    qq_bot_id: str = Field(default="", max_length=255, description="QQ Bot ID (required for QQ)")
+    qq_bot_secret: str = Field(default="", max_length=255, description="QQ Bot Secret (required for QQ)")
     brain_model: Optional[str] = Field(default=None, max_length=100, description="龙虾使用的模型 ID，如 'glm-4.7'")
 
     @validator('name')
@@ -24,19 +24,10 @@ class ClawCreate(BaseModel):
             raise ValueError('Name contains potentially unsafe characters')
         return v
 
-    @validator('qq_bot_id')
-    def validate_qq_bot_id(cls, v):
-        v = v.strip()
-        if not v:
-            raise ValueError('QQ Bot ID cannot be empty')
-        return v
-
-    @validator('qq_bot_secret')
-    def validate_qq_bot_secret(cls, v):
-        v = v.strip()
-        if not v:
-            raise ValueError('QQ Bot Secret cannot be empty')
-        return v
+    @validator('qq_bot_id', 'qq_bot_secret')
+    def validate_qq_bot_fields(cls, v):
+        # Allow empty values for non-QQ chat tools (e.g., FEISHU)
+        return v.strip()
 
 
 class ClawUpdate(BaseModel):

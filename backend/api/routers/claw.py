@@ -58,6 +58,20 @@ async def create_claw(
     return await create_claw_async(session, current_user, request)
 
 
+@router.get("/{claw_id}", response_model=ClawResponse)
+def get_claw(
+    claw_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Get a specific claw by ID
+
+    - Returns 404 if claw not found or not owned by current user
+    """
+    return get_user_claw_by_id(session, current_user.id, claw_id)
+
+
 @router.get("", response_model=ClawList)
 def list_claws(
     current_user: User = Depends(get_current_user),

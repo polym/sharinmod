@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -99,6 +100,13 @@ export function ClawsPage() {
   const [featuredBrainModels, setFeaturedBrainModels] = useState<string[]>(DEFAULT_FEATURED_BRAIN_MODELS);
   const [loadingBrainModels, setLoadingBrainModels] = useState(false);
 
+  // Polling state for claw creation progress
+  const [pollingClawId, setPollingClawId] = useState<number | null>(null);
+  const [consecutiveErrors, setConsecutiveErrors] = useState<number>(0);
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const consecutiveErrorsRef = useRef<number>(0);
+  const pollingStartTimeRef = useRef<number>(0);
+
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editingClaw, setEditingClaw] = useState<Claw | null>(null);
@@ -157,6 +165,16 @@ export function ClawsPage() {
     loadClaws();
   }, []);
 
+  // Cleanup polling timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+        pollingTimerRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!createOpen) return;
     const load = async () => {
@@ -193,6 +211,8 @@ export function ClawsPage() {
     setNewBrainModel('glm-4.7');
     setNewChatTool('QQ');
     setPlazaModels([]);
+    setConsecutiveErrors(0);
+    consecutiveErrorsRef.current = 0;
   };
 
   const handleCreate = async () => {
@@ -216,17 +236,97 @@ export function ClawsPage() {
     }
     setCreating(true);
     try {
-      await clawAPI.createClaw({
+      const response = await clawAPI.createClaw({
         name: newName.trim(),
         type: newType,
         qq_bot_id: newChatTool === 'QQ' ? newQqBotId.trim() : '',
         qq_bot_secret: newChatTool === 'QQ' ? newQqBotSecret.trim() : '',
         brain_model: newBrainModel,
       });
-      toast({ title: '成功', description: '龙虾创建成功！' });
-      setCreateOpen(false);
-      resetCreateForm();
-      loadClaws();
+      const createdClaw = response.data;
+
+      // Start polling for status
+      setPollingClawId(createdClaw.id);
+      pollingStartTimeRef.current = Date.now();
+      setConsecutiveErrors(0);
+      consecutiveErrorsRef.current = 0;
+
+      const MAX_CONSECUTIVE_ERRORS = 10;
+
+      // Poll every 2 seconds
+      pollingTimerRef.current = setInterval(async () => {
+        try {
+          const pollResponse = await clawAPI.getClaw(createdClaw.id);
+          const claw = pollResponse.data;
+
+          // Reset error count on success
+          consecutiveErrorsRef.current = 0;
+          setConsecutiveErrors(0);
+
+          if (claw.status === 'RUNNING') {
+            // Success - claw is ready
+            if (pollingTimerRef.current) {
+              clearInterval(pollingTimerRef.current);
+              pollingTimerRef.current = null;
+            }
+            setPollingClawId(null);
+            setCreating(false);
+            setCreateOpen(false);
+            resetCreateForm();
+            loadClaws();
+            toast({ title: '成功', description: '龙虾创建成功！' });
+          } else if (claw.status === 'FAILED') {
+            // Failed
+            if (pollingTimerRef.current) {
+              clearInterval(pollingTimerRef.current);
+              pollingTimerRef.current = null;
+            }
+            setPollingClawId(null);
+            setCreating(false);
+            loadClaws();
+            toast({
+              title: '创建失败',
+              description: '龙虾启动失败，请查看日志了解详情',
+              variant: 'destructive',
+            });
+          } else if (Date.now() - pollingStartTimeRef.current > 5 * 60 * 1000) {
+            // Timeout after 5 minutes
+            if (pollingTimerRef.current) {
+              clearInterval(pollingTimerRef.current);
+              pollingTimerRef.current = null;
+            }
+            setPollingClawId(null);
+            setCreating(false);
+            loadClaws();
+            toast({
+              title: '创建超时',
+              description: '龙虾启动超时，请稍后检查状态',
+              variant: 'destructive',
+            });
+          }
+        } catch (error) {
+          consecutiveErrorsRef.current += 1;
+          setConsecutiveErrors(consecutiveErrorsRef.current);
+          console.error('Polling error:', error);
+
+          // Stop polling after too many consecutive errors
+          if (consecutiveErrorsRef.current >= MAX_CONSECUTIVE_ERRORS) {
+            if (pollingTimerRef.current) {
+              clearInterval(pollingTimerRef.current);
+              pollingTimerRef.current = null;
+            }
+            setPollingClawId(null);
+            setCreating(false);
+            loadClaws();
+            toast({
+              title: '连接失败',
+              description: '无法获取龙虾状态，请稍后检查状态',
+              variant: 'destructive',
+            });
+          }
+        }
+      }, 2000);
+
     } catch (error: any) {
       // 检测功能禁用错误
       if (error.response?.status === 403) {
@@ -243,9 +343,18 @@ export function ClawsPage() {
           variant: 'destructive',
         });
       }
-    } finally {
       setCreating(false);
     }
+  };
+
+  // Stop polling when dialog closes
+  const stopPolling = () => {
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    setPollingClawId(null);
+    setCreating(false);
   };
 
   const openEdit = (claw: Claw) => {
@@ -519,7 +628,7 @@ export function ClawsPage() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetCreateForm(); }}>
+      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { stopPolling(); resetCreateForm(); } setCreateOpen(open); }}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>领养龙虾 🦞</DialogTitle>
@@ -652,8 +761,23 @@ export function ClawsPage() {
             </div>
             )}
           </div>
+          {/* Progress bar during claw creation */}
+          {pollingClawId && (
+            <div className="space-y-2 py-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-indigo-700 font-medium">正在启动龙虾...</span>
+                <span className="text-gray-500">
+                  {(Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100)).toFixed(1)}%
+                </span>
+              </div>
+              <Progress value={Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100)} className="h-2" />
+              <p className="text-xs text-gray-500">预计需要 1-2 分钟，请耐心等待</p>
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">取消</Button>
+            <Button variant="outline" onClick={() => { stopPolling(); setCreateOpen(false); }} className="rounded-xl" disabled={creating}>
+              {creating ? '启动中...' : '取消'}
+            </Button>
             <Button
               onClick={handleCreate}
               disabled={creating}
