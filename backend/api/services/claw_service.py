@@ -3,7 +3,7 @@ Service layer for Claw management
 """
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List
 
 from fastapi import HTTPException
@@ -111,6 +111,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
         qq_bot_secret=data.qq_bot_secret,
         unified_api_key_id=api_key_obj.id,  # 关联自动创建的 API Key
         brain_model=data.brain_model,
+        chat_tool=data.chat_tool,
         k8s_namespace=settings.K8S_NAMESPACE,
         status=ClawStatus.PENDING,
     )
@@ -146,7 +147,6 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
             command=command,
             user_email=current_user.email or "",
             namespace=settings.K8S_NAMESPACE,
-            claw_type=claw.type.value,
         )
     except Exception as e:
         logger.error(f"Failed to create K8s statefulset for claw {claw.id}: {e}")
@@ -163,9 +163,10 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
             detail=f"Failed to create K8s StatefulSet: {str(e)}"
         )
 
-    # Update with deployment name (status remains PENDING until consumer syncs it to RUNNING)
+    # Update with deployment name and running status
     claw.k8s_deployment_name = deployment_name
-    claw.updated_at = datetime.now(timezone.utc)
+    claw.status = ClawStatus.RUNNING
+    claw.updated_at = datetime.utcnow()
     session.add(claw)
     session.commit()
     session.refresh(claw)

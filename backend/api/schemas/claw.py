@@ -14,6 +14,7 @@ class ClawCreate(BaseModel):
     qq_bot_id: str = Field(default="", max_length=255, description="QQ Bot ID (required for QQ)")
     qq_bot_secret: str = Field(default="", max_length=255, description="QQ Bot Secret (required for QQ)")
     brain_model: Optional[str] = Field(default=None, max_length=100, description="龙虾使用的模型 ID，如 'glm-4.7'")
+    chat_tool: str = Field(default='QQ', max_length=50, description="对话工具 (QQ 或 FEISHU)")
 
     @validator('name')
     def validate_name(cls, v):
@@ -53,6 +54,7 @@ class ClawResponse(BaseModel):
     qq_bot_id: str
     unified_api_key_id: Optional[int]
     brain_model: Optional[str] = None
+    chat_tool: Optional[str] = None
     k8s_deployment_name: Optional[str]
     status: ClawStatus
     created_at: datetime

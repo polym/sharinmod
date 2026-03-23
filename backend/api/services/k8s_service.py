@@ -3,73 +3,34 @@ Kubernetes service for managing Claw deployments
 """
 import logging
 import os
-import re
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# RFC 1123 DNS label regex for K8s resource names
-# Must consist of lower case alphanumeric characters or '-',
-# and must start and end with an alphanumeric character
-_K8S_DNS_LABEL_RE = re.compile(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
 
-# RFC 1123 DNS subdomain regex for K8s namespaces
-_K8S_DNS_SUBDOMAIN_RE = re.compile(r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$')
-
-
-def _validate_k8s_namespace(namespace: str) -> None:
-    """Validate K8s namespace follows RFC 1123 DNS subdomain format."""
-    if not namespace or len(namespace) > 253:
-        raise ValueError(f"Invalid K8s namespace: must be 1-253 characters, got '{namespace}'")
-    if not _K8S_DNS_SUBDOMAIN_RE.match(namespace):
-        raise ValueError(f"Invalid K8s namespace: must follow RFC 1123 DNS subdomain format, got '{namespace}'")
-
-# Singleton K8s API clients
-_apps_v1_api_client = None
-_core_v1_api_client = None
-_k8s_api_configured = False
-
-
-def _configure_k8s_api():
-    """Configure K8s API once (singleton pattern)."""
-    global _k8s_api_configured
-    if _k8s_api_configured:
-        return
-
-    from kubernetes import config
+def _get_apps_v1_api():
+    """Load kubeconfig and return AppsV1Api client."""
+    from kubernetes import client, config
 
     kubeconfig_path = os.getenv("KUBECONFIG_PATH", os.path.expanduser("~/.kube/config"))
     try:
         config.load_kube_config(config_file=kubeconfig_path)
-        logger.info(f"Loaded kubeconfig from {kubeconfig_path}")
     except Exception:
         # Fall back to in-cluster config (when running inside a pod)
-        logger.info("Falling back to in-cluster config")
         config.load_incluster_config()
-
-    _k8s_api_configured = True
-
-
-def _get_apps_v1_api():
-    """Get or create AppsV1Api client (singleton)."""
-    from kubernetes import client
-
-    global _apps_v1_api_client
-    if _apps_v1_api_client is None:
-        _configure_k8s_api()
-        _apps_v1_api_client = client.AppsV1Api()
-    return _apps_v1_api_client
+    return client.AppsV1Api()
 
 
 def _get_core_v1_api():
-    """Get or create CoreV1Api client (singleton)."""
-    from kubernetes import client
+    """Load kubeconfig and return CoreV1Api client."""
+    from kubernetes import client, config
 
-    global _core_v1_api_client
-    if _core_v1_api_client is None:
-        _configure_k8s_api()
-        _core_v1_api_client = client.CoreV1Api()
-    return _core_v1_api_client
+    kubeconfig_path = os.getenv("KUBECONFIG_PATH", os.path.expanduser("~/.kube/config"))
+    try:
+        config.load_kube_config(config_file=kubeconfig_path)
+    except Exception:
+        config.load_incluster_config()
+    return client.CoreV1Api()
 
 
 def create_config_map(claw_id: int, config_files: dict, namespace: str = "default") -> str:
@@ -81,9 +42,7 @@ def create_config_map(claw_id: int, config_files: dict, namespace: str = "defaul
     """
     from kubernetes import client
 
-    _validate_k8s_namespace(namespace)
     configmap_name = f"claw-{claw_id}-config"
-    # claw_id is a database integer, always valid for DNS label
     core_v1 = _get_core_v1_api()
     configmap = client.V1ConfigMap(
         metadata=client.V1ObjectMeta(name=configmap_name, namespace=namespace),
@@ -110,8 +69,6 @@ def create_deployment(
     Cleans up the ConfigMap if Deployment creation fails.
     """
     from kubernetes import client
-
-    _validate_k8s_namespace(namespace)
 
     deployment_name = f"claw-{claw_id}"
     configmap_name = create_config_map(claw_id, config_files, namespace)
@@ -174,7 +131,6 @@ def delete_config_map(configmap_name: str, namespace: str = "default") -> None:
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
-    _validate_k8s_namespace(namespace)
     core_v1 = _get_core_v1_api()
     try:
         core_v1.delete_namespaced_config_map(
@@ -200,7 +156,6 @@ def delete_deployment(deployment_name: str, namespace: str = "default") -> None:
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
-    _validate_k8s_namespace(namespace)
     apps_v1 = _get_apps_v1_api()
     try:
         apps_v1.delete_namespaced_deployment(
@@ -221,8 +176,6 @@ def delete_deployment(deployment_name: str, namespace: str = "default") -> None:
 def create_headless_service(claw_id: int, namespace: str = "default") -> str:
     """Create a headless Service for StatefulSet claw-{claw_id}."""
     from kubernetes import client
-
-    _validate_k8s_namespace(namespace)
 
     svc_name = f"claw-{claw_id}"
     core_v1 = _get_core_v1_api()
@@ -249,21 +202,14 @@ def create_statefulset(
     command: Optional[list] = None,
     user_email: str = "",
     namespace: str = "default",
-    claw_type: Optional[str] = None,
 ) -> str:
     """
     Create: ConfigMap + Headless Service + StatefulSet (with workspace PVC).
     Returns StatefulSet name on success. Rolls back on failure.
-
-    Args:
-        claw_type: Claw type string (e.g., "OPENCLAW"). When "OPENCLAW", healthcheck probes are added.
     """
     import yaml as _yaml
     from kubernetes import client
     from api.config import _get_config_path
-
-    # Validate namespace parameter
-    _validate_k8s_namespace(namespace)
 
     # 读取存储配置
     config_path = _get_config_path()
@@ -307,39 +253,12 @@ def create_statefulset(
             volume_mounts.append(
                 client.V1VolumeMount(name="rootfs", mount_path="/.sysdisk")
             )
-
-        # 为 OPENCLAW 添加健康检查探针
-        healthcheck_probes = {}
-        if claw_type == "OPENCLAW":
-            http_get_action = client.V1HTTPGetAction(
-                path="/healthz",
-                port=18789,
-                scheme="HTTP",
-            )
-            healthcheck_probes = {
-                "liveness_probe": client.V1Probe(
-                    http_get=http_get_action,
-                    initial_delay_seconds=15,
-                    period_seconds=10,
-                    timeout_seconds=5,
-                    failure_threshold=3,
-                ),
-                "readiness_probe": client.V1Probe(
-                    http_get=http_get_action,
-                    initial_delay_seconds=15,
-                    period_seconds=10,
-                    timeout_seconds=5,
-                    failure_threshold=3,
-                ),
-            }
-
         container = client.V1Container(
             name="claw",
             image=image,
             image_pull_policy="IfNotPresent",
             command=command,
             volume_mounts=volume_mounts,
-            **healthcheck_probes,
         )
         # filebrowser 容器不使用 subPath，看到整个 PVC 根目录
         # .filebrowser.db 在 PVC 根目录，真正的 workspace 在 workspace/ 子目录
@@ -436,7 +355,6 @@ def delete_statefulset(sts_name: str, namespace: str = "default") -> None:
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
-    _validate_k8s_namespace(namespace)
     apps_v1 = _get_apps_v1_api()
     core_v1 = _get_core_v1_api()
     delete_opts = client.V1DeleteOptions(propagation_policy="Foreground")
@@ -483,7 +401,6 @@ def stream_statefulset_logs(
     """
     from kubernetes.client.rest import ApiException
 
-    _validate_k8s_namespace(namespace)
     pod_name = f"{sts_name}-0"
     core_v1 = _get_core_v1_api()
     try:
@@ -510,7 +427,6 @@ def restart_statefulset_pod(sts_name: str, namespace: str = "default") -> None:
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
-    _validate_k8s_namespace(namespace)
     pod_name = f"{sts_name}-0"
     core_v1 = _get_core_v1_api()
 
@@ -527,3 +443,83 @@ def restart_statefulset_pod(sts_name: str, namespace: str = "default") -> None:
         else:
             logger.error(f"Failed to delete pod {pod_name}: {e}")
             raise
+
+
+def exec_pod_command_stream(
+    sts_name: str,
+    command: list,
+    namespace: str = "default",
+    container: str = "claw",
+    timeout_seconds: int = 600,
+):
+    """
+    Execute a command in a StatefulSet pod and yield stdout/stderr chunks.
+    Waits for the pod to be Running before attempting exec.
+    Uses kubernetes.stream for WebSocket-based exec.
+    """
+    from kubernetes.stream import stream as k8s_stream
+    from kubernetes.client.rest import ApiException
+    import time
+
+    pod_name = f"{sts_name}-0"
+    core_v1 = _get_core_v1_api()
+
+    # Wait for pod to be Running before attempting exec
+    wait_start = time.time()
+    while True:
+        if time.time() - wait_start > timeout_seconds:
+            yield "[超时：等待龙虾 Pod 启动超时]\n"
+            return
+        try:
+            pod = core_v1.read_namespaced_pod(pod_name, namespace)
+            phase = pod.status.phase if pod.status else None
+            if phase == "Running":
+                # Also check that the container is ready
+                container_statuses = pod.status.container_statuses or []
+                claw_ready = any(
+                    cs.name == container and cs.ready
+                    for cs in container_statuses
+                )
+                if claw_ready:
+                    break
+                yield f"[等待容器就绪...]\n"
+            elif phase in ("Failed", "Unknown"):
+                yield f"[Pod 状态异常: {phase}，无法执行命令]\n"
+                return
+            else:
+                yield f"[等待 Pod 启动 (当前状态: {phase or 'Pending'})...]\n"
+        except ApiException as e:
+            if e.status == 404:
+                yield "[等待 Pod 创建...]\n"
+            else:
+                yield f"[K8s 错误] {e.status}: {e.reason}\n"
+                return
+        time.sleep(3)
+
+    try:
+        exec_stream = k8s_stream(
+            core_v1.connect_get_namespaced_pod_exec,
+            pod_name,
+            namespace,
+            command=command,
+            container=container,
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+            _preload_content=False,
+        )
+        start = time.time()
+        while exec_stream.is_open():
+            if time.time() - start > timeout_seconds:
+                yield "[超时：二维码获取超时]\n"
+                break
+            exec_stream.update(timeout=1)
+            if exec_stream.peek_stdout():
+                yield exec_stream.read_stdout()
+            if exec_stream.peek_stderr():
+                yield exec_stream.read_stderr()
+    except ApiException as e:
+        yield f"[K8s 错误] {e.status}: {e.reason}\n"
+    except Exception as e:
+        yield f"[错误] {str(e)}\n"

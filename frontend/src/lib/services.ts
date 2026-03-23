@@ -339,7 +339,7 @@ export const globalModelAPI = {
 export const clawAPI = {
   getConfig: () => api.get('/api/claws/config'),
 
-  createClaw: (data: { name: string; type: string; qq_bot_id: string; qq_bot_secret: string; brain_model?: string }) =>
+  createClaw: (data: { name: string; type: string; qq_bot_id: string; qq_bot_secret: string; brain_model?: string; chat_tool?: string }) =>
     api.post('/api/claws', data),
 
   getMyClaws: () =>
@@ -359,6 +359,12 @@ export const clawAPI = {
 
   getLogs: (id: number, token: string): Promise<Response> =>
     fetch(`/api/claws/${id}/logs`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+
+  larkInstall: (id: number, token: string): Promise<Response> =>
+    fetch(`/api/claws/${id}/lark-install`, {
+      method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }),
 };

@@ -43,6 +43,7 @@ class Claw(SQLModel, table=True):
     brain_model: Optional[str] = Field(default=None, max_length=100)
     k8s_deployment_name: Optional[str] = Field(default=None, max_length=255)
     k8s_namespace: Optional[str] = Field(default=None, max_length=255)
+    chat_tool: Optional[str] = Field(default='QQ', max_length=50)
     status: ClawStatus = Field(default=ClawStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

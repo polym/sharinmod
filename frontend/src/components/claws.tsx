@@ -107,6 +107,11 @@ export function ClawsPage() {
   const consecutiveErrorsRef = useRef<number>(0);
   const pollingStartTimeRef = useRef<number>(0);
 
+  // Feishu QR scan phase state
+  const [larkPhase, setLarkPhase] = useState<'idle' | 'installing' | 'done'>('idle');
+  const [larkOutput, setLarkOutput] = useState<string[]>([]);
+  const larkAbortRef = useRef<AbortController | null>(null);
+
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
   const [editingClaw, setEditingClaw] = useState<Claw | null>(null);
@@ -213,6 +218,8 @@ export function ClawsPage() {
     setPlazaModels([]);
     setConsecutiveErrors(0);
     consecutiveErrorsRef.current = 0;
+    setLarkPhase('idle');
+    setLarkOutput([]);
   };
 
   const handleCreate = async () => {
@@ -242,6 +249,7 @@ export function ClawsPage() {
         qq_bot_id: newChatTool === 'QQ' ? newQqBotId.trim() : '',
         qq_bot_secret: newChatTool === 'QQ' ? newQqBotSecret.trim() : '',
         brain_model: newBrainModel,
+        chat_tool: newChatTool,
       });
       const createdClaw = response.data;
 
@@ -271,10 +279,18 @@ export function ClawsPage() {
             }
             setPollingClawId(null);
             setCreating(false);
-            setCreateOpen(false);
-            resetCreateForm();
             loadClaws();
-            toast({ title: '成功', description: '龙虾创建成功！' });
+
+            // OPENCLAW + FEISHU: enter Lark QR scan phase
+            if (newType === 'OPENCLAW' && newChatTool === 'FEISHU') {
+              setLarkPhase('installing');
+              setLarkOutput([]);
+              startLarkInstall(createdClaw.id);
+            } else {
+              setCreateOpen(false);
+              resetCreateForm();
+              toast({ title: '成功', description: '龙虾创建成功！' });
+            }
           } else if (claw.status === 'FAILED') {
             // Failed
             if (pollingTimerRef.current) {
@@ -355,6 +371,47 @@ export function ClawsPage() {
     }
     setPollingClawId(null);
     setCreating(false);
+  };
+
+  const startLarkInstall = async (clawId: number) => {
+    if (larkAbortRef.current) {
+      larkAbortRef.current.abort();
+    }
+    const abort = new AbortController();
+    larkAbortRef.current = abort;
+    const token = useAuthStore.getState().token || '';
+
+    try {
+      const resp = await clawAPI.larkInstall(clawId, token);
+      if (!resp.ok || !resp.body) {
+        setLarkOutput(prev => [...prev, `[错误] HTTP ${resp.status}`]);
+        setLarkPhase('done');
+        return;
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          if (part.startsWith('data: ')) {
+            const line = part.slice(6);
+            setLarkOutput(prev => [...prev.slice(-300), line]);
+          }
+        }
+      }
+      setLarkPhase('done');
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setLarkOutput(prev => [...prev, '[连接中断]']);
+        setLarkPhase('done');
+      }
+    }
   };
 
   const openEdit = (claw: Claw) => {
@@ -628,7 +685,7 @@ export function ClawsPage() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { stopPolling(); resetCreateForm(); } setCreateOpen(open); }}>
+      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { stopPolling(); larkAbortRef.current?.abort(); resetCreateForm(); } setCreateOpen(open); }}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>领养龙虾 🦞</DialogTitle>
@@ -774,17 +831,59 @@ export function ClawsPage() {
               <p className="text-xs text-gray-500">预计需要 1-2 分钟，请耐心等待</p>
             </div>
           )}
+          {/* Feishu QR scan phase */}
+          {larkPhase !== 'idle' && (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-2">
+                <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
+                <span className="text-sm font-medium text-indigo-700">
+                  {larkPhase === 'installing' ? '正在获取飞书授权二维码...' : '请用飞书扫描二维码完成授权'}
+                </span>
+              </div>
+              {larkOutput.length > 0 && (
+                <div className="max-h-64 overflow-y-auto bg-black rounded-lg p-3 text-xs font-mono leading-tight">
+                  {larkOutput.map((line, i) => (
+                    <div
+                      key={i}
+                      dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
+                    />
+                  ))}
+                </div>
+              )}
+              {larkOutput.length === 0 && larkPhase === 'installing' && (
+                <div className="text-xs text-gray-400 animate-pulse">等待二维码生成...</div>
+              )}
+            </div>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { stopPolling(); setCreateOpen(false); }} className="rounded-xl" disabled={creating}>
-              {creating ? '启动中...' : '取消'}
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={creating}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
-            >
-              {creating ? '创建中...' : '创建'}
-            </Button>
+            {larkPhase !== 'idle' ? (
+              <Button
+                onClick={() => {
+                  larkAbortRef.current?.abort();
+                  setLarkPhase('idle');
+                  setLarkOutput([]);
+                  setCreateOpen(false);
+                  resetCreateForm();
+                  toast({ title: '成功', description: '龙虾创建成功！' });
+                }}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              >
+                已完成扫码，关闭
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => { stopPolling(); setCreateOpen(false); }} className="rounded-xl" disabled={creating}>
+                  {creating ? '启动中...' : '取消'}
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={creating}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                >
+                  {creating ? '创建中...' : '创建'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
