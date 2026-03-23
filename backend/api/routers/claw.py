@@ -192,7 +192,7 @@ def lark_install(
         raise HTTPException(status_code=400, detail="Claw has no K8s resource")
 
     def sse_generator():
-        command = ["npx", "-y", "@larksuite/openclaw-lark", "install"]
+        command = ["sh", "-c", "COLUMNS=80 LINES=24 npx -y @larksuite/openclaw-lark install"]
         for chunk in k8s_service.exec_pod_command_stream(
             claw.k8s_deployment_name,
             command=command,
