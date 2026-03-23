@@ -57,6 +57,7 @@ class ClawResponse(BaseModel):
     chat_tool: Optional[str] = None
     k8s_deployment_name: Optional[str]
     status: ClawStatus
+    ready: Optional[bool] = Field(default=None, description="claw 容器是否 Ready (从 K8s API 实时获取)")
     created_at: datetime
     updated_at: datetime
 

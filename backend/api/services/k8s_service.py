@@ -445,6 +445,68 @@ def restart_statefulset_pod(sts_name: str, namespace: str = "default") -> None:
             raise
 
 
+def get_pod_status(namespace: str, pod_name: str) -> dict:
+    """
+    返回 Pod 状态，重点关注 claw 容器的状态。
+
+    Args:
+        namespace: K8s namespace
+        pod_name: Pod name (e.g., claw-123-0)
+
+    Returns:
+        dict 包含:
+        - phase: Pod Phase (Pending/Running/Failed/Unknown/Succeeded)
+        - claw_ready: claw 容器是否 Ready (bool)，None 表示无法确定
+        - waiting_reason: claw 容器的等待原因 (str)，None 表示没有等待原因
+        - error: 错误信息 (str)，None 表示无错误
+    """
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+    try:
+        pod = core_v1.read_namespaced_pod(pod_name, namespace=namespace)
+
+        phase = pod.status.phase if pod.status else "Unknown"
+
+        # 检查 claw 容器的 ready 和 waiting 状态
+        claw_ready = None
+        waiting_reason = None
+
+        if pod.status.container_statuses:
+            for cs in pod.status.container_statuses:
+                if cs.name == "claw":
+                    claw_ready = cs.ready
+                    # 检查 waiting 状态
+                    if cs.state and cs.state.waiting and cs.state.waiting.reason:
+                        waiting_reason = cs.state.waiting.reason
+                    break
+
+        return {
+            "phase": phase,
+            "claw_ready": claw_ready,
+            "waiting_reason": waiting_reason,
+            "error": None,
+        }
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"Pod {pod_name} not found in namespace {namespace}")
+            return {
+                "phase": "NotFound",
+                "claw_ready": None,
+                "waiting_reason": None,
+                "error": "Pod not found",
+            }
+        else:
+            logger.error(f"Error querying pod {pod_name}: {e}")
+            return {
+                "phase": "Unknown",
+                "claw_ready": None,
+                "waiting_reason": None,
+                "error": str(e),
+            }
+
+
 def exec_pod_command_stream(
     sts_name: str,
     command: list,

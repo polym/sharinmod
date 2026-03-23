@@ -45,6 +45,17 @@ READY_TIMEOUT = timedelta(minutes=5)
 # Grace period after creation before marking as FAILED (30 seconds)
 CREATION_GRACE_PERIOD = timedelta(seconds=30)
 
+# 异常等待原因：这些原因表示 Pod 启动失败，应直接标记为 FAILED
+ABNORMAL_WAITING_REASONS = frozenset({
+    'ImagePullBackOff',
+    'ErrImagePull',
+    'CrashLoopBackOff',
+    'RunContainerError',
+    'ContainerCannotRun',
+    'InvalidImageName',
+    'ErrImageNeverPull',
+})
+
 # Global flag for graceful shutdown
 shutdown_requested = False
 
@@ -126,6 +137,34 @@ def _get_pod_ready_status(namespace: str, pod_name: str) -> Optional[bool]:
         return None
 
 
+def _get_pod_waiting_reason(namespace: str, pod_name: str) -> Optional[str]:
+    """
+    Query K8s Pod claw 容器的等待原因。
+
+    Args:
+        namespace: K8s namespace
+        pod_name: Pod name (e.g., claw-123-0)
+
+    Returns:
+        waiting reason string if claw container is waiting, None otherwise
+    """
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_k8s_client()
+    try:
+        pod = core_v1.read_namespaced_pod(pod_name, namespace=namespace)
+        if pod.status.container_statuses:
+            for cs in pod.status.container_statuses:
+                if cs.name == "claw" and cs.state and cs.state.waiting:
+                    return cs.state.waiting.reason
+        return None
+    except ApiException as e:
+        if e.status == 404:
+            return None
+        logger.error(f"Error querying pod {pod_name}: {e}")
+        return None
+
+
 def get_pending_and_running_claws(session: Session) -> List[Claw]:
     """Query all claws with PENDING or RUNNING status."""
     statement = select(Claw).where(Claw.status.in_([ClawStatus.PENDING, ClawStatus.RUNNING]))
@@ -173,6 +212,20 @@ def sync_claw_status(session: Session, claw: Claw) -> bool:
         if claw.status != ClawStatus.RUNNING:
             logger.info(f"Claw {claw.id} ({claw.name}) pod is ready, marking as RUNNING")
             claw.status = ClawStatus.RUNNING
+            claw.updated_at = datetime.now(timezone.utc)
+            session.add(claw)
+            return True
+        return False
+
+    # Pod is not ready - check if in abnormal waiting state
+    waiting_reason = _get_pod_waiting_reason(namespace, pod_name)
+    if waiting_reason and waiting_reason in ABNORMAL_WAITING_REASONS:
+        # Abnormal waiting state - mark as FAILED immediately
+        if claw.status != ClawStatus.FAILED:
+            logger.warning(
+                f"Claw {claw.id} ({claw.name}) in abnormal waiting state: {waiting_reason}, marking as FAILED"
+            )
+            claw.status = ClawStatus.FAILED
             claw.updated_at = datetime.now(timezone.utc)
             session.add(claw)
             return True

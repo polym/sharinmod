@@ -29,8 +29,13 @@ interface Claw {
   qq_bot_id: string;
   k8s_deployment_name?: string;
   status: string;
+  ready?: boolean;
   created_at: string;
   updated_at: string;
+  brain_model?: string;
+  chat_tool?: string;
+  unified_api_key_id?: number;
+  user_id?: number;
 }
 
 const CLAW_TYPES = [
@@ -62,7 +67,17 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   RUNNING:  { label: '运行中', className: 'bg-green-100  text-green-700  border border-green-200' },
   FAILED:   { label: '失败',   className: 'bg-red-100    text-red-700    border border-red-200' },
   STOPPED:  { label: '已停止', className: 'bg-gray-100   text-gray-700   border border-gray-200' },
+  UNHEALTHY: { label: '不健康', className: 'bg-orange-100 text-orange-700 border border-orange-200' },
 };
+
+// 获取状态显示配置（考虑 ready 字段）
+function getStatusConfig(status: string, ready?: boolean): { label: string; className: string } {
+  if (status === 'RUNNING' && ready === false) {
+    return STATUS_LABELS.UNHEALTHY;
+  }
+  // 对未知状态返回安全的默认值，避免暴露内部状态字符串
+  return STATUS_LABELS[status] ?? { label: '未知状态', className: 'bg-gray-100 text-gray-700' };
+}
 
 // ANSI 转换器实例
 const anser = new Anser({
@@ -73,8 +88,8 @@ const anser = new Anser({
   stream: false,
 });
 
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_LABELS[status] ?? { label: status, className: 'bg-gray-100 text-gray-700' };
+function StatusBadge({ status, ready }: { status: string; ready?: boolean }) {
+  const cfg = getStatusConfig(status, ready);
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}>
       {cfg.label}
@@ -334,25 +349,47 @@ export function ClawsPage() {
           consecutiveErrorsRef.current = 0;
           setConsecutiveErrors(0);
 
-          if (claw.status === 'RUNNING') {
-            // Success - claw is ready
-            if (pollingTimerRef.current) {
-              clearInterval(pollingTimerRef.current);
-              pollingTimerRef.current = null;
-            }
-            setPollingClawId(null);
-            setCreating(false);
+          if (claw.status === 'PENDING') {
+            // 继续等待（包括 ContainerCreating 等正常情况）
+            // 不做任何操作，继续轮询
+          } else if (claw.status === 'RUNNING') {
+            // 检查 ready 状态
+            if (claw.ready === true) {
+              // Success - claw is ready
+              if (pollingTimerRef.current) {
+                clearInterval(pollingTimerRef.current);
+                pollingTimerRef.current = null;
+              }
+              setPollingClawId(null);
+              setCreating(false);
 
-            // OPENCLAW + FEISHU: enter Lark QR scan phase
-            if (newType === 'OPENCLAW' && newChatTool === 'FEISHU') {
-              setCreatePhase('feishu');
-              setLarkPhase('installing');
-              setLarkOutput([]);
-              startLarkInstall(createdClaw.id);
-            } else {
-              setCreatePhase('success');
+              // OPENCLAW + FEISHU: enter Lark QR scan phase
+              if (newType === 'OPENCLAW' && newChatTool === 'FEISHU') {
+                setCreatePhase('feishu');
+                setLarkPhase('installing');
+                setLarkOutput([]);
+                startLarkInstall(createdClaw.id);
+              } else {
+                setCreatePhase('success');
+                loadClaws();
+              }
+            } else if (claw.ready === false) {
+              // Running 但 not ready - 不健康，报错
+              if (pollingTimerRef.current) {
+                clearInterval(pollingTimerRef.current);
+                pollingTimerRef.current = null;
+              }
+              setPollingClawId(null);
+              setCreating(false);
+              setCreatePhase('config');
               loadClaws();
+              toast({
+                title: '龙虾启动不健康',
+                description: '龙虾容器启动但未就绪，请查看日志了解详情',
+                variant: 'destructive',
+              });
             }
+            // ready === undefined: 继续等待（后端可能尚未返回 ready 字段）
           } else if (claw.status === 'FAILED') {
             // Failed
             if (pollingTimerRef.current) {
@@ -690,8 +727,14 @@ export function ClawsPage() {
                         {TYPE_DISPLAY_NAMES[claw.type] || claw.type}
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono text-sm text-gray-600">{claw.qq_bot_id}</TableCell>
-                    <TableCell><StatusBadge status={claw.status} /></TableCell>
+                    <TableCell>
+                      {claw.chat_tool === 'QQ' ? (
+                        <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
+                      ) : (
+                        <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
+                      )}
+                    </TableCell>
+                    <TableCell><StatusBadge status={claw.status} ready={claw.ready} /></TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

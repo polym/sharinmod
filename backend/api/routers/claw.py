@@ -68,8 +68,21 @@ def get_claw(
     Get a specific claw by ID
 
     - Returns 404 if claw not found or not owned by current user
+    - Includes real-time `ready` status from K8s Pod
     """
-    return get_user_claw_by_id(session, current_user.id, claw_id)
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    # 实时获取 Pod 状态填充 ready 字段
+    ready = None
+    if claw.k8s_deployment_name:
+        pod_status = k8s_service.get_pod_status(
+            claw.k8s_namespace or "default",
+            f"{claw.k8s_deployment_name}-0"
+        )
+        ready = pod_status.get("claw_ready")
+
+    # 使用 from_attributes 创建响应，避免修改原 ORM 对象
+    return ClawResponse.model_validate(claw, update={"ready": ready})
 
 
 @router.get("", response_model=ClawList)
