@@ -530,7 +530,7 @@ def exec_pod_command_stream(
     wait_start = time.time()
     while True:
         if time.time() - wait_start > timeout_seconds:
-            yield "[超时：等待龙虾 Pod 启动超时]\n"
+            yield "[超时：等待龙虾🦞启动超时]\n"
             return
         try:
             pod = core_v1.read_namespaced_pod(pod_name, namespace)
@@ -538,13 +538,13 @@ def exec_pod_command_stream(
             if phase == "Running":
                 break
             elif phase in ("Failed", "Unknown"):
-                yield f"[Pod 状态异常: {phase}，无法执行命令]\n"
+                yield f"[龙虾🦞状态异常: {phase}，无法执行命令]\n"
                 return
             else:
-                yield f"[等待 Pod 启动 (当前状态: {phase or 'Pending'})...]\n"
+                yield f"[等待龙虾🦞启动 (当前状态: {phase or 'Pending'})...]\n"
         except ApiException as e:
             if e.status == 404:
-                yield "[等待 Pod 创建...]\n"
+                yield "[等待龙虾🦞创建...]\n"
             else:
                 yield f"[K8s 错误] {e.status}: {e.reason}\n"
                 return

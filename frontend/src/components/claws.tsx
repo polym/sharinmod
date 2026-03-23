@@ -59,7 +59,8 @@ const TYPE_DISPLAY_NAMES: Record<string, string> = {
 
 const CHAT_TOOLS = [
   { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] },
-  { value: 'FEISHU', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] }
+  { value: 'FEISHU', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] },
+  { value: 'WEIXIN', label: '微信', icon: '💬', supportedTypes: ['OPENCLAW'] }
 ];
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -95,15 +96,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Step indicator for create flow
-function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config' | 'starting' | 'feishu' | 'success'; chatTool: string }) {
+function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config' | 'starting' | 'feishu' | 'weixin' | 'success'; chatTool: string }) {
   const steps = [
     { key: 'config', label: '基础配置', icon: '1' },
     { key: 'starting', label: '启动中', icon: '2' },
     ...(chatTool === 'FEISHU' ? [{ key: 'feishu', label: '飞书授权', icon: '3' }] : []),
+    ...(chatTool === 'WEIXIN' ? [{ key: 'weixin', label: '微信授权', icon: '3' }] : []),
   ];
 
   const getStepStatus = (stepKey: string) => {
-    const order = ['config', 'starting', 'feishu', 'success'];
+    const order = ['config', 'starting', 'feishu', 'weixin', 'success'];
     const currentIndex = order.indexOf(currentPhase);
     const stepIndex = order.indexOf(stepKey);
 
@@ -175,8 +177,14 @@ export function ClawsPage() {
   const larkAbortRef = useRef<AbortController | null>(null);
   const larkScrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Create flow phase: 'config' -> 'starting' -> 'feishu' -> 'success'
-  const [createPhase, setCreatePhase] = useState<'config' | 'starting' | 'feishu' | 'success'>('config');
+  // Weixin authorization state
+  const [weixinPhase, setWeixinPhase] = useState<'idle' | 'installing' | 'done'>('idle');
+  const [weixinOutput, setWeixinOutput] = useState<string[]>([]);
+  const weixinAbortRef = useRef<AbortController | null>(null);
+  const weixinScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Create flow phase: 'config' -> 'starting' -> 'feishu'/'weixin' -> 'success'
+  const [createPhase, setCreatePhase] = useState<'config' | 'starting' | 'feishu' | 'weixin' | 'success'>('config');
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -226,6 +234,13 @@ export function ClawsPage() {
       larkScrollRef.current.scrollTop = larkScrollRef.current.scrollHeight;
     }
   }, [larkOutput]);
+
+  // Auto-scroll weixin output to bottom
+  useEffect(() => {
+    if (weixinScrollRef.current) {
+      weixinScrollRef.current.scrollTop = weixinScrollRef.current.scrollHeight;
+    }
+  }, [weixinOutput]);
 
   const loadClaws = async () => {
     try {
@@ -293,6 +308,8 @@ export function ClawsPage() {
     consecutiveErrorsRef.current = 0;
     setLarkPhase('idle');
     setLarkOutput([]);
+    setWeixinPhase('idle');
+    setWeixinOutput([]);
     setCreatePhase('config');
   };
 
@@ -364,6 +381,11 @@ export function ClawsPage() {
               setLarkPhase('installing');
               setLarkOutput([]);
               startLarkInstall(createdClaw.id);
+            } else if (newType === 'OPENCLAW' && newChatTool === 'WEIXIN') {
+              setCreatePhase('weixin');
+              setWeixinPhase('installing');
+              setWeixinOutput([]);
+              startWeixinLogin(createdClaw.id);
             } else {
               setCreatePhase('success');
               loadClaws();
@@ -491,6 +513,47 @@ export function ClawsPage() {
       if (err.name !== 'AbortError') {
         setLarkOutput(prev => [...prev, '[连接中断]']);
         setLarkPhase('done');
+      }
+    }
+  };
+
+  const startWeixinLogin = async (clawId: number) => {
+    if (weixinAbortRef.current) {
+      weixinAbortRef.current.abort();
+    }
+    const abort = new AbortController();
+    weixinAbortRef.current = abort;
+    const token = useAuthStore.getState().token || '';
+
+    try {
+      const resp = await clawAPI.weixinLogin(clawId, token);
+      if (!resp.ok || !resp.body) {
+        setWeixinOutput(prev => [...prev, `[错误] HTTP ${resp.status}`]);
+        setWeixinPhase('done');
+        return;
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          if (part.startsWith('data: ')) {
+            const line = part.slice(6);
+            setWeixinOutput(prev => [...prev.slice(-300), line]);
+          }
+        }
+      }
+      setWeixinPhase('done');
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setWeixinOutput(prev => [...prev, '[连接中断]']);
+        setWeixinPhase('done');
       }
     }
   };
@@ -708,9 +771,11 @@ export function ClawsPage() {
                     <TableCell>
                       {claw.chat_tool === 'QQ' ? (
                         <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
-                      ) : (
+                      ) : claw.chat_tool === 'FEISHU' ? (
                         <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
-                      )}
+                      ) : claw.chat_tool === 'WEIXIN' ? (
+                        <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
+                      ) : null}
                     </TableCell>
                     <TableCell><StatusBadge status={claw.status} /></TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
@@ -776,6 +841,7 @@ export function ClawsPage() {
         if (!open) {
           stopPolling();
           larkAbortRef.current?.abort();
+          weixinAbortRef.current?.abort();
           setCreatePhase('config');
           resetCreateForm();
         }
@@ -787,6 +853,7 @@ export function ClawsPage() {
               {createPhase === 'config' && '领养龙虾 🦞'}
               {createPhase === 'starting' && '正在启动龙虾...'}
               {createPhase === 'feishu' && '飞书授权'}
+              {createPhase === 'weixin' && '微信授权'}
               {createPhase === 'success' && '创建成功！'}
             </DialogTitle>
             {createPhase !== 'config' && (
@@ -857,13 +924,13 @@ export function ClawsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>对话工具 <span className="text-red-500">*</span></Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {CHAT_TOOLS.filter(t => t.supportedTypes.includes(newType)).map((tool) => (
                   <button
                     key={tool.value}
                     type="button"
                     onClick={() => setNewChatTool(tool.value)}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all ${
                       newChatTool === tool.value
                         ? 'border-indigo-500 bg-indigo-50'
                         : 'border-gray-200 hover:border-indigo-300'
@@ -871,9 +938,11 @@ export function ClawsPage() {
                   >
                     {tool.value === 'QQ' ? (
                       <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
-                    ) : (
+                    ) : tool.value === 'FEISHU' ? (
                       <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
-                    )}
+                    ) : tool.value === 'WEIXIN' ? (
+                      <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
+                    ) : null}
                     <span className="text-sm font-medium">{tool.label}</span>
                   </button>
                 ))}
@@ -961,7 +1030,7 @@ export function ClawsPage() {
               {larkOutput.length > 0 && (
                 <div
                   ref={larkScrollRef}
-                  className="max-h-72 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
+                  className="max-h-96 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
                 >
                   <div className="font-mono text-xs leading-tight text-gray-100 whitespace-pre-wrap break-all">
                     {larkOutput.map((line, i) => (
@@ -977,6 +1046,44 @@ export function ClawsPage() {
               {larkOutput.length === 0 && larkPhase === 'installing' && (
                 <div className="text-center py-4">
                   <div className="inline-block w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-gray-500 mt-2">正在生成二维码...</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phase 3: Weixin Authorization */}
+          {createPhase === 'weixin' && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <img src="/icons/weixin.png" alt="微信" className="w-8 h-8" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-900">
+                    {weixinPhase === 'installing' ? '正在获取授权二维码...' : '请用微信扫描二维码完成授权'}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">推荐使用个人微信账号</p>
+                </div>
+              </div>
+
+              {weixinOutput.length > 0 && (
+                <div
+                  ref={weixinScrollRef}
+                  className="max-h-96 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
+                >
+                  <div className="font-mono text-xs leading-tight text-gray-100 whitespace-pre-wrap break-all">
+                    {weixinOutput.map((line, i) => (
+                      <div
+                        key={i}
+                        dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {weixinOutput.length === 0 && weixinPhase === 'installing' && (
+                <div className="text-center py-4">
+                  <div className="inline-block w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                   <p className="text-sm text-gray-500 mt-2">正在生成二维码...</p>
                 </div>
               )}
@@ -1043,6 +1150,38 @@ export function ClawsPage() {
                     toast({ title: '成功', description: '龙虾创建成功！' });
                   }}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                >
+                  已完成扫码
+                </Button>
+              </>
+            )}
+
+            {createPhase === 'weixin' && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    weixinAbortRef.current?.abort();
+                    setWeixinPhase('idle');
+                    setWeixinOutput([]);
+                    setCreatePhase('success');
+                    loadClaws();
+                    toast({ title: '提示', description: '您可以稍后在设置中完成微信授权' });
+                  }}
+                  className="rounded-xl"
+                >
+                  跳过授权
+                </Button>
+                <Button
+                  onClick={() => {
+                    weixinAbortRef.current?.abort();
+                    setWeixinPhase('idle');
+                    setWeixinOutput([]);
+                    setCreatePhase('success');
+                    loadClaws();
+                    toast({ title: '成功', description: '龙虾创建成功！' });
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white rounded-xl"
                 >
                   已完成扫码
                 </Button>

@@ -367,4 +367,10 @@ export const clawAPI = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }),
+
+  weixinLogin: (id: number, token: string): Promise<Response> =>
+    fetch(`/api/claws/${id}/weixin-login`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }),
 };

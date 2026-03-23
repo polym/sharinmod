@@ -231,6 +231,53 @@ def lark_install(
     )
 
 
+@router.post("/{claw_id}/weixin-login")
+def weixin_login(
+    claw_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    在 claw 容器中执行 openclaw channels login --channel openclaw-weixin
+    并以 SSE 格式流式返回输出。
+    仅支持 OPENCLAW 类型且 status 为 RUNNING 的龙虾。
+    """
+    from api.models.claw import ClawType, ClawStatus
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+    if claw.type != ClawType.OPENCLAW:
+        raise HTTPException(status_code=400, detail="仅 OpenClaw 类型支持微信登录")
+    if claw.status != ClawStatus.RUNNING:
+        raise HTTPException(status_code=400, detail="龙虾未在运行状态")
+    if not claw.k8s_deployment_name:
+        raise HTTPException(status_code=400, detail="Claw has no K8s resource")
+
+    def sse_generator():
+        command = ["sh", "-c", "COLUMNS=80 LINES=24 openclaw channels login --channel openclaw-weixin"]
+        for chunk in k8s_service.exec_pod_command_stream(
+            claw.k8s_deployment_name,
+            command=command,
+            namespace=claw.k8s_namespace or "default",
+            container="claw",
+        ):
+            if isinstance(chunk, bytes):
+                text = chunk.decode("utf-8", errors="replace")
+            else:
+                text = str(chunk)
+            # 按行分割，每行作为一个 SSE 事件
+            for line in text.splitlines():
+                if line:
+                    yield f"data: {line}\n\n"
+
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 # HTTP/1.1 hop-by-hop headers，转发时需过滤
 # 'cookie' 单独处理：过滤 sharinmod-fb-token，保留 filebrowser 的 auth 等其他 cookie
 _HOP_BY_HOP_HEADERS = frozenset({
