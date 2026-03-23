@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -82,6 +82,56 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Step indicator for create flow
+function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config' | 'starting' | 'feishu' | 'success'; chatTool: string }) {
+  const steps = [
+    { key: 'config', label: '基础配置', icon: '1' },
+    { key: 'starting', label: '启动中', icon: '2' },
+    ...(chatTool === 'FEISHU' ? [{ key: 'feishu', label: '飞书授权', icon: '3' }] : []),
+  ];
+
+  const getStepStatus = (stepKey: string) => {
+    const order = ['config', 'starting', 'feishu', 'success'];
+    const currentIndex = order.indexOf(currentPhase);
+    const stepIndex = order.indexOf(stepKey);
+
+    if (stepIndex < currentIndex) return 'completed';
+    if (stepIndex === currentIndex) return 'current';
+    return 'pending';
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-2 py-2">
+      {steps.map((step, index) => {
+        const status = getStepStatus(step.key);
+        const isLast = index === steps.length - 1;
+
+        return (
+          <div key={step.key} className="flex items-center">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+              status === 'completed'
+                ? 'bg-green-100 text-green-700'
+                : status === 'current'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-400'
+            }`}>
+              {status === 'completed' ? (
+                <CheckCircle2 className="w-4 h-4" />
+              ) : (
+                <span className="w-4 h-4 flex items-center justify-center text-xs">{step.icon}</span>
+              )}
+              <span>{step.label}</span>
+            </div>
+            {!isLast && (
+              <div className={`w-8 h-0.5 mx-1 ${status === 'completed' ? 'bg-green-300' : 'bg-gray-200'}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ClawsPage() {
   const [claws, setClaws] = useState<Claw[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +161,10 @@ export function ClawsPage() {
   const [larkPhase, setLarkPhase] = useState<'idle' | 'installing' | 'done'>('idle');
   const [larkOutput, setLarkOutput] = useState<string[]>([]);
   const larkAbortRef = useRef<AbortController | null>(null);
+  const larkScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Create flow phase: 'config' -> 'starting' -> 'feishu' -> 'success'
+  const [createPhase, setCreatePhase] = useState<'config' | 'starting' | 'feishu' | 'success'>('config');
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false);
@@ -153,6 +207,13 @@ export function ClawsPage() {
       logsScrollRef.current.scrollTop = logsScrollRef.current.scrollHeight;
     }
   }, [logLines, logsAutoFollow]);
+
+  // Auto-scroll lark output to bottom
+  useEffect(() => {
+    if (larkScrollRef.current) {
+      larkScrollRef.current.scrollTop = larkScrollRef.current.scrollHeight;
+    }
+  }, [larkOutput]);
 
   const loadClaws = async () => {
     try {
@@ -220,6 +281,7 @@ export function ClawsPage() {
     consecutiveErrorsRef.current = 0;
     setLarkPhase('idle');
     setLarkOutput([]);
+    setCreatePhase('config');
   };
 
   const handleCreate = async () => {
@@ -242,6 +304,7 @@ export function ClawsPage() {
       return;
     }
     setCreating(true);
+    setCreatePhase('starting');
     try {
       const response = await clawAPI.createClaw({
         name: newName.trim(),
@@ -279,17 +342,16 @@ export function ClawsPage() {
             }
             setPollingClawId(null);
             setCreating(false);
-            loadClaws();
 
             // OPENCLAW + FEISHU: enter Lark QR scan phase
             if (newType === 'OPENCLAW' && newChatTool === 'FEISHU') {
+              setCreatePhase('feishu');
               setLarkPhase('installing');
               setLarkOutput([]);
               startLarkInstall(createdClaw.id);
             } else {
-              setCreateOpen(false);
-              resetCreateForm();
-              toast({ title: '成功', description: '龙虾创建成功！' });
+              setCreatePhase('success');
+              loadClaws();
             }
           } else if (claw.status === 'FAILED') {
             // Failed
@@ -299,6 +361,7 @@ export function ClawsPage() {
             }
             setPollingClawId(null);
             setCreating(false);
+            setCreatePhase('config');
             loadClaws();
             toast({
               title: '创建失败',
@@ -313,6 +376,7 @@ export function ClawsPage() {
             }
             setPollingClawId(null);
             setCreating(false);
+            setCreatePhase('config');
             loadClaws();
             toast({
               title: '创建超时',
@@ -333,6 +397,7 @@ export function ClawsPage() {
             }
             setPollingClawId(null);
             setCreating(false);
+            setCreatePhase('config');
             loadClaws();
             toast({
               title: '连接失败',
@@ -360,6 +425,7 @@ export function ClawsPage() {
         });
       }
       setCreating(false);
+      setCreatePhase('config');
     }
   };
 
@@ -685,12 +751,31 @@ export function ClawsPage() {
       </Card>
 
       {/* Create Dialog */}
-      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) { stopPolling(); larkAbortRef.current?.abort(); resetCreateForm(); } setCreateOpen(open); }}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+      <Dialog open={createOpen} onOpenChange={(open) => {
+        if (!open) {
+          stopPolling();
+          larkAbortRef.current?.abort();
+          setCreatePhase('config');
+          resetCreateForm();
+        }
+        setCreateOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-lg rounded-2xl">
           <DialogHeader>
-            <DialogTitle>领养龙虾 🦞</DialogTitle>
+            <DialogTitle>
+              {createPhase === 'config' && '领养龙虾 🦞'}
+              {createPhase === 'starting' && '正在启动龙虾...'}
+              {createPhase === 'feishu' && '飞书授权'}
+              {createPhase === 'success' && '创建成功！'}
+            </DialogTitle>
+            {createPhase !== 'config' && (
+              <CreateStepIndicator currentPhase={createPhase} chatTool={newChatTool} />
+            )}
           </DialogHeader>
-          <div className="space-y-4 py-2">
+
+          {/* Phase 1: Configuration Form */}
+          {createPhase === 'config' && (
+            <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label htmlFor="create-name">龙虾名称 <span className="text-red-500">*</span></Label>
               <Input
@@ -808,72 +893,142 @@ export function ClawsPage() {
             </div>
             </>
             )}
-            {newChatTool === 'FEISHU' && (
-            <div className="space-y-1.5">
-              <Label>飞书授权</Label>
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-sm text-amber-800 mb-2">请查看日志，用飞书扫描二维码完成授权</p>
-                <p className="text-xs text-amber-600">推荐使用个人飞书体验</p>
-              </div>
-            </div>
-            )}
           </div>
-          {/* Progress bar during claw creation */}
-          {pollingClawId && (
-            <div className="space-y-2 py-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-indigo-700 font-medium">正在启动龙虾...</span>
-                <span className="text-gray-500">
-                  {(Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100)).toFixed(1)}%
-                </span>
+          )}
+
+          {/* Phase 2: Starting Progress */}
+          {createPhase === 'starting' && (
+            <div className="py-8 space-y-4">
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-indigo-200 rounded-full"></div>
+                  <div className="absolute top-0 left-0 w-20 h-20 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl">🦞</span>
+                  </div>
+                </div>
               </div>
-              <Progress value={Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100)} className="h-2" />
-              <p className="text-xs text-gray-500">预计需要 1-2 分钟，请耐心等待</p>
+              <div className="text-center space-y-2">
+                <h3 className="text-lg font-semibold text-gray-900">正在启动龙虾...</h3>
+                <p className="text-sm text-gray-500">预计需要 1-2 分钟，请耐心等待</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-indigo-700 font-medium">启动进度</span>
+                  <span className="text-gray-500">
+                    {Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100).toFixed(0)}%
+                  </span>
+                </div>
+                <Progress value={Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100)} className="h-2" />
+              </div>
             </div>
           )}
-          {/* Feishu QR scan phase */}
-          {larkPhase !== 'idle' && (
-            <div className="space-y-3 py-2">
-              <div className="flex items-center gap-2">
-                <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
-                <span className="text-sm font-medium text-indigo-700">
-                  {larkPhase === 'installing' ? '正在获取飞书授权二维码...' : '请用飞书扫描二维码完成授权'}
-                </span>
+
+          {/* Phase 3: Feishu Authorization */}
+          {createPhase === 'feishu' && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+                <img src="/icons/feishu.png" alt="飞书" className="w-8 h-8" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-indigo-900">
+                    {larkPhase === 'installing' ? '正在获取授权二维码...' : '请用飞书扫描二维码完成授权'}
+                  </p>
+                  <p className="text-xs text-indigo-600 mt-1">推荐使用个人飞书账号</p>
+                </div>
               </div>
+
               {larkOutput.length > 0 && (
-                <div className="max-h-64 overflow-y-auto bg-black rounded-lg p-3 text-xs font-mono leading-tight">
-                  {larkOutput.map((line, i) => (
-                    <div
-                      key={i}
-                      dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
-                    />
-                  ))}
+                <div
+                  ref={larkScrollRef}
+                  className="max-h-72 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
+                >
+                  <div className="font-mono text-xs leading-tight text-gray-100 whitespace-pre-wrap break-all">
+                    {larkOutput.map((line, i) => (
+                      <div
+                        key={i}
+                        dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
+
               {larkOutput.length === 0 && larkPhase === 'installing' && (
-                <div className="text-xs text-gray-400 animate-pulse">等待二维码生成...</div>
+                <div className="text-center py-4">
+                  <div className="inline-block w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-gray-500 mt-2">正在生成二维码...</p>
+                </div>
               )}
+            </div>
+          )}
+
+          {/* Phase 4: Success */}
+          {createPhase === 'success' && (
+            <div className="py-8 text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full">
+                <Check className="w-10 h-10 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">龙虾创建成功！</h3>
+                <p className="text-sm text-gray-500 mt-2">龙虾「{newName}」已准备就绪</p>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-700">
+                  {TYPE_DISPLAY_NAMES[newType] || newType}
+                </span>
+                <span>•</span>
+                <span>{newBrainModel}</span>
+              </div>
             </div>
           )}
           <DialogFooter>
-            {larkPhase !== 'idle' ? (
+            {createPhase === 'success' && (
               <Button
                 onClick={() => {
-                  larkAbortRef.current?.abort();
-                  setLarkPhase('idle');
-                  setLarkOutput([]);
                   setCreateOpen(false);
                   resetCreateForm();
                   toast({ title: '成功', description: '龙虾创建成功！' });
                 }}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
               >
-                已完成扫码，关闭
+                完成
               </Button>
-            ) : (
+            )}
+
+            {createPhase === 'feishu' && (
               <>
-                <Button variant="outline" onClick={() => { stopPolling(); setCreateOpen(false); }} className="rounded-xl" disabled={creating}>
-                  {creating ? '启动中...' : '取消'}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    larkAbortRef.current?.abort();
+                    setLarkPhase('idle');
+                    setLarkOutput([]);
+                    setCreatePhase('success');
+                    toast({ title: '提示', description: '您可以稍后在设置中完成飞书授权' });
+                  }}
+                  className="rounded-xl"
+                >
+                  跳过授权
+                </Button>
+                <Button
+                  onClick={() => {
+                    larkAbortRef.current?.abort();
+                    setLarkPhase('idle');
+                    setLarkOutput([]);
+                    setCreatePhase('success');
+                    toast({ title: '成功', description: '龙虾创建成功！' });
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                >
+                  已完成扫码
+                </Button>
+              </>
+            )}
+
+            {createPhase === 'config' && (
+              <>
+                <Button variant="outline" onClick={() => { stopPolling(); setCreateOpen(false); }} className="rounded-xl">
+                  取消
                 </Button>
                 <Button
                   onClick={handleCreate}
