@@ -35,7 +35,6 @@ interface Claw {
 const CLAW_TYPES = [
   { value: 'NANOBOT', label: '性能型 (NanoBot)' },
   { value: 'OPENCLAW', label: '全能型 (OpenClaw)' },
-  { value: 'ZEROBOT', label: '安享型 (ZeroClaw)' },
 ];
 
 // 龙虾大脑 featured 模型降级默认列表（后端配置加载失败时使用）
@@ -50,8 +49,12 @@ interface PlazaModel {
 const TYPE_DISPLAY_NAMES: Record<string, string> = {
   NANOBOT: '性能型',
   OPENCLAW: '全能型',
-  ZEROBOT: '安享型',
 };
+
+const CHAT_TOOLS = [
+  { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] },
+  { value: 'FEISHU', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] }
+];
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   PENDING:  { label: '准备中', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
@@ -91,6 +94,7 @@ export function ClawsPage() {
   const [newQqBotId, setNewQqBotId] = useState('');
   const [newQqBotSecret, setNewQqBotSecret] = useState('');
   const [newBrainModel, setNewBrainModel] = useState('glm-4.7');
+  const [newChatTool, setNewChatTool] = useState('QQ');
   const [plazaModels, setPlazaModels] = useState<PlazaModel[]>([]);
   const [featuredBrainModels, setFeaturedBrainModels] = useState<string[]>(DEFAULT_FEATURED_BRAIN_MODELS);
   const [loadingBrainModels, setLoadingBrainModels] = useState(false);
@@ -187,6 +191,7 @@ export function ClawsPage() {
     setNewQqBotId('');
     setNewQqBotSecret('');
     setNewBrainModel('glm-4.7');
+    setNewChatTool('QQ');
     setPlazaModels([]);
   };
 
@@ -201,8 +206,12 @@ export function ClawsPage() {
       return;
     }
 
-    if (!newName.trim() || !newQqBotId.trim() || !newQqBotSecret.trim()) {
+    if (!newName.trim() || !newBrainModel.trim()) {
       toast({ title: '错误', description: '请填写所有必填字段', variant: 'destructive' });
+      return;
+    }
+    if (newChatTool === 'QQ' && (!newQqBotId.trim() || !newQqBotSecret.trim())) {
+      toast({ title: '错误', description: '请填写 AppID 和 AppSecret', variant: 'destructive' });
       return;
     }
     setCreating(true);
@@ -210,8 +219,8 @@ export function ClawsPage() {
       await clawAPI.createClaw({
         name: newName.trim(),
         type: newType,
-        qq_bot_id: newQqBotId.trim(),
-        qq_bot_secret: newQqBotSecret.trim(),
+        qq_bot_id: newChatTool === 'QQ' ? newQqBotId.trim() : '',
+        qq_bot_secret: newChatTool === 'QQ' ? newQqBotSecret.trim() : '',
         brain_model: newBrainModel,
       });
       toast({ title: '成功', description: '龙虾创建成功！' });
@@ -528,7 +537,12 @@ export function ClawsPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="create-type">类型 <span className="text-red-500">*</span></Label>
-              <Select value={newType} onValueChange={setNewType}>
+              <Select value={newType} onValueChange={(v) => {
+                setNewType(v);
+                // 重置对话工具为第一个可用选项
+                const tools = CHAT_TOOLS.filter(t => t.supportedTypes.includes(v));
+                if (tools.length > 0) setNewChatTool(tools[0].value);
+              }}>
                 <SelectTrigger id="create-type" className="rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
@@ -570,6 +584,32 @@ export function ClawsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
+              <Label>对话工具 <span className="text-red-500">*</span></Label>
+              <div className="grid grid-cols-2 gap-3">
+                {CHAT_TOOLS.filter(t => t.supportedTypes.includes(newType)).map((tool) => (
+                  <button
+                    key={tool.value}
+                    type="button"
+                    onClick={() => setNewChatTool(tool.value)}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      newChatTool === tool.value
+                        ? 'border-indigo-500 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {tool.value === 'QQ' ? (
+                      <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
+                    ) : (
+                      <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
+                    )}
+                    <span className="text-sm font-medium">{tool.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {newChatTool === 'QQ' && (
+            <>
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <Label htmlFor="create-bot-id">AppID <span className="text-red-500">*</span></Label>
                 <a
@@ -600,6 +640,17 @@ export function ClawsPage() {
                 className="rounded-xl"
               />
             </div>
+            </>
+            )}
+            {newChatTool === 'FEISHU' && (
+            <div className="space-y-1.5">
+              <Label>飞书授权</Label>
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm text-amber-800 mb-2">请查看日志，用飞书扫描二维码完成授权</p>
+                <p className="text-xs text-amber-600">推荐使用个人飞书体验</p>
+              </div>
+            </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} className="rounded-xl">取消</Button>
