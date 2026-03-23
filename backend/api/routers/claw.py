@@ -82,7 +82,7 @@ def get_claw(
         ready = pod_status.get("claw_ready")
 
     # 使用 from_attributes 创建响应，避免修改原 ORM 对象
-    return ClawResponse.model_validate(claw, update={"ready": ready})
+    return ClawResponse.model_validate(claw).model_copy(update={"ready": ready})
 
 
 @router.get("", response_model=ClawList)

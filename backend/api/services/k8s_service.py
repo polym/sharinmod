@@ -536,15 +536,7 @@ def exec_pod_command_stream(
             pod = core_v1.read_namespaced_pod(pod_name, namespace)
             phase = pod.status.phase if pod.status else None
             if phase == "Running":
-                # Also check that the container is ready
-                container_statuses = pod.status.container_statuses or []
-                claw_ready = any(
-                    cs.name == container and cs.ready
-                    for cs in container_statuses
-                )
-                if claw_ready:
-                    break
-                yield f"[等待容器就绪...]\n"
+                break
             elif phase in ("Failed", "Unknown"):
                 yield f"[Pod 状态异常: {phase}，无法执行命令]\n"
                 return
