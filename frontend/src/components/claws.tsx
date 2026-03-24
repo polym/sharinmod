@@ -58,9 +58,9 @@ const TYPE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 const CHAT_TOOLS = [
-  { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] },
+  { value: 'WEIXIN', label: '微信', icon: '💬', supportedTypes: ['OPENCLAW'] },
   { value: 'FEISHU', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] },
-  { value: 'WEIXIN', label: '微信', icon: '💬', supportedTypes: ['OPENCLAW'] }
+  { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] }
 ];
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -155,11 +155,11 @@ export function ClawsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newType, setNewType] = useState('NANOBOT');
+  const [newType, setNewType] = useState('OPENCLAW');
   const [newQqBotId, setNewQqBotId] = useState('');
   const [newQqBotSecret, setNewQqBotSecret] = useState('');
   const [newBrainModel, setNewBrainModel] = useState('glm-4.7');
-  const [newChatTool, setNewChatTool] = useState('QQ');
+  const [newChatTool, setNewChatTool] = useState('WEIXIN');
   const [plazaModels, setPlazaModels] = useState<PlazaModel[]>([]);
   const [featuredBrainModels, setFeaturedBrainModels] = useState<string[]>(DEFAULT_FEATURED_BRAIN_MODELS);
   const [loadingBrainModels, setLoadingBrainModels] = useState(false);
@@ -298,11 +298,11 @@ export function ClawsPage() {
 
   const resetCreateForm = () => {
     setNewName('');
-    setNewType('NANOBOT');
+    setNewType('OPENCLAW');
     setNewQqBotId('');
     setNewQqBotSecret('');
     setNewBrainModel('glm-4.7');
-    setNewChatTool('QQ');
+    setNewChatTool('WEIXIN');
     setPlazaModels([]);
     setConsecutiveErrors(0);
     consecutiveErrorsRef.current = 0;
@@ -847,7 +847,11 @@ export function ClawsPage() {
         }
         setCreateOpen(open);
       }}>
-        <DialogContent className="sm:max-w-lg rounded-2xl">
+        <DialogContent
+          className="sm:max-w-lg rounded-2xl"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>
               {createPhase === 'config' && '领养龙虾 🦞'}
