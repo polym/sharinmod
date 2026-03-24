@@ -753,7 +753,7 @@ export function ClawsPage() {
                 <TableRow>
                   <TableHead>名称</TableHead>
                   <TableHead>类型</TableHead>
-                  <TableHead>机器人</TableHead>
+                  <TableHead>对话</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
                   <TableHead className="text-right">操作</TableHead>
