@@ -191,7 +191,7 @@ def lark_install(
     session: Session = Depends(get_db),
 ):
     """
-    在 claw 容器中执行 npx -y @larksuite/openclaw-lark install
+    在 claw 容器中执行 npx -y @larksuite/openclaw-lark@2026.3.17 install
     并以 SSE 格式流式返回输出。
     仅支持 OPENCLAW 类型且 status 为 RUNNING 的龙虾。
     """
@@ -205,7 +205,7 @@ def lark_install(
         raise HTTPException(status_code=400, detail="Claw has no K8s resource")
 
     def sse_generator():
-        command = ["sh", "-c", "COLUMNS=80 LINES=24 npx -y @larksuite/openclaw-lark install"]
+        command = ["sh", "-c", "COLUMNS=80 LINES=24 npx -y @larksuite/openclaw-lark@2026.3.17 install"]
         for chunk in k8s_service.exec_pod_command_stream(
             claw.k8s_deployment_name,
             command=command,
