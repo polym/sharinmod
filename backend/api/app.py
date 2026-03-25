@@ -38,6 +38,7 @@ from api.routers.admin import router as admin_router
 from api.routers.claw import router as claw_router
 from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
+from api.services.archive_scheduler import archive_scheduler
 from prometheus_fastapi_instrumentator import Instrumentator
 import redis.asyncio as redis
 from fastapi_limiter import FastAPILimiter
@@ -73,12 +74,21 @@ async def lifespan(app: FastAPI):
         decode_responses=True
     )
     await FastAPILimiter.init(redis_connection)
+
+    # Start archive scheduler
+    archive_scheduler.start()
+    logger.info("Archive scheduler initialized")
+
     try:
         initialize_sharinmod_data(db)
         initialize_admin_user(db)
         yield
     except (IntegrityError, Exception) as e:
         yield
+    finally:
+        # Shutdown archive scheduler
+        archive_scheduler.shutdown()
+        logger.info("Archive scheduler shutdown")
 
 
 def create_app(settings: Settings):

@@ -382,4 +382,7 @@ export const clawAPI = {
 
   restoreArchive: (id: number, timestamp: string) =>
     api.post(`/api/claws/${id}/archives/${timestamp}/restore`),
+
+  deleteArchive: (id: number, timestamp: string) =>
+    api.delete(`/api/claws/${id}/archives/${timestamp}`),
 };

@@ -42,10 +42,14 @@ def get_claw_config(
     featured = claw_types_config.get("featured_brain_models", ["glm-4.7", "minimax-m2.5", "kimi-k2.5"])
     prunc_enabled = full_config.get("prunc_enabled", False) is True
     claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    claws_archive_auto_enabled = full_config.get("claws_archive_auto_enabled", False) is True
+    claws_archive_schedule_interval = full_config.get("claws_archive_schedule_interval", 20)
     return {
         "featured_brain_models": featured,
         "prunc_enabled": prunc_enabled,
         "claws_archive_enabled": claws_archive_enabled,
+        "claws_archive_auto_enabled": claws_archive_auto_enabled,
+        "claws_archive_schedule_interval": claws_archive_schedule_interval,
     }
 
 
@@ -364,6 +368,18 @@ def create_claw_archive(
 
     claw = get_user_claw_by_id(session, current_user.id, claw_id)
 
+    # 检查手动存档数量限制
+    max_manual = full_config.get("claws_archive_max_manual", 5)
+    manual_count = k8s_service.count_manual_archives(
+        claw_id,
+        namespace=claw.k8s_namespace or "default",
+    )
+    if manual_count >= max_manual:
+        raise HTTPException(
+            status_code=400,
+            detail=f"手动存档数量已达上限（{max_manual}个），请删除旧存档后重试"
+        )
+
     # 检查龙虾状态
     if claw.status != ClawStatus.RUNNING:
         raise HTTPException(status_code=400, detail="只能在运行中的龙虾上创建存档")
@@ -491,6 +507,42 @@ def restore_claw_archive(
     )
 
     return claw
+
+
+@router.delete("/{claw_id}/archives/{timestamp}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_claw_archive(
+    claw_id: int,
+    timestamp: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    删除龙虾存档
+
+    - 删除指定 timestamp 的 workspace 和 rootfs VolumeSnapshot
+    - 仅在 prunc_enabled=true 且 claws_archive_enabled=true 时可用
+    """
+    from api.config import _get_config_path
+    import yaml
+
+    # 检查存档功能是否启用
+    config_path = _get_config_path()
+    with open(config_path, "r", encoding="utf-8") as f:
+        full_config = yaml.safe_load(f) or {}
+    prunc_enabled = full_config.get("prunc_enabled", False) is True
+    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+
+    if not prunc_enabled or not claws_archive_enabled:
+        raise HTTPException(status_code=403, detail="存档功能未启用")
+
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    # 调用删除服务
+    k8s_service.delete_snapshot(
+        claw_id,
+        timestamp,
+        namespace=claw.k8s_namespace or "default",
+    )
 
 
 def _filter_cookie_header(cookie_header: str | None) -> str | None:

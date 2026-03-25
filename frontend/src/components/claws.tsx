@@ -218,10 +218,15 @@ export function ClawsPage() {
   const [archivesLoading, setArchivesLoading] = useState(false);
   const [creatingArchive, setCreatingArchive] = useState(false);
   const [restoringArchive, setRestoringArchive] = useState(false);
+  const [deletingArchive, setDeletingArchive] = useState(false);
+  const [archiveToDelete, setArchiveToDelete] = useState<string | null>(null);
+  const [deleteArchiveOpen, setDeleteArchiveOpen] = useState(false);
 
   // Archive feature flags
   const [pruncEnabled, setPruncEnabled] = useState(false);
   const [clawsArchiveEnabled, setClawsArchiveEnabled] = useState(false);
+  const [clawsArchiveAutoEnabled, setClawsArchiveAutoEnabled] = useState(false);
+  const [nextBackupTime, setNextBackupTime] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -315,6 +320,20 @@ export function ClawsPage() {
         const configRes = await clawAPI.getConfig();
         setPruncEnabled(configRes.data.prunc_enabled ?? false);
         setClawsArchiveEnabled(configRes.data.claws_archive_enabled ?? false);
+        setClawsArchiveAutoEnabled(configRes.data.claws_archive_auto_enabled ?? false);
+
+        // Calculate next backup time for interval backups
+        const intervalMinutes = configRes.data.claws_archive_schedule_interval ?? 20;
+        const now = new Date();
+        const nextBackup = new Date(now.getTime() + intervalMinutes * 60 * 1000);
+        setNextBackupTime(nextBackup.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }));
       } catch {
         // 静默失败
       }
@@ -789,6 +808,33 @@ export function ClawsPage() {
       });
     } finally {
       setRestoringArchive(false);
+    }
+  };
+
+  const openDeleteArchive = (timestamp: string) => {
+    setArchiveToDelete(timestamp);
+    setDeleteArchiveOpen(true);
+  };
+
+  const handleDeleteArchive = async () => {
+    if (!archiveClaw || !archiveToDelete) return;
+    setDeletingArchive(true);
+    try {
+      await clawAPI.deleteArchive(archiveClaw.id, archiveToDelete);
+      toast({ title: '成功', description: '存档已删除' });
+      setDeleteArchiveOpen(false);
+      setArchiveToDelete(null);
+      // Reload archives
+      const response = await clawAPI.getArchives(archiveClaw.id);
+      setArchives(response.data.items ?? []);
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '删除存档失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingArchive(false);
     }
   };
 
@@ -1450,12 +1496,16 @@ export function ClawsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Create Archive Button */}
-            <div className="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
-              <div className="flex-1">
-                <h3 className="text-sm font-medium text-indigo-900">创建新存档</h3>
-                <p className="text-xs text-indigo-600 mt-1">为当前龙虾状态创建快照</p>
-              </div>
+            {/* Header row with create button and next backup time */}
+            <div className="flex items-center justify-between">
+              {clawsArchiveAutoEnabled && nextBackupTime && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
+                  <span className="text-blue-600">🕐</span>
+                  <p className="text-xs text-blue-700">
+                    下次自动备份: <span className="font-medium">{nextBackupTime}</span>
+                  </p>
+                </div>
+              )}
               <Button
                 onClick={handleCreateArchive}
                 disabled={creatingArchive || archiveClaw?.status !== 'RUNNING'}
@@ -1463,6 +1513,7 @@ export function ClawsPage() {
               >
                 {creatingArchive ? '创建中...' : '创建存档'}
               </Button>
+              )}
             </div>
 
             {/* Archives List */}
@@ -1478,9 +1529,10 @@ export function ClawsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="w-56">版本时间</TableHead>
+                      <TableHead className="w-48">版本时间</TableHead>
+                      <TableHead className="w-20 text-center">类型</TableHead>
                       <TableHead className="w-24 text-center">是否可用</TableHead>
-                      <TableHead className="text-right w-32">操作</TableHead>
+                      <TableHead className="text-right w-40">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1488,6 +1540,17 @@ export function ClawsPage() {
                       <TableRow key={archive.timestamp || idx}>
                         <TableCell className="font-mono text-sm">
                           {formatArchiveTime(archive.timestamp)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {archive.auto_created === true ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs">
+                              自动
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs">
+                              手动
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell className="text-center">
                           {archive.ready_to_use === true ? (
@@ -1501,30 +1564,33 @@ export function ClawsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRestoreArchive(archive.timestamp)}
-                            disabled={restoringArchive || !archive.ready_to_use}
-                            className="hover:bg-indigo-50 text-indigo-600"
-                            title="恢复存档"
-                          >
-                            <Undo className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRestoreArchive(archive.timestamp)}
+                              disabled={restoringArchive || !archive.ready_to_use}
+                              className="hover:bg-indigo-50 text-indigo-600"
+                              title="恢复存档"
+                            >
+                              <Undo className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openDeleteArchive(archive.timestamp)}
+                              disabled={deletingArchive || !archive.ready_to_use}
+                              className="hover:bg-red-50 text-red-600"
+                              title="删除存档"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-            )}
-
-            {/* Warning message for non-running claw */}
-            {archiveClaw?.status !== 'RUNNING' && (
-              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-                <p className="text-xs text-yellow-700">
-                  ⚠️ 仅运行中的龙虾可以创建存档
-                </p>
               </div>
             )}
           </div>
@@ -1536,6 +1602,29 @@ export function ClawsPage() {
               className="rounded-xl"
             >
               关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Archive Confirmation Dialog */}
+      <Dialog open={deleteArchiveOpen} onOpenChange={setDeleteArchiveOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>删除存档</DialogTitle>
+            <DialogDescription>
+              确定要删除存档吗？删除后将无法恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteArchiveOpen(false); setArchiveToDelete(null); }} className="rounded-xl">取消</Button>
+            <Button
+              onClick={handleDeleteArchive}
+              disabled={deletingArchive}
+              variant="destructive"
+              className="rounded-xl"
+            >
+              {deletingArchive ? '删除中...' : '确认删除'}
             </Button>
           </DialogFooter>
         </DialogContent>

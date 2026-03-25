@@ -760,6 +760,7 @@ def create_snapshot(
                 "app": f"claw-{claw_id}",
                 "archive-timestamp": timestamp,
                 "pvc-type": pvc_type,
+                "archive-auto-created": "false",  # Manual archive
             },
         },
         "spec": {
@@ -825,7 +826,7 @@ def list_snapshots(claw_id: int, namespace: str = "default") -> list:
         raise
 
     # Group snapshots by timestamp
-    archive_groups = defaultdict(lambda: {"workspace": None, "rootfs": None, "created_at": None, "ready_to_use": None})
+    archive_groups = defaultdict(lambda: {"workspace": None, "rootfs": None, "created_at": None, "ready_to_use": None, "auto_created": False})
 
     for snap in snapshots.get("items", []):
         labels = snap.get("metadata", {}).get("labels", {})
@@ -834,6 +835,8 @@ def list_snapshots(claw_id: int, namespace: str = "default") -> list:
         created_at = snap.get("metadata", {}).get("creationTimestamp")
         # Check if snapshot is ready to use
         ready_to_use = snap.get("status", {}).get("readyToUse", False)
+        # Check if archive is auto-created
+        auto_created = labels.get("archive-auto-created", "false").lower() == "true"
 
         if timestamp and pvc_type:
             # Map pvc_type to archive type key
@@ -847,6 +850,8 @@ def list_snapshots(claw_id: int, namespace: str = "default") -> list:
                 archive_groups[timestamp]["ready_to_use"] = ready_to_use
             else:
                 archive_groups[timestamp]["ready_to_use"] = archive_groups[timestamp]["ready_to_use"] and ready_to_use
+            # Set auto_created flag (compatibility: old archives without label are manual)
+            archive_groups[timestamp]["auto_created"] = auto_created
 
     # Convert to list and sort by timestamp descending
     # Only include archives that have at least a workspace snapshot
@@ -857,6 +862,7 @@ def list_snapshots(claw_id: int, namespace: str = "default") -> list:
             "rootfs_snapshot_name": data["rootfs"],
             "created_at": data["created_at"],
             "ready_to_use": data.get("ready_to_use", False),
+            "auto_created": data.get("auto_created", False),
         }
         for ts, data in sorted(archive_groups.items(), key=lambda x: x[0], reverse=True)
         if data["workspace"]  # Must have workspace snapshot
@@ -1070,3 +1076,359 @@ def create_pvc_from_snapshot(
     core_v1.create_namespaced_persistent_volume_claim(namespace=namespace, body=pvc_dict)
     logger.info(f"Created PVC from snapshot: {name}")
     return name
+
+
+def delete_snapshot(
+    claw_id: int,
+    timestamp: str,
+    namespace: str = "default",
+) -> None:
+    """
+    Delete a VolumeSnapshot for a claw by timestamp.
+
+    Args:
+        claw_id: ID of the claw
+        timestamp: Archive timestamp
+        namespace: K8s namespace
+
+    Deletes both workspace and rootfs snapshots with the given timestamp.
+    """
+    from kubernetes.client.rest import ApiException
+
+    custom_api = _get_custom_objects_api()
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    # Delete workspace snapshot
+    workspace_snapshot_name = f"claw-{claw_id}-workspace-data-{timestamp}"
+    try:
+        custom_api.delete_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            name=workspace_snapshot_name,
+        )
+        logger.info(f"Deleted VolumeSnapshot: {workspace_snapshot_name}")
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"VolumeSnapshot {workspace_snapshot_name} not found")
+        else:
+            logger.error(f"Failed to delete VolumeSnapshot {workspace_snapshot_name}: {e}")
+            raise
+
+    # Delete rootfs snapshot
+    rootfs_snapshot_name = f"claw-{claw_id}-rootfs-{timestamp}"
+    try:
+        custom_api.delete_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            name=rootfs_snapshot_name,
+        )
+        logger.info(f"Deleted VolumeSnapshot: {rootfs_snapshot_name}")
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"VolumeSnapshot {rootfs_snapshot_name} not found")
+        else:
+            logger.error(f"Failed to delete VolumeSnapshot {rootfs_snapshot_name}: {e}")
+            raise
+
+
+def cleanup_old_archives(
+    claw_id: int,
+    namespace: str = "default",
+    retention_config: dict = None,
+) -> None:
+    """
+    Clean up old archives based on retention policy.
+
+    Args:
+        claw_id: ID of the claw
+        namespace: K8s namespace
+        retention_config: Retention policy config with keys:
+            - daily_retention: Number of daily backups to keep (default: 1)
+            - interval_retention: Number of interval backups to keep (default: 5)
+    """
+    from kubernetes.client.rest import ApiException
+
+    if retention_config is None:
+        retention_config = {
+            "daily_retention": 1,
+            "interval_retention": 5,
+        }
+
+    custom_api = _get_custom_objects_api()
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    try:
+        snapshots = custom_api.list_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            label_selector=f"app=claw-{claw_id}",
+        )
+    except ApiException as e:
+        logger.error(f"Failed to list snapshots for cleanup: {e}")
+        return
+
+    # Group snapshots by auto_created and auto_schedule labels
+    daily_archives = []  # archive-auto-schedule=daily
+    interval_archives = []  # archive-auto-schedule=interval
+    manual_archives = []  # archive-auto-created=false or missing
+
+    for snap in snapshots.get("items", []):
+        labels = snap.get("metadata", {}).get("labels", {})
+        auto_created = labels.get("archive-auto-created", "false").lower() == "true"
+        auto_schedule = labels.get("archive-auto-schedule")
+        timestamp = labels.get("archive-timestamp")
+
+        if not timestamp:
+            continue
+
+        snap_info = {
+            "name": snap.get("metadata", {}).get("name"),
+            "timestamp": timestamp,
+            "creationTimestamp": snap.get("metadata", {}).get("creationTimestamp"),
+        }
+
+        if auto_created and auto_schedule == "daily":
+            daily_archives.append(snap_info)
+        elif auto_created and auto_schedule == "interval":
+            interval_archives.append(snap_info)
+        elif not auto_created:
+            manual_archives.append(snap_info)
+
+    # Sort by creation time (newest first)
+    daily_archives.sort(key=lambda x: x["creationTimestamp"], reverse=True)
+    interval_archives.sort(key=lambda x: x["creationTimestamp"], reverse=True)
+
+    # Clean up old daily archives (keep only retention count)
+    daily_retention = retention_config.get("daily_retention", 1)
+    for archive in daily_archives[daily_retention:]:
+        try:
+            custom_api.delete_namespaced_custom_object(
+                group=group,
+                version=version,
+                namespace=namespace,
+                plural=plural,
+                name=archive["name"],
+            )
+            logger.info(f"Cleaned up old daily archive: {archive['name']}")
+        except ApiException as e:
+            if e.status != 404:
+                logger.warning(f"Failed to cleanup old archive {archive['name']}: {e}")
+
+    # Clean up old interval archives (keep only retention count)
+    interval_retention = retention_config.get("interval_retention", 5)
+    for archive in interval_archives[interval_retention:]:
+        try:
+            custom_api.delete_namespaced_custom_object(
+                group=group,
+                version=version,
+                namespace=namespace,
+                plural=plural,
+                name=archive["name"],
+            )
+            logger.info(f"Cleaned up old interval archive: {archive['name']}")
+        except ApiException as e:
+            if e.status != 404:
+                logger.warning(f"Failed to cleanup old archive {archive['name']}: {e}")
+
+def create_auto_archive(
+    claw_id: int,
+    namespace: str = "default",
+    schedule_type: str = "interval",
+) -> str | None:
+    """
+    Create an automatic archive for a claw.
+
+    Args:
+        claw_id: ID of the claw
+        namespace: K8s namespace
+        schedule_type: Type of schedule ('daily' or 'interval')
+
+    Returns:
+        Timestamp of created archive, or None if failed
+
+    Creates workspace and rootfs snapshots with auto-created labels.
+    """
+    import time
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+    timestamp = str(int(time.time()))
+
+    try:
+        # Get current PVCs
+        pvcs = core_v1.list_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            label_selector=f"app=claw-{claw_id}",
+        )
+    except ApiException as e:
+        logger.error(f"Failed to list PVCs for claw-{claw_id}: {e}")
+        return None
+
+    workspace_pvc = None
+    rootfs_pvc = None
+
+    for pvc in pvcs.items:
+        pvc_type = pvc.metadata.labels.get("pvc-type")
+        if pvc_type == "workspace":
+            workspace_pvc = pvc.metadata.name
+        elif pvc_type == "rootfs":
+            rootfs_pvc = pvc.metadata.name
+
+    if not workspace_pvc:
+        logger.error(f"Workspace PVC not found for claw-{claw_id}")
+        return None
+
+    # Create workspace snapshot with auto-created labels
+    from kubernetes import client as k8s_client
+
+    custom_api = _get_custom_objects_api()
+
+    # Get storage class
+    try:
+        pvc = core_v1.read_namespaced_persistent_volume_claim(workspace_pvc, namespace)
+        storage_class = pvc.spec.storage_class_name
+    except ApiException as e:
+        logger.error(f"Failed to read PVC {workspace_pvc}: {e}")
+        return None
+
+    snapshot_name = f"claw-{claw_id}-workspace-data-{timestamp}"
+
+    snapshot = {
+        "apiVersion": "snapshot.storage.k8s.io/v1",
+        "kind": "VolumeSnapshot",
+        "metadata": {
+            "name": snapshot_name,
+            "namespace": namespace,
+            "labels": {
+                "app": f"claw-{claw_id}",
+                "archive-timestamp": timestamp,
+                "pvc-type": "workspace-data",
+                "archive-auto-created": "true",
+                "archive-auto-schedule": schedule_type,
+            },
+        },
+        "spec": {
+            "source": {
+                "persistentVolumeClaimName": workspace_pvc,
+            },
+            "volumeSnapshotClassName": "topolvm-snapclass",
+        },
+    }
+
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    try:
+        custom_api.create_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            body=snapshot,
+        )
+        logger.info(f"Created auto VolumeSnapshot: {snapshot_name} ({schedule_type})")
+    except ApiException as e:
+        logger.error(f"Failed to create auto VolumeSnapshot {snapshot_name}: {e}")
+        return None
+
+    # Create rootfs snapshot if exists
+    if rootfs_pvc:
+        try:
+            pvc = core_v1.read_namespaced_persistent_volume_claim(rootfs_pvc, namespace)
+            storage_class = pvc.spec.storage_class_name
+        except ApiException as e:
+            logger.error(f"Failed to read PVC {rootfs_pvc}: {e}")
+            return timestamp  # Return timestamp even if rootfs fails
+
+        rootfs_snapshot_name = f"claw-{claw_id}-rootfs-{timestamp}"
+
+        snapshot = {
+            "apiVersion": "snapshot.storage.k8s.io/v1",
+            "kind": "VolumeSnapshot",
+            "metadata": {
+                "name": rootfs_snapshot_name,
+                "namespace": namespace,
+                "labels": {
+                    "app": f"claw-{claw_id}",
+                    "archive-timestamp": timestamp,
+                    "pvc-type": "rootfs",
+                    "archive-auto-created": "true",
+                    "archive-auto-schedule": schedule_type,
+                },
+            },
+            "spec": {
+                "source": {
+                    "persistentVolumeClaimName": rootfs_pvc,
+                },
+                "volumeSnapshotClassName": "topolvm-snapclass",
+            },
+        }
+
+        try:
+            custom_api.create_namespaced_custom_object(
+                group=group,
+                version=version,
+                namespace=namespace,
+                plural=plural,
+                body=snapshot,
+            )
+            logger.info(f"Created auto VolumeSnapshot: {rootfs_snapshot_name} ({schedule_type})")
+        except ApiException as e:
+            logger.error(f"Failed to create auto VolumeSnapshot {rootfs_snapshot_name}: {e}")
+
+    return timestamp
+
+
+def count_manual_archives(claw_id: int, namespace: str = "default") -> int:
+    """
+    Count the number of manual archives for a claw.
+
+    Args:
+        claw_id: ID of the claw
+        namespace: K8s namespace
+
+    Returns:
+        Number of manual archives (auto_created=false or missing label)
+    """
+    from kubernetes.client.rest import ApiException
+
+    custom_api = _get_custom_objects_api()
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    try:
+        snapshots = custom_api.list_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            label_selector=f"app=claw-{claw_id}",
+        )
+    except ApiException as e:
+        logger.error(f"Failed to list snapshots for claw-{claw_id}: {e}")
+        return 0
+
+    # Count unique manual archive timestamps
+    manual_timestamps = set()
+    for snap in snapshots.get("items", []):
+        labels = snap.get("metadata", {}).get("labels", {})
+        auto_created = labels.get("archive-auto-created", "false").lower() == "true"
+        timestamp = labels.get("archive-timestamp")
+
+        if timestamp and not auto_created:
+            manual_timestamps.add(timestamp)
+
+    return len(manual_timestamps)

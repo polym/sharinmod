@@ -10,6 +10,14 @@ rootfs_storage_class: ""        # rootfs PVC 的 StorageClass（空字符串使�
 rootfs_storage_size: "10Gi"     # 每只龙虾的 rootfs PVC 大小（挂载到 /.sysdisk，仅 prunc_enabled=true 时生效）
 claws_archive_enabled: false    # true = 启用龙虾存档功能（需要 prunc_enabled=true 且集群支持 VolumeSnapshot）
 
+# 自动备份配置（需 prunc_enabled=true 且 claws_archive_enabled=true）
+claws_archive_auto_enabled: true            # 是否启用自动备份
+claws_archive_schedule_daily: "0 6 * * *"   # 每天 6:00 执行（cron 表达式）
+claws_archive_schedule_interval: 20         # 间隔备份（分钟）
+claws_archive_retention_daily: 1            # 每天 6:00 保留数量
+claws_archive_retention_interval: 5         # 间隔备份保留数量
+claws_archive_max_manual: 5                 # 手动创建最大数量
+
 # Application Configuration
 # 敏感配置（如密钥、密码等）支持环境变量 fallback
 # 环境变量优先级：YAML 值 > 环境变量（当 YAML 中值为 null 或空字符串时）

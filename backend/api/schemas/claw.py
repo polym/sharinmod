@@ -81,6 +81,7 @@ class ArchiveItem(BaseModel):
     rootfs_snapshot_name: Optional[str] = Field(default=None, description="Rootfs VolumeSnapshot name")
     created_at: Optional[str] = Field(default=None, description="Archive creation time")
     ready_to_use: Optional[bool] = Field(default=None, description="Whether all snapshots in this archive are ready to use")
+    auto_created: Optional[bool] = Field(default=False, description="Whether this archive was created automatically")
 
 
 class ArchiveList(BaseModel):
