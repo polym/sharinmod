@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -92,6 +92,21 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}>
       {cfg.label}
     </span>
+  );
+}
+
+// 双色胶囊图标（后悔药）
+function CapsuleIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="capsuleGradient" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="50%" stopColor="#4F46E5" />
+          <stop offset="50%" stopColor="#E5E7EB" />
+        </linearGradient>
+      </defs>
+      <path d="M10.5 20.5l10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" stroke="#4F46E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="url(#capsuleGradient)" />
+    </svg>
   );
 }
 
@@ -944,9 +959,9 @@ export function ClawsPage() {
                             size="sm"
                             onClick={() => openArchive(claw)}
                             className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
-                            title="存档"
+                            title="后悔药"
                           >
-                            <ChevronsDown className="w-3.5 h-3.5" />
+                            <CapsuleIcon className="w-3.5 h-3.5" />
                           </Button>
                         )}
                         <Button
@@ -1491,11 +1506,11 @@ export function ClawsPage() {
         <DialogContent className="sm:max-w-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ChevronsDown className="w-4 h-4 text-indigo-500" />
-              龙虾「{archiveClaw?.name}」存档管理
+              <CapsuleIcon className="w-4 h-4" />
+              龙虾「{archiveClaw?.name}」后悔药
             </DialogTitle>
             <DialogDescription>
-              查看和管理龙虾的数据快照存档
+              管理龙虾的数据快照，随时回滚到历史状态
             </DialogDescription>
           </DialogHeader>
 
