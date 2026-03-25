@@ -227,6 +227,9 @@ export function ClawsPage() {
   const [clawsArchiveEnabled, setClawsArchiveEnabled] = useState(false);
   const [clawsArchiveAutoEnabled, setClawsArchiveAutoEnabled] = useState(false);
   const [nextBackupTime, setNextBackupTime] = useState<string | null>(null);
+  // Archive pagination
+  const [archivePage, setArchivePage] = useState(1);
+  const ARCHIVES_PER_PAGE = 5;
 
   const { toast } = useToast();
 
@@ -756,6 +759,7 @@ export function ClawsPage() {
     setArchiveClaw(claw);
     setArchives([]);
     setArchivesLoading(true);
+    setArchivePage(1); // 重置到第一页
     setArchiveOpen(true);
     try {
       const response = await clawAPI.getArchives(claw.id);
@@ -1497,23 +1501,24 @@ export function ClawsPage() {
 
           <div className="space-y-4 py-4">
             {/* Header row with create button and next backup time */}
-            <div className="flex items-center justify-between">
-              {clawsArchiveAutoEnabled && nextBackupTime && (
+            <div className="flex items-center justify-between gap-4">
+              {clawsArchiveAutoEnabled && nextBackupTime ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl">
                   <span className="text-blue-600">🕐</span>
                   <p className="text-xs text-blue-700">
                     下次自动备份: <span className="font-medium">{nextBackupTime}</span>
                   </p>
                 </div>
+              ) : (
+                <div></div>
               )}
               <Button
                 onClick={handleCreateArchive}
                 disabled={creatingArchive || archiveClaw?.status !== 'RUNNING'}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex-shrink-0"
               >
                 {creatingArchive ? '创建中...' : '创建存档'}
               </Button>
-              )}
             </div>
 
             {/* Archives List */}
@@ -1525,73 +1530,106 @@ export function ClawsPage() {
                 <p className="text-sm">暂无存档</p>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="w-48">版本时间</TableHead>
-                      <TableHead className="w-20 text-center">类型</TableHead>
-                      <TableHead className="w-24 text-center">是否可用</TableHead>
-                      <TableHead className="text-right w-40">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {archives.map((archive, idx) => (
-                      <TableRow key={archive.timestamp || idx}>
-                        <TableCell className="font-mono text-sm">
-                          {formatArchiveTime(archive.timestamp)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {archive.auto_created === true ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs">
-                              自动
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs">
-                              手动
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {archive.ready_to_use === true ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs">
-                              可用
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
-                              准备中
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRestoreArchive(archive.timestamp)}
-                              disabled={restoringArchive || !archive.ready_to_use}
-                              className="hover:bg-indigo-50 text-indigo-600"
-                              title="恢复存档"
-                            >
-                              <Undo className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openDeleteArchive(archive.timestamp)}
-                              disabled={deletingArchive || !archive.ready_to_use}
-                              className="hover:bg-red-50 text-red-600"
-                              title="删除存档"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
+              <>
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="w-48">版本时间</TableHead>
+                        <TableHead className="w-20 text-center">类型</TableHead>
+                        <TableHead className="w-24 text-center">是否可用</TableHead>
+                        <TableHead className="text-right w-40">操作</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {archives
+                        .slice((archivePage - 1) * ARCHIVES_PER_PAGE, archivePage * ARCHIVES_PER_PAGE)
+                        .map((archive, idx) => (
+                          <TableRow key={archive.timestamp || idx}>
+                            <TableCell className="font-mono text-sm">
+                              {formatArchiveTime(archive.timestamp)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {archive.auto_created === true ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 border border-blue-200 text-xs">
+                                  自动
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs">
+                                  手动
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {archive.ready_to_use === true ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs">
+                                  可用
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
+                                  准备中
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRestoreArchive(archive.timestamp)}
+                                  disabled={restoringArchive || !archive.ready_to_use}
+                                  className="hover:bg-indigo-50 text-indigo-600"
+                                  title="恢复存档"
+                                >
+                                  <Undo className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openDeleteArchive(archive.timestamp)}
+                                  disabled={deletingArchive || !archive.ready_to_use}
+                                  className="hover:bg-red-50 text-red-600"
+                                  title="删除存档"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {archives.length > ARCHIVES_PER_PAGE && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
+                    <span className="text-sm text-gray-600">
+                      第 {archivePage} / {Math.ceil(archives.length / ARCHIVES_PER_PAGE)} 页
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setArchivePage(p => Math.max(1, p - 1))}
+                        disabled={archivePage === 1}
+                        className="rounded-lg"
+                      >
+                        上一页
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setArchivePage(p => Math.min(Math.ceil(archives.length / ARCHIVES_PER_PAGE), p + 1))}
+                        disabled={archivePage === Math.ceil(archives.length / ARCHIVES_PER_PAGE)}
+                        className="rounded-lg"
+                      >
+                        下一页
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
