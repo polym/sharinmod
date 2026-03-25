@@ -1262,17 +1262,20 @@ def create_auto_archive(
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
+    logger.info(f"[AutoArchive] Creating {schedule_type} archive for claw-{claw_id} (namespace: {namespace})")
     core_v1 = _get_core_v1_api()
     timestamp = str(int(time.time()))
 
     try:
         # Get current PVCs
+        logger.debug(f"[AutoArchive] claw-{claw_id}: Listing PVCs with label selector: app=claw-{claw_id}")
         pvcs = core_v1.list_namespaced_persistent_volume_claim(
             namespace=namespace,
             label_selector=f"app=claw-{claw_id}",
         )
+        logger.debug(f"[AutoArchive] claw-{claw_id}: Found {len(pvcs.items)} PVC(s)")
     except ApiException as e:
-        logger.error(f"Failed to list PVCs for claw-{claw_id}: {e}")
+        logger.error(f"[AutoArchive] claw-{claw_id}: Failed to list PVCs - {e}")
         return None
 
     workspace_pvc = None
@@ -1280,13 +1283,17 @@ def create_auto_archive(
 
     for pvc in pvcs.items:
         pvc_type = pvc.metadata.labels.get("pvc-type")
+        pvc_name = pvc.metadata.name
+        logger.debug(f"[AutoArchive] claw-{claw_id}: Found PVC {pvc_name} (type: {pvc_type})")
         if pvc_type == "workspace":
             workspace_pvc = pvc.metadata.name
         elif pvc_type == "rootfs":
             rootfs_pvc = pvc.metadata.name
 
+    logger.info(f"[AutoArchive] claw-{claw_id}: workspace_pvc={workspace_pvc}, rootfs_pvc={rootfs_pvc}")
+
     if not workspace_pvc:
-        logger.error(f"Workspace PVC not found for claw-{claw_id}")
+        logger.error(f"[AutoArchive] claw-{claw_id}: Workspace PVC not found!")
         return None
 
     # Create workspace snapshot with auto-created labels
@@ -1338,9 +1345,9 @@ def create_auto_archive(
             plural=plural,
             body=snapshot,
         )
-        logger.info(f"Created auto VolumeSnapshot: {snapshot_name} ({schedule_type})")
+        logger.info(f"[AutoArchive] claw-{claw_id}: Created workspace VolumeSnapshot: {snapshot_name} (timestamp: {timestamp})")
     except ApiException as e:
-        logger.error(f"Failed to create auto VolumeSnapshot {snapshot_name}: {e}")
+        logger.error(f"[AutoArchive] claw-{claw_id}: Failed to create workspace snapshot {snapshot_name} - {e}")
         return None
 
     # Create rootfs snapshot if exists
@@ -1384,10 +1391,11 @@ def create_auto_archive(
                 plural=plural,
                 body=snapshot,
             )
-            logger.info(f"Created auto VolumeSnapshot: {rootfs_snapshot_name} ({schedule_type})")
+            logger.info(f"[AutoArchive] claw-{claw_id}: Created rootfs VolumeSnapshot: {rootfs_snapshot_name}")
         except ApiException as e:
-            logger.error(f"Failed to create auto VolumeSnapshot {rootfs_snapshot_name}: {e}")
+            logger.error(f"[AutoArchive] claw-{claw_id}: Failed to create rootfs snapshot {rootfs_snapshot_name} - {e}")
 
+    logger.info(f"[AutoArchive] claw-{claw_id}: Auto archive completed successfully (timestamp: {timestamp})")
     return timestamp
 
 

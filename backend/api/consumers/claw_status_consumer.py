@@ -165,9 +165,13 @@ def _get_pod_waiting_reason(namespace: str, pod_name: str) -> Optional[str]:
         return None
 
 
-def get_pending_and_running_claws(session: Session) -> List[Claw]:
-    """Query all claws with PENDING or RUNNING status."""
-    statement = select(Claw).where(Claw.status.in_([ClawStatus.PENDING, ClawStatus.RUNNING]))
+def get_active_claws(session: Session) -> List[Claw]:
+    """
+    Query all claws with PENDING, RUNNING, or FAILED status.
+
+    Includes FAILED status to allow recovery when pods come back online.
+    """
+    statement = select(Claw).where(Claw.status.in_([ClawStatus.PENDING, ClawStatus.RUNNING, ClawStatus.FAILED]))
     return session.exec(statement).all()
 
 
@@ -256,7 +260,7 @@ def sync_claw_status(session: Session, claw: Claw) -> bool:
 
 def sync_all_claws(session: Session) -> int:
     """
-    Sync all PENDING and RUNNING claws.
+    Sync all PENDING, RUNNING, and FAILED claws.
 
     Args:
         session: Database session
@@ -264,7 +268,7 @@ def sync_all_claws(session: Session) -> int:
     Returns:
         Number of claws whose status was updated
     """
-    claws = get_pending_and_running_claws(session)
+    claws = get_active_claws(session)
     if not claws:
         return 0
 
