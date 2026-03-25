@@ -1633,15 +1633,7 @@ export function ClawsPage() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => { setArchiveOpen(false); setArchiveClaw(null); }}
-              className="rounded-xl"
-            >
-              关闭
-            </Button>
-          </DialogFooter>
+          <DialogFooter />
         </DialogContent>
       </Dialog>
 
