@@ -33,6 +33,59 @@ def _get_core_v1_api():
     return client.CoreV1Api()
 
 
+def create_pvc(
+    name: str,
+    storage_size: str,
+    storage_class: Optional[str],
+    labels: dict,
+    namespace: str = "default",
+) -> str:
+    """
+    Create a K8s PVC with the given name, storage size, storage class, and labels.
+    Returns the PVC name on success.
+    """
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+    pvc_spec = client.V1PersistentVolumeClaimSpec(
+        access_modes=["ReadWriteOnce"],
+        resources=client.V1ResourceRequirements(requests={"storage": storage_size}),
+    )
+    if storage_class:
+        pvc_spec.storage_class_name = storage_class
+    pvc = client.V1PersistentVolumeClaim(
+        metadata=client.V1ObjectMeta(name=name, namespace=namespace, labels=labels),
+        spec=pvc_spec,
+    )
+    core_v1.create_namespaced_persistent_volume_claim(namespace=namespace, body=pvc)
+    logger.info(f"Created PVC: {name} in namespace {namespace}")
+    return name
+
+
+def delete_pvc(name: str, namespace: str = "default") -> None:
+    """
+    Delete a K8s PVC by name. Silently ignores 404.
+    """
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+    try:
+        core_v1.delete_namespaced_persistent_volume_claim(
+            name=name,
+            namespace=namespace,
+            body=client.V1DeleteOptions(propagation_policy="Foreground"),
+        )
+        logger.info(f"Deleted PVC: {name} in namespace {namespace}")
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"PVC {name} not found, skipping deletion")
+        else:
+            logger.error(f"Failed to delete PVC {name}: {e}")
+            raise
+
+
 def create_config_map(claw_id: int, config_files: dict, namespace: str = "default") -> str:
     """
     Create a K8s ConfigMap named claw-{claw_id}-config.
@@ -204,9 +257,10 @@ def create_statefulset(
     namespace: str = "default",
 ) -> str:
     """
-    Create: ConfigMap + Headless Service + StatefulSet (with workspace PVC).
+    Create: ConfigMap + PVCs (workspace, optional rootfs) + Headless Service + StatefulSet.
     Returns StatefulSet name on success. Rolls back on failure.
     """
+    import time as _time
     import yaml as _yaml
     from kubernetes import client
     from api.config import _get_config_path
@@ -235,8 +289,30 @@ def create_statefulset(
     sts_name = f"claw-{claw_id}"
     configmap_name = create_config_map(claw_id, config_files, namespace)
     svc_created = False
+    pvc_created = False
+    rootfs_pvc_created = False
+
+    # 生成唯一标识符：timestamp + 4位随机数，避免同一秒内创建相同 claw_id 的竞态条件
+    # Fix #6: 防止竞态条件导致的 PVC 名称冲突
+    import random as _random
+    timestamp = int(_time.time())
+    unique_suffix = f"{timestamp}-{_random.randint(1000, 9999)}"
 
     try:
+        # Task 3: 创建 workspace-data PVC
+        workspace_pvc_name = f"{sts_name}-workspace-{unique_suffix}"
+        workspace_labels = {"app": sts_name, "pvc-type": "workspace"}
+        create_pvc(workspace_pvc_name, storage_size, storage_class, workspace_labels, namespace)
+        pvc_created = True
+
+        # Task 4: 创建 rootfs PVC（如果 prunc_enabled=true）
+        rootfs_pvc_name = None
+        if prunc_enabled:
+            rootfs_pvc_name = f"{sts_name}-rootfs-{unique_suffix}"
+            rootfs_labels = {"app": sts_name, "pvc-type": "rootfs"}
+            create_pvc(rootfs_pvc_name, rootfs_storage_size, rootfs_storage_class, rootfs_labels, namespace)
+            rootfs_pvc_created = True
+
         create_headless_service(claw_id, namespace)
         svc_created = True
 
@@ -244,6 +320,21 @@ def create_statefulset(
             name="config-volume",
             config_map=client.V1ConfigMapVolumeSource(name=configmap_name),
         )
+        # Task 5: 直接挂载已创建的 PVC
+        workspace_volume = client.V1Volume(
+            name="workspace-data",
+            persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=workspace_pvc_name),
+        )
+
+        # 构建 volumes 列表
+        volumes = [volume_config, workspace_volume]
+        if prunc_enabled:
+            rootfs_volume = client.V1Volume(
+                name="rootfs",
+                persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name=rootfs_pvc_name),
+            )
+            volumes.append(rootfs_volume)
+
         # claw 容器使用 subPath，只能看到 workspace 子目录
         volume_mounts = [
             client.V1VolumeMount(name="config-volume", mount_path="/config"),
@@ -283,30 +374,6 @@ def create_statefulset(
                 client.V1VolumeMount(name="workspace-data", mount_path=mount_path),
             ],
         )
-        pvc_spec = client.V1PersistentVolumeClaimSpec(
-            access_modes=["ReadWriteOnce"],
-            resources=client.V1ResourceRequirements(requests={"storage": storage_size}),
-        )
-        if storage_class:
-            pvc_spec.storage_class_name = storage_class
-        pvc_template = client.V1PersistentVolumeClaim(
-            metadata=client.V1ObjectMeta(name="workspace-data"),
-            spec=pvc_spec,
-        )
-        volume_claim_templates = [pvc_template]
-        if prunc_enabled:
-            rootfs_pvc_spec = client.V1PersistentVolumeClaimSpec(
-                access_modes=["ReadWriteOnce"],
-                resources=client.V1ResourceRequirements(requests={"storage": rootfs_storage_size}),
-            )
-            if rootfs_storage_class:
-                rootfs_pvc_spec.storage_class_name = rootfs_storage_class
-            volume_claim_templates.append(
-                client.V1PersistentVolumeClaim(
-                    metadata=client.V1ObjectMeta(name="rootfs"),
-                    spec=rootfs_pvc_spec,
-                )
-            )
         sts_spec = client.V1StatefulSetSpec(
             service_name=sts_name,
             replicas=1,
@@ -316,11 +383,11 @@ def create_statefulset(
                 spec=client.V1PodSpec(
                     **({"runtime_class_name": "prunc"} if prunc_enabled else {}),
                     containers=[container, filebrowser_container],
-                    volumes=[volume_config],
+                    volumes=volumes,
                     restart_policy="Always",
                 ),
             ),
-            volume_claim_templates=volume_claim_templates,
+            volume_claim_templates=[],  # Task 5: 不再使用 volume_claim_templates
         )
         sts = client.V1StatefulSet(
             metadata=client.V1ObjectMeta(
@@ -335,6 +402,7 @@ def create_statefulset(
         logger.info(f"Created K8s StatefulSet: {sts_name}")
         return sts_name
     except Exception:
+        # Task 6: 回滚逻辑 - 清理已创建的资源
         if svc_created:
             try:
                 _get_core_v1_api().delete_namespaced_service(
@@ -343,6 +411,17 @@ def create_statefulset(
                 )
             except Exception as e:
                 logger.warning(f"Rollback: failed to delete headless Service {sts_name}: {e}")
+        # 清理 PVC（先 rootfs 后 workspace）
+        if rootfs_pvc_created:
+            try:
+                delete_pvc(rootfs_pvc_name, namespace)
+            except Exception as e:
+                logger.warning(f"Rollback: failed to delete PVC {rootfs_pvc_name}: {e}")
+        if pvc_created:
+            try:
+                delete_pvc(workspace_pvc_name, namespace)
+            except Exception as e:
+                logger.warning(f"Rollback: failed to delete PVC {workspace_pvc_name}: {e}")
         try:
             delete_config_map(configmap_name, namespace)
         except Exception as e:
@@ -351,7 +430,15 @@ def create_statefulset(
 
 
 def delete_statefulset(sts_name: str, namespace: str = "default") -> None:
-    """Delete StatefulSet, its headless Service, PVC, and ConfigMap. Ignores 404."""
+    """
+    Delete StatefulSet, its headless Service, PVCs, and ConfigMap.
+
+    Ignores 404 for individual resources. Raises on critical failures.
+
+    Fix #7, #8: 改进错误处理，避免 PVC 孤立
+    - 如果 StatefulSet 删除失败（非 404），抛出异常，不继续删除 PVC
+    - 如果 list PVC 失败（非 404），记录 error 并抛出异常
+    """
     from kubernetes import client
     from kubernetes.client.rest import ApiException
 
@@ -360,11 +447,14 @@ def delete_statefulset(sts_name: str, namespace: str = "default") -> None:
     delete_opts = client.V1DeleteOptions(propagation_policy="Foreground")
 
     # 1. Delete StatefulSet
+    # Fix #8: 如果 StatefulSet 删除失败，不继续删除 PVC，避免资源不一致
     try:
         apps_v1.delete_namespaced_stateful_set(sts_name, namespace, body=delete_opts)
         logger.info(f"Deleted StatefulSet: {sts_name}")
     except ApiException as e:
-        if e.status != 404:
+        if e.status == 404:
+            logger.warning(f"StatefulSet {sts_name} not found, continuing cleanup")
+        else:
             logger.error(f"Failed to delete StatefulSet {sts_name}: {e}")
             raise
 
@@ -373,17 +463,48 @@ def delete_statefulset(sts_name: str, namespace: str = "default") -> None:
         core_v1.delete_namespaced_service(sts_name, namespace, body=delete_opts)
         logger.info(f"Deleted headless Service: {sts_name}")
     except ApiException as e:
-        if e.status != 404:
+        if e.status == 404:
+            logger.warning(f"Service {sts_name} not found")
+        else:
             logger.warning(f"Failed to delete Service {sts_name}: {e}")
 
-    # 3. Delete PVCs (StatefulSet 不自动删除 PVC)
-    for pvc_name in [f"workspace-data-{sts_name}-0", f"rootfs-{sts_name}-0"]:
-        try:
-            core_v1.delete_namespaced_persistent_volume_claim(pvc_name, namespace, body=delete_opts)
-            logger.info(f"Deleted PVC: {pvc_name}")
-        except ApiException as e:
-            if e.status != 404:
-                logger.warning(f"Failed to delete PVC {pvc_name}: {e}")
+    # 3. Delete PVCs using label selector
+    # Fix #7: 如果 list PVC 失败（非 404），记录 error 并抛出异常
+    pvcs_deleted = 0
+    pvc_errors = []
+    try:
+        pvcs = core_v1.list_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            label_selector=f"app={sts_name}",
+        )
+        for pvc in pvcs.items:
+            try:
+                core_v1.delete_namespaced_persistent_volume_claim(
+                    pvc.metadata.name, namespace, body=delete_opts
+                )
+                logger.info(f"Deleted PVC: {pvc.metadata.name}")
+                pvcs_deleted += 1
+            except ApiException as e:
+                if e.status == 404:
+                    logger.warning(f"PVC {pvc.metadata.name} not found")
+                else:
+                    err_msg = f"Failed to delete PVC {pvc.metadata.name}: {e}"
+                    logger.error(err_msg)
+                    pvc_errors.append(err_msg)
+    except ApiException as e:
+        if e.status == 404:
+            logger.warning(f"Namespace {namespace} not found when listing PVCs")
+        else:
+            err_msg = f"Failed to list PVCs for deletion: {e}"
+            logger.error(err_msg)
+            raise RuntimeError(err_msg) from e
+
+    # 如果有 PVC 删除错误，抛出异常通知调用者
+    if pvc_errors:
+        raise RuntimeError(f"Failed to delete {len(pvc_errors)} PVC(s): {'; '.join(pvc_errors)}")
+
+    if pvcs_deleted > 0:
+        logger.info(f"Deleted {pvcs_deleted} PVC(s) for {sts_name}")
 
     # 4. Delete ConfigMap
     delete_config_map(f"{sts_name}-config", namespace)
