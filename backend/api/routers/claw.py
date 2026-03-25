@@ -11,7 +11,8 @@ import httpx
 from api.database import get_db
 from api.dependencies.auth import get_current_user
 from api.models.user import User
-from api.schemas.claw import ClawCreate, ClawResponse, ClawUpdate, ClawList
+from api.models.claw import ClawStatus
+from api.schemas.claw import ClawCreate, ClawResponse, ClawUpdate, ClawList, ArchiveList, ArchiveItem, ArchiveCreateResponse
 from api.config import settings
 from api.services import k8s_service
 from api.services.claw_service import (
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/api/claws", tags=["claws"])
 def get_claw_config(
     current_user: User = Depends(get_current_user),
 ):
-    """返回龙虾相关前端配置，包括主流大脑模型列表"""
+    """返回龙虾相关前端配置，包括主流大脑模型列表和存档开关"""
     import yaml
     from api.config import _get_config_path
     config_path = _get_config_path()
@@ -39,7 +40,13 @@ def get_claw_config(
         full_config = yaml.safe_load(f) or {}
     claw_types_config = full_config.get("claw_types", {})
     featured = claw_types_config.get("featured_brain_models", ["glm-4.7", "minimax-m2.5", "kimi-k2.5"])
-    return {"featured_brain_models": featured}
+    prunc_enabled = full_config.get("prunc_enabled", False) is True
+    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    return {
+        "featured_brain_models": featured,
+        "prunc_enabled": prunc_enabled,
+        "claws_archive_enabled": claws_archive_enabled,
+    }
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=ClawResponse)
@@ -290,6 +297,200 @@ _HOP_BY_HOP_HEADERS = frozenset({
 _K8S_NS_RE = re.compile(r'^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$')
 
 _FB_COOKIE_NAME = "sharinmod-fb-token"
+
+
+@router.get("/{claw_id}/archives", response_model=ArchiveList)
+def get_claw_archives(
+    claw_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    获取龙虾的存档列表
+
+    - 返回指定龙虾的所有存档
+    - 仅在 prunc_enabled=true 且 claws_archive_enabled=true 时可用
+    """
+    from api.config import _get_config_path
+    import yaml
+
+    # 检查存档功能是否启用
+    config_path = _get_config_path()
+    with open(config_path, "r", encoding="utf-8") as f:
+        full_config = yaml.safe_load(f) or {}
+    prunc_enabled = full_config.get("prunc_enabled", False) is True
+    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+
+    if not prunc_enabled or not claws_archive_enabled:
+        raise HTTPException(status_code=403, detail="存档功能未启用")
+
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    # 获取存档列表
+    archives = k8s_service.list_snapshots(
+        claw_id,
+        namespace=claw.k8s_namespace or "default",
+    )
+
+    return ArchiveList(total=len(archives), items=archives)
+
+
+@router.post("/{claw_id}/archives", status_code=status.HTTP_201_CREATED, response_model=ArchiveCreateResponse)
+def create_claw_archive(
+    claw_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    创建龙虾存档
+
+    - 为指定龙虾创建 workspace 和 rootfs 的 VolumeSnapshot
+    - 仅在 prunc_enabled=true 且 claws_archive_enabled=true 时可用
+    - 龙虾状态必须为 RUNNING
+    """
+    import time
+    from api.config import _get_config_path
+    import yaml
+
+    # 检查存档功能是否启用
+    config_path = _get_config_path()
+    with open(config_path, "r", encoding="utf-8") as f:
+        full_config = yaml.safe_load(f) or {}
+    prunc_enabled = full_config.get("prunc_enabled", False) is True
+    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+
+    if not prunc_enabled or not claws_archive_enabled:
+        raise HTTPException(status_code=403, detail="存档功能未启用")
+
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    # 检查龙虾状态
+    if claw.status != ClawStatus.RUNNING:
+        raise HTTPException(status_code=400, detail="只能在运行中的龙虾上创建存档")
+
+    if not claw.k8s_deployment_name:
+        raise HTTPException(status_code=400, detail="Claw has no K8s resource")
+
+    namespace = claw.k8s_namespace or "default"
+    timestamp = str(int(time.time()))
+
+    # 获取当前 PVC 名称
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = k8s_service._get_core_v1_api()
+
+    try:
+        pvcs = core_v1.list_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            label_selector=f"app=claw-{claw_id}",
+        )
+    except ApiException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list PVCs: {e}")
+
+    workspace_pvc = None
+    rootfs_pvc = None
+
+    for pvc in pvcs.items:
+        pvc_type = pvc.metadata.labels.get("pvc-type")
+        if pvc_type == "workspace":
+            workspace_pvc = pvc.metadata.name
+        elif pvc_type == "rootfs":
+            rootfs_pvc = pvc.metadata.name
+
+    if not workspace_pvc:
+        raise HTTPException(status_code=500, detail="Workspace PVC not found")
+
+    # 创建 workspace snapshot
+    workspace_snapshot = k8s_service.create_snapshot(
+        claw_id,
+        workspace_pvc,
+        "workspace-data",
+        timestamp,
+        namespace,
+    )
+
+    # 创建 rootfs snapshot (如果存在)
+    rootfs_snapshot = None
+    if rootfs_pvc:
+        rootfs_snapshot = k8s_service.create_snapshot(
+            claw_id,
+            rootfs_pvc,
+            "rootfs",
+            timestamp,
+            namespace,
+        )
+
+    return ArchiveCreateResponse(
+        timestamp=timestamp,
+        workspace_snapshot_name=workspace_snapshot,
+        rootfs_snapshot_name=rootfs_snapshot,
+        created_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    )
+
+
+@router.post("/{claw_id}/archives/{timestamp}/restore", response_model=ClawResponse)
+def restore_claw_archive(
+    claw_id: int,
+    timestamp: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    从存档恢复龙虾
+
+    - 从指定 timestamp 的存档恢复龙虾
+    - 仅在 prunc_enabled=true 且 claws_archive_enabled=true 时可用
+    - 会创建新 PVC 并更新 StatefulSet
+    """
+    from api.config import _get_config_path
+    import yaml
+
+    # 检查存档功能是否启用
+    config_path = _get_config_path()
+    with open(config_path, "r", encoding="utf-8") as f:
+        full_config = yaml.safe_load(f) or {}
+    prunc_enabled = full_config.get("prunc_enabled", False) is True
+    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+
+    if not prunc_enabled or not claws_archive_enabled:
+        raise HTTPException(status_code=403, detail="存档功能未启用")
+
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    if not claw.k8s_deployment_name:
+        raise HTTPException(status_code=400, detail="Claw has no K8s resource")
+
+    # 获取存档信息
+    archives = k8s_service.list_snapshots(
+        claw_id,
+        namespace=claw.k8s_namespace or "default",
+    )
+
+    target_archive = None
+    for archive in archives:
+        if archive["timestamp"] == timestamp:
+            target_archive = archive
+            break
+
+    if not target_archive:
+        raise HTTPException(status_code=404, detail=f"Archive {timestamp} not found")
+
+    # 验证快照名称存在
+    workspace_snapshot_name = target_archive.get("workspace_snapshot_name")
+    if not workspace_snapshot_name:
+        raise HTTPException(status_code=400, detail="Archive has no workspace snapshot")
+
+    # 恢复存档
+    k8s_service.restore_from_snapshot(
+        claw_id,
+        timestamp,
+        workspace_snapshot_name,
+        target_archive.get("rootfs_snapshot_name"),
+        namespace=claw.k8s_namespace or "default",
+    )
+
+    return claw
 
 
 def _filter_cookie_header(cookie_header: str | None) -> str | None:

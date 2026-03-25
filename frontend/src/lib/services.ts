@@ -373,4 +373,13 @@ export const clawAPI = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }),
+
+  getArchives: (id: number) =>
+    api.get(`/api/claws/${id}/archives`),
+
+  createArchive: (id: number) =>
+    api.post(`/api/claws/${id}/archives`),
+
+  restoreArchive: (id: number, timestamp: string) =>
+    api.post(`/api/claws/${id}/archives/${timestamp}/restore`),
 };

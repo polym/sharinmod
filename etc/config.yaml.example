@@ -8,6 +8,7 @@ workspace_mount_path: "/app/workspace"  # workspace PVC 在容器内的挂载路
 prunc_enabled: false            # true = 启用 prunc RuntimeClass + rootfs 磁盘（需要集群支持 prunc）
 rootfs_storage_class: ""        # rootfs PVC 的 StorageClass（空字符串使用集群默认）
 rootfs_storage_size: "10Gi"     # 每只龙虾的 rootfs PVC 大小（挂载到 /.sysdisk，仅 prunc_enabled=true 时生效）
+claws_archive_enabled: false    # true = 启用龙虾存档功能（需要 prunc_enabled=true 且集群支持 VolumeSnapshot）
 
 # Application Configuration
 # 敏感配置（如密钥、密码等）支持环境变量 fallback

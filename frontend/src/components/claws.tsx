@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, ChevronsDown, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -211,6 +211,18 @@ export function ClawsPage() {
   const logsAbortRef = useRef<AbortController | null>(null);
   const logsScrollRef = useRef<HTMLDivElement | null>(null);
 
+  // Archive dialog
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveClaw, setArchiveClaw] = useState<Claw | null>(null);
+  const [archives, setArchives] = useState<any[]>([]);
+  const [archivesLoading, setArchivesLoading] = useState(false);
+  const [creatingArchive, setCreatingArchive] = useState(false);
+  const [restoringArchive, setRestoringArchive] = useState(false);
+
+  // Archive feature flags
+  const [pruncEnabled, setPruncEnabled] = useState(false);
+  const [clawsArchiveEnabled, setClawsArchiveEnabled] = useState(false);
+
   const { toast } = useToast();
 
   const openFilebrowser = (clawId: number) => {
@@ -295,6 +307,20 @@ export function ClawsPage() {
     };
     load();
   }, [createOpen]);
+
+  // Load archive feature flags on mount
+  useEffect(() => {
+    const loadArchiveFlags = async () => {
+      try {
+        const configRes = await clawAPI.getConfig();
+        setPruncEnabled(configRes.data.prunc_enabled ?? false);
+        setClawsArchiveEnabled(configRes.data.claws_archive_enabled ?? false);
+      } catch {
+        // 静默失败
+      }
+    };
+    loadArchiveFlags();
+  }, []);
 
   const resetCreateForm = () => {
     setNewName('');
@@ -707,12 +733,84 @@ export function ClawsPage() {
     }
   };
 
+  const openArchive = async (claw: Claw) => {
+    setArchiveClaw(claw);
+    setArchives([]);
+    setArchivesLoading(true);
+    setArchiveOpen(true);
+    try {
+      const response = await clawAPI.getArchives(claw.id);
+      setArchives(response.data.items ?? []);
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '获取存档列表失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setArchivesLoading(false);
+    }
+  };
+
+  const handleCreateArchive = async () => {
+    if (!archiveClaw) return;
+    setCreatingArchive(true);
+    try {
+      const response = await clawAPI.createArchive(archiveClaw.id);
+      toast({ title: '成功', description: '存档创建成功' });
+      // Reload archives
+      const archivesResponse = await clawAPI.getArchives(archiveClaw.id);
+      setArchives(archivesResponse.data.items ?? []);
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '创建存档失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreatingArchive(false);
+    }
+  };
+
+  const handleRestoreArchive = async (timestamp: string) => {
+    if (!archiveClaw) return;
+    setRestoringArchive(true);
+    try {
+      await clawAPI.restoreArchive(archiveClaw.id, timestamp);
+      toast({ title: '成功', description: '存档恢复成功，龙虾正在重启' });
+      setArchiveOpen(false);
+      setArchiveClaw(null);
+      loadClaws();
+    } catch (error: any) {
+      toast({
+        title: '错误',
+        description: error.response?.data?.detail || '恢复存档失败',
+        variant: 'destructive',
+      });
+    } finally {
+      setRestoringArchive(false);
+    }
+  };
+
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleString('zh-CN', {
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
       hour12: false,
     });
+
+  const formatArchiveTime = (timestamp: string | number) => {
+    const date = new Date(Number(timestamp) * 1000);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -784,21 +882,23 @@ export function ClawsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openLogs(claw)}
-                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
-                          title="查看日志"
-                        >
-                          <ScrollText className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => openFilebrowser(claw.id)}
                           className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
                           title="文件管理"
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
                         </Button>
+                        {(pruncEnabled && clawsArchiveEnabled) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openArchive(claw)}
+                            className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                            title="存档"
+                          >
+                            <ChevronsDown className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -815,6 +915,10 @@ export function ClawsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openLogs(claw)}>
+                              <ScrollText className="w-4 h-4 mr-2" />
+                              日志
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEdit(claw)}>
                               <Edit className="w-4 h-4 mr-2" />
                               编辑
@@ -1329,6 +1433,111 @@ export function ClawsPage() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Dialog */}
+      <Dialog open={archiveOpen} onOpenChange={(open) => { if (!open) { setArchiveOpen(false); setArchiveClaw(null); } else { setArchiveOpen(open); } }}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ChevronsDown className="w-4 h-4 text-indigo-500" />
+              龙虾「{archiveClaw?.name}」存档管理
+            </DialogTitle>
+            <DialogDescription>
+              查看和管理龙虾的数据快照存档
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Create Archive Button */}
+            <div className="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-indigo-900">创建新存档</h3>
+                <p className="text-xs text-indigo-600 mt-1">为当前龙虾状态创建快照</p>
+              </div>
+              <Button
+                onClick={handleCreateArchive}
+                disabled={creatingArchive || archiveClaw?.status !== 'RUNNING'}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              >
+                {creatingArchive ? '创建中...' : '创建存档'}
+              </Button>
+            </div>
+
+            {/* Archives List */}
+            {archivesLoading ? (
+              <div className="text-center py-8 text-indigo-400 font-medium">加载中...</div>
+            ) : archives.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-3xl mb-2">💾</div>
+                <p className="text-sm">暂无存档</p>
+              </div>
+            ) : (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="w-56">版本时间</TableHead>
+                      <TableHead className="w-24 text-center">是否可用</TableHead>
+                      <TableHead className="text-right w-32">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {archives.map((archive, idx) => (
+                      <TableRow key={archive.timestamp || idx}>
+                        <TableCell className="font-mono text-sm">
+                          {formatArchiveTime(archive.timestamp)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {archive.ready_to_use === true ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs">
+                              可用
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
+                              准备中
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRestoreArchive(archive.timestamp)}
+                            disabled={restoringArchive || !archive.ready_to_use}
+                            className="hover:bg-indigo-50 text-indigo-600"
+                            title="恢复存档"
+                          >
+                            <Undo className="w-3.5 h-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Warning message for non-running claw */}
+            {archiveClaw?.status !== 'RUNNING' && (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                <p className="text-xs text-yellow-700">
+                  ⚠️ 仅运行中的龙虾可以创建存档
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setArchiveOpen(false); setArchiveClaw(null); }}
+              className="rounded-xl"
+            >
+              关闭
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

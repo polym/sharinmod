@@ -33,6 +33,18 @@ def _get_core_v1_api():
     return client.CoreV1Api()
 
 
+def _get_custom_objects_api():
+    """Load kubeconfig and return CustomObjectsApi client for CRD operations."""
+    from kubernetes import client, config
+
+    kubeconfig_path = os.getenv("KUBECONFIG_PATH", os.path.expanduser("~/.kube/config"))
+    try:
+        config.load_kube_config(config_file=kubeconfig_path)
+    except Exception:
+        config.load_incluster_config()
+    return client.CustomObjectsApi()
+
+
 def create_pvc(
     name: str,
     storage_size: str,
@@ -698,3 +710,363 @@ def exec_pod_command_stream(
         yield f"[K8s 错误] {e.status}: {e.reason}\n"
     except Exception as e:
         yield f"[错误] {str(e)}\n"
+
+
+def create_snapshot(
+    claw_id: int,
+    pvc_name: str,
+    pvc_type: str,
+    timestamp: str,
+    namespace: str = "default",
+) -> str:
+    """
+    Create a VolumeSnapshot for a PVC using CustomObjectsApi.
+
+    Args:
+        claw_id: ID of the claw
+        pvc_name: Name of the PVC to snapshot
+        pvc_type: Type of PVC (workspace-data or rootfs)
+        timestamp: Timestamp for snapshot versioning
+        namespace: K8s namespace
+
+    Returns:
+        Snapshot name
+    """
+    from kubernetes.client.rest import ApiException
+
+    custom_api = _get_custom_objects_api()
+    core_v1 = _get_core_v1_api()
+
+    # Get the PVC to get its storage class
+    try:
+        pvc = core_v1.read_namespaced_persistent_volume_claim(pvc_name, namespace)
+        storage_class = pvc.spec.storage_class_name
+    except ApiException as e:
+        if e.status == 404:
+            logger.error(f"PVC {pvc_name} not found")
+            raise
+        raise
+
+    snapshot_name = f"claw-{claw_id}-{pvc_type}-{timestamp}"
+
+    # VolumeSnapshot CRD structure
+    snapshot = {
+        "apiVersion": "snapshot.storage.k8s.io/v1",
+        "kind": "VolumeSnapshot",
+        "metadata": {
+            "name": snapshot_name,
+            "namespace": namespace,
+            "labels": {
+                "app": f"claw-{claw_id}",
+                "archive-timestamp": timestamp,
+                "pvc-type": pvc_type,
+            },
+        },
+        "spec": {
+            "source": {
+                "persistentVolumeClaimName": pvc_name,
+            },
+            "volumeSnapshotClassName": "topolvm-snapclass",
+        },
+    }
+
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    try:
+        custom_api.create_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            body=snapshot,
+        )
+        logger.info(f"Created VolumeSnapshot: {snapshot_name}")
+        return snapshot_name
+    except ApiException as e:
+        logger.error(f"Failed to create VolumeSnapshot {snapshot_name}: {e}")
+        raise
+
+
+def list_snapshots(claw_id: int, namespace: str = "default") -> list:
+    """
+    List all VolumeSnapshots for a claw, grouped by timestamp.
+
+    Args:
+        claw_id: ID of the claw
+        namespace: K8s namespace
+
+    Returns:
+        List of archive items, each containing timestamp, workspace_snapshot_name,
+        rootfs_snapshot_name, and created_at
+    """
+    from kubernetes.client.rest import ApiException
+    from collections import defaultdict
+
+    custom_api = _get_custom_objects_api()
+
+    group = "snapshot.storage.k8s.io"
+    version = "v1"
+    plural = "volumesnapshots"
+
+    try:
+        snapshots = custom_api.list_namespaced_custom_object(
+            group=group,
+            version=version,
+            namespace=namespace,
+            plural=plural,
+            label_selector=f"app=claw-{claw_id}",
+        )
+    except ApiException as e:
+        if e.status == 404:
+            return []
+        logger.error(f"Failed to list snapshots for claw-{claw_id}: {e}")
+        raise
+
+    # Group snapshots by timestamp
+    archive_groups = defaultdict(lambda: {"workspace": None, "rootfs": None, "created_at": None, "ready_to_use": None})
+
+    for snap in snapshots.get("items", []):
+        labels = snap.get("metadata", {}).get("labels", {})
+        timestamp = labels.get("archive-timestamp")
+        pvc_type = labels.get("pvc-type")
+        created_at = snap.get("metadata", {}).get("creationTimestamp")
+        # Check if snapshot is ready to use
+        ready_to_use = snap.get("status", {}).get("readyToUse", False)
+
+        if timestamp and pvc_type:
+            # Map pvc_type to archive type key
+            # "workspace-data" -> "workspace", "rootfs" -> "rootfs"
+            archive_type = "workspace" if pvc_type == "workspace-data" else pvc_type
+            archive_groups[timestamp][archive_type] = snap.get("metadata", {}).get("name")
+            if created_at:
+                archive_groups[timestamp]["created_at"] = created_at
+            # Archive is ready only if all snapshots are ready
+            if archive_groups[timestamp]["ready_to_use"] is None:
+                archive_groups[timestamp]["ready_to_use"] = ready_to_use
+            else:
+                archive_groups[timestamp]["ready_to_use"] = archive_groups[timestamp]["ready_to_use"] and ready_to_use
+
+    # Convert to list and sort by timestamp descending
+    # Only include archives that have at least a workspace snapshot
+    result = [
+        {
+            "timestamp": ts,
+            "workspace_snapshot_name": data["workspace"],
+            "rootfs_snapshot_name": data["rootfs"],
+            "created_at": data["created_at"],
+            "ready_to_use": data.get("ready_to_use", False),
+        }
+        for ts, data in sorted(archive_groups.items(), key=lambda x: x[0], reverse=True)
+        if data["workspace"]  # Must have workspace snapshot
+    ]
+
+    return result
+
+
+def restore_from_snapshot(
+    claw_id: int,
+    timestamp: str,
+    workspace_snapshot_name: str,
+    rootfs_snapshot_name: Optional[str],
+    namespace: str = "default",
+) -> None:
+    """
+    Restore a claw from snapshots by creating new PVCs and updating StatefulSet.
+
+    Args:
+        claw_id: ID of the claw
+        timestamp: Archive timestamp
+        workspace_snapshot_name: Name of workspace snapshot
+        rootfs_snapshot_name: Name of rootfs snapshot (optional)
+        namespace: K8s namespace
+
+    The process:
+    1. Stop StatefulSet (set replicas to 0)
+    2. Wait for pods to terminate
+    3. Create new PVCs from snapshots
+    4. Update StatefulSet volume references to new PVCs
+    5. Start StatefulSet (set replicas back to 1)
+    6. Delete old PVCs
+    """
+    import time
+    import random
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+    apps_v1 = _get_apps_v1_api()
+
+    sts_name = f"claw-{claw_id}"
+
+    # Generate unique suffix for new PVCs
+    unique_suffix = f"{int(time.time())}-{random.randint(1000, 9999)}"
+
+    # Get current PVC info from StatefulSet to find storage class and size
+    def _get_current_pvc_info(pvc_type: str) -> tuple:
+        """Get storage class and size from current PVC used by StatefulSet."""
+        pvcs = core_v1.list_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            label_selector=f"app={sts_name},pvc-type={pvc_type}",
+        )
+        if not pvcs.items:
+            raise ValueError(f"No current PVC found for {pvc_type}")
+        pvc = pvcs.items[0]
+        storage_class = pvc.spec.storage_class_name
+        storage_size = pvc.spec.resources.requests["storage"]
+        return storage_class, storage_size
+
+    # Step 1: Stop StatefulSet (set replicas to 0)
+    try:
+        sts = apps_v1.read_namespaced_stateful_set(sts_name, namespace)
+        sts.spec.replicas = 0
+        apps_v1.patch_namespaced_stateful_set(
+            name=sts_name,
+            namespace=namespace,
+            body=sts,
+        )
+        logger.info(f"Stopped StatefulSet {sts_name} by setting replicas to 0")
+    except ApiException as e:
+        logger.error(f"Failed to stop StatefulSet {sts_name}: {e}")
+        raise
+
+    # Step 2: Create new PVCs from snapshots
+    ws_storage_class, ws_storage_size = _get_current_pvc_info("workspace")
+    new_workspace_pvc = f"{sts_name}-workspace-{unique_suffix}"
+    new_workspace_labels = {"app": sts_name, "pvc-type": "workspace"}
+
+    create_pvc_from_snapshot(
+        new_workspace_pvc,
+        workspace_snapshot_name,
+        ws_storage_size,
+        ws_storage_class,
+        new_workspace_labels,
+        namespace,
+    )
+
+    # Create new rootfs PVC from snapshot (if exists)
+    new_rootfs_pvc = None
+    if rootfs_snapshot_name:
+        rootfs_storage_class, rootfs_storage_size = _get_current_pvc_info("rootfs")
+        new_rootfs_pvc = f"{sts_name}-rootfs-{unique_suffix}"
+        new_rootfs_labels = {"app": sts_name, "pvc-type": "rootfs"}
+
+        create_pvc_from_snapshot(
+            new_rootfs_pvc,
+            rootfs_snapshot_name,
+            rootfs_storage_size,
+            rootfs_storage_class,
+            new_rootfs_labels,
+            namespace,
+        )
+
+    # Step 4: Update StatefulSet to use new PVCs
+    try:
+        sts = apps_v1.read_namespaced_stateful_set(sts_name, namespace)
+
+        # Find and update volume references
+        pod_spec = sts.spec.template.spec
+        for volume in pod_spec.volumes:
+            if volume.name == "workspace-data" and volume.persistent_volume_claim:
+                volume.persistent_volume_claim.claim_name = new_workspace_pvc
+            elif volume.name == "rootfs" and volume.persistent_volume_claim and new_rootfs_pvc:
+                volume.persistent_volume_claim.claim_name = new_rootfs_pvc
+
+        # Step 5: Start StatefulSet (set replicas to 1)
+        sts.spec.replicas = 1
+        apps_v1.patch_namespaced_stateful_set(
+            name=sts_name,
+            namespace=namespace,
+            body=sts,
+        )
+        logger.info(f"Updated StatefulSet {sts_name} to use new PVCs and set replicas to 1")
+
+    except ApiException as e:
+        logger.error(f"Failed to update StatefulSet {sts_name}: {e}")
+        raise
+
+    # Step 6: Delete old PVCs using label selector (excluding new ones)
+    try:
+        old_pvcs = core_v1.list_namespaced_persistent_volume_claim(
+            namespace=namespace,
+            label_selector=f"app={sts_name}",
+        )
+        for pvc in old_pvcs.items:
+            if pvc.metadata.name not in [new_workspace_pvc, new_rootfs_pvc]:
+                try:
+                    core_v1.delete_namespaced_persistent_volume_claim(
+                        name=pvc.metadata.name,
+                        namespace=namespace,
+                        body=client.V1DeleteOptions(propagation_policy="Foreground"),
+                    )
+                    logger.info(f"Deleted old PVC: {pvc.metadata.name}")
+                except ApiException as e:
+                    if e.status == 404:
+                        logger.warning(f"PVC {pvc.metadata.name} not found")
+                    else:
+                        logger.warning(f"Failed to delete old PVC {pvc.metadata.name}: {e}")
+    except ApiException as e:
+        logger.warning(f"Failed to list old PVCs for deletion: {e}")
+
+    logger.info(f"Successfully restored claw-{claw_id} to archive {timestamp}")
+
+
+def create_pvc_from_snapshot(
+    name: str,
+    snapshot_name: str,
+    storage_size: str,
+    storage_class: Optional[str],
+    labels: dict,
+    namespace: str = "default",
+) -> str:
+    """
+    Create a PVC from a VolumeSnapshot.
+
+    Args:
+        name: Name for the new PVC
+        snapshot_name: Name of the VolumeSnapshot to restore from
+        storage_size: Storage size for the PVC
+        storage_class: StorageClass for the PVC
+        labels: Labels to apply to the PVC
+        namespace: K8s namespace
+
+    Returns:
+        PVC name
+    """
+    from kubernetes import client
+    from kubernetes.client.rest import ApiException
+
+    core_v1 = _get_core_v1_api()
+
+    # Build PVC spec with dataSource as dict
+    pvc_dict = {
+        "apiVersion": "v1",
+        "kind": "PersistentVolumeClaim",
+        "metadata": {
+            "name": name,
+            "namespace": namespace,
+            "labels": labels,
+        },
+        "spec": {
+            "accessModes": ["ReadWriteOnce"],
+            "resources": {
+                "requests": {
+                    "storage": storage_size,
+                },
+            },
+            "dataSource": {
+                "kind": "VolumeSnapshot",
+                "apiGroup": "snapshot.storage.k8s.io",
+                "name": snapshot_name,
+            },
+        },
+    }
+
+    if storage_class:
+        pvc_dict["spec"]["storageClassName"] = storage_class
+
+    # Use create_namespaced_persistent_volume_claim with dict body
+    core_v1.create_namespaced_persistent_volume_claim(namespace=namespace, body=pvc_dict)
+    logger.info(f"Created PVC from snapshot: {name}")
+    return name

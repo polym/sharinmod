@@ -72,3 +72,26 @@ class ClawList(BaseModel):
     """List of claws with count"""
     total: int
     items: List[ClawResponse]
+
+
+class ArchiveItem(BaseModel):
+    """Single archive item for a claw"""
+    timestamp: str = Field(description="Archive timestamp as version identifier")
+    workspace_snapshot_name: Optional[str] = Field(default=None, description="Workspace VolumeSnapshot name")
+    rootfs_snapshot_name: Optional[str] = Field(default=None, description="Rootfs VolumeSnapshot name")
+    created_at: Optional[str] = Field(default=None, description="Archive creation time")
+    ready_to_use: Optional[bool] = Field(default=None, description="Whether all snapshots in this archive are ready to use")
+
+
+class ArchiveList(BaseModel):
+    """List of archives for a claw"""
+    total: int
+    items: List[ArchiveItem]
+
+
+class ArchiveCreateResponse(BaseModel):
+    """Response for creating an archive"""
+    timestamp: str = Field(description="Archive timestamp as version identifier")
+    workspace_snapshot_name: str = Field(description="Created workspace VolumeSnapshot name")
+    rootfs_snapshot_name: Optional[str] = Field(default=None, description="Created rootfs VolumeSnapshot name")
+    created_at: str = Field(description="Archive creation time")
