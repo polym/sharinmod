@@ -125,19 +125,23 @@ class UsageOverviewResponse(BaseModel):
     }
 
 
-class DailyTrendData(BaseModel):
-    """Daily token consumption trend data"""
-    date: Date = Field(description="Date of the trend data point")
-    total_tokens: int = Field(description="Total tokens consumed on this date")
+class TrendData(BaseModel):
+    """Token consumption trend data point for chart visualization"""
+    time_slot: int = Field(description="Time slot index (0-95, representing one of 96 data points)")
+    total_tokens: int = Field(description="Total tokens consumed in this time slot")
 
     model_config = {
         "json_schema_extra": {
             "example": {
-                "date": "2026-03-26",
+                "time_slot": 0,
                 "total_tokens": 5000
             }
         }
     }
+
+
+# Alias for backward compatibility
+DailyTrendData = TrendData
 
 
 class UserRankingData(BaseModel):
@@ -178,7 +182,7 @@ class SystemOverviewResponse(BaseModel):
     today_tokens: int = Field(description="Total tokens consumed today")
     user_count: int = Field(description="Total number of active users (excluding soft-deleted)")
     claw_count: int = Field(description="Total number of claw instances")
-    daily_trends: List[DailyTrendData] = Field(description="Daily token consumption trends")
+    daily_trends: List[TrendData] = Field(description="Token consumption trends (96 data points, granularity depends on days parameter)")
     user_rankings: List[UserRankingData] = Field(description="Top 10 users by token consumption")
     model_usage: List[ModelUsageData] = Field(description="Model token usage distribution")
 

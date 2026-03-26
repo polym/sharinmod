@@ -20,7 +20,8 @@ from api.schemas.usage_log import (
     UsageLogResponse,
     UsageOverviewResponse,
     QuarterHourlyTokenData,
-    DailyTrendData,
+    TrendData,
+    DailyTrendData,  # Alias for backward compatibility
     UserRankingData,
     ModelUsageData,
     SystemOverviewResponse
@@ -735,24 +736,57 @@ def get_system_overview(
     claw_count_query = select(func.count()).select_from(Claw)
     claw_count = db.exec(claw_count_query).one()
 
-    # Get daily trends for the specified number of days
+    # Get trend data with 96 data points, granularity depends on days parameter
     utc_start_trends = datetime.now(timezone.utc) - timedelta(days=days)
-    daily_trends_query = text("""
-        SELECT DATE(request_time) AS date, SUM(total_tokens) AS tokens
-        FROM usage_logs
-        WHERE request_time >= :start_date
-        GROUP BY DATE(request_time)
-        ORDER BY date DESC
-    """)
-    daily_trends_result = db.execute(
-        daily_trends_query,
-        {"start_date": utc_start_trends}
-    ).fetchall()
 
-    daily_trends = [
-        DailyTrendData(date=row[0], total_tokens=row[1] or 0)
-        for row in daily_trends_result
-    ]
+    # Calculate granularity: total hours / 96 data points
+    total_hours = days * 24
+    minutes_per_slot = int((total_hours * 60) / 96)  # Convert to minutes
+
+    # Check database type
+    db_url = str(db.get_bind().url)
+    is_sqlite = db_url.startswith("sqlite")
+
+    # Initialize 96 data points with 0 tokens
+    trends_data = [TrendData(time_slot=i, total_tokens=0) for i in range(96)]
+
+    if is_sqlite:
+        # SQLite compatible query
+        trends_query = text(f"""
+            SELECT CAST(((strftime('%%s', request_time) - strftime('%%s', :start_time)) / {minutes_per_slot * 60}) AS INTEGER) AS time_slot,
+                   SUM(total_tokens) AS tokens
+            FROM usage_logs
+            WHERE request_time >= :start_date
+            GROUP BY time_slot
+            ORDER BY time_slot
+        """)
+    else:
+        # PostgreSQL query
+        trends_query = text(f"""
+            SELECT FLOOR(EXTRACT(EPOCH FROM (request_time - :start_time)) / {minutes_per_slot * 60})::int AS time_slot,
+                   SUM(total_tokens) AS tokens
+            FROM usage_logs
+            WHERE request_time >= :start_date
+            GROUP BY time_slot
+            ORDER BY time_slot
+        """)
+
+    try:
+        trends_result = db.execute(
+            trends_query,
+            {"start_date": utc_start_trends, "start_time": utc_start_trends}
+        ).fetchall()
+
+        # Fill in the actual data (limit to 96 slots)
+        for row in trends_result:
+            time_slot, tokens = row
+            if 0 <= time_slot < 96:
+                trends_data[time_slot] = TrendData(time_slot=time_slot, total_tokens=tokens or 0)
+    except Exception as e:
+        logger.error(f"Trends data query failed: {e}")
+
+    # Use alias for backward compatibility
+    daily_trends = trends_data
 
     # Get top 10 users by token consumption
     user_rankings_query = text("""

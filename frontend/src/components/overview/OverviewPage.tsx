@@ -12,10 +12,13 @@ import { OverviewPieChart } from './OverviewPieChart';
 import { useToast } from '@/components/ui/toast';
 import { useTranslations } from 'next-intl';
 
-interface DailyTrendData {
-  date: string;
+interface TrendData {
+  time_slot: number;
   total_tokens: number;
 }
+
+// Alias for backward compatibility
+type DailyTrendData = TrendData;
 
 interface UserRankingData {
   user_id: number;
@@ -101,11 +104,10 @@ export function OverviewPage() {
     }
   }, [loadOverviewData]);
 
-  // Convert daily trends to quarter-hourly format for bar chart
-  const convertToQuarterHourly = (dailyTrends: DailyTrendData[]) => {
-    // For daily data, we'll use quarter_hour 0 for each day
-    return dailyTrends.map((trend, index) => ({
-      quarter_hour: index * 4, // Spread across the chart
+  // Convert trend data to quarter-hourly format for bar chart
+  const convertToChartFormat = (trends: TrendData[]) => {
+    return trends.map(trend => ({
+      quarter_hour: trend.time_slot,
       tokens: trend.total_tokens
     }));
   };
@@ -197,7 +199,7 @@ export function OverviewPage() {
               {overviewData.daily_trends.length > 0 ? (
                 <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-64 bg-white">
                   <div className="p-4 h-full">
-                    <UsageBarChart quarterHourlyDistribution={convertToQuarterHourly(overviewData.daily_trends)} />
+                    <UsageBarChart quarterHourlyDistribution={convertToChartFormat(overviewData.daily_trends)} />
                   </div>
                 </div>
               ) : (
