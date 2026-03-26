@@ -94,7 +94,7 @@ async def change_my_password(
     """
     change_password(db, current_user, request.new_password)
 
-    # 如果用户尚未在 LiteLLM 中注册，同步创建（best-effort）
+    # 如果用户尚未在 LiteLLM 中注册，同步创建
     if not current_user.litellm_user_id:
         try:
             litellm_user_id = await create_user_in_litellm(current_user.email)
@@ -103,6 +103,9 @@ async def change_my_password(
             db.commit()
             logger.info(f"[LiteLLM] Created user for {current_user.email}: {litellm_user_id}")
         except Exception as e:
-            logger.warning(f"[LiteLLM] Failed to create user {current_user.email}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"创建用户失败（LiteLLM 服务异常）: {str(e)}。请联系管理员处理。"
+            )
 
     return {"message": "密码修改成功"}

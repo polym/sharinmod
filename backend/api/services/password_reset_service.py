@@ -8,6 +8,7 @@ from api.models.user import User
 from api.models.password_reset_token import PasswordResetToken
 from api.utils.security import hash_password
 from api.utils.token_generator import generate_unified_token
+from api.services.oauth_service import create_user_in_litellm
 
 
 # Token validity period: 24 hours
@@ -121,7 +122,7 @@ def set_password_by_token(db: Session, token: str, new_password: str) -> Tuple[b
     return True, user, None
 
 
-def create_user_with_reset_token(db: Session, email: str) -> Tuple[bool, Optional[PasswordResetToken], Optional[str]]:
+async def create_user_with_reset_token(db: Session, email: str) -> Tuple[bool, Optional[PasswordResetToken], Optional[str]]:
     """
     Create a new user with force_password_change=True and generate reset token
 
@@ -150,6 +151,13 @@ def create_user_with_reset_token(db: Session, email: str) -> Tuple[bool, Optiona
         hashed_password=None,
         force_password_change=True
     )
+
+    # Sync user to LiteLLM
+    try:
+        litellm_user_id = await create_user_in_litellm(email)
+        user.litellm_user_id = litellm_user_id
+    except Exception as e:
+        return False, None, f"创建用户失败（LiteLLM 服务异常）: {str(e)}"
 
     db.add(user)
     db.commit()
