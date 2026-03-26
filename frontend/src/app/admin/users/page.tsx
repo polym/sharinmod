@@ -2,11 +2,22 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, ShieldOff } from 'lucide-react';
+import { Shield, ShieldOff, KeyRound, Plus, Copy, Check, Ban, Power, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import type { User } from '@/lib/store';
 import { adminAPI } from '@/lib/services';
@@ -19,7 +30,7 @@ interface UserListResponse {
   total: number;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -32,9 +43,32 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+
+  // Create user dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // Reset password state
+  const [resetLoading, setResetLoading] = useState(false);
+
+  // Reset link dialog state
+  const [showResetLinkDialog, setShowResetLinkDialog] = useState(false);
+  const [resetLinkData, setResetLinkData] = useState<{ link: string; email: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Reset confirmation dialog state
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = useState(false);
+  const [resetUser, setResetUser] = useState<{ id: number; email: string } | null>(null);
+
+  // Disable/Enable/Delete confirmation dialog state
+  const [showDisableConfirmDialog, setShowDisableConfirmDialog] = useState(false);
+  const [showEnableConfirmDialog, setShowEnableConfirmDialog] = useState(false);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [targetUser, setTargetUser] = useState<{ id: number; email: string } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Track pending requests to prevent race conditions
   const requestIdRef = useRef(0);
@@ -46,25 +80,20 @@ export default function AdminUsersPage() {
     }
 
     if (currentUser?.is_admin) {
-      loadUsers(0, false);
+      loadUsers(1);
     } else {
       router.push('/marketplace');
     }
   }, [currentUser, isAuthenticated, roleFilter]);
 
-  const loadUsers = useCallback(async (offset: number = 0, append: boolean = false) => {
+  const loadUsers = useCallback(async (page: number = 1) => {
     // Increment request ID for this request
     const currentRequestId = ++requestIdRef.current;
-
-    if (offset === 0) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
+    setLoading(true);
 
     try {
       const response = await adminAPI.getUsers({
-        offset,
+        offset: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
         role_filter: roleFilter
       });
@@ -75,15 +104,9 @@ export default function AdminUsersPage() {
       }
 
       const data = response.data as UserListResponse;
-
-      if (append) {
-        setUsers(prev => [...prev, ...data.items]);
-      } else {
-        setUsers(data.items);
-      }
-
+      setUsers(data.items);
       setTotal(data.total);
-      setHasMore(offset + data.items.length < data.total);
+      setCurrentPage(page);
     } catch (error: any) {
       // Ignore stale errors
       if (currentRequestId !== requestIdRef.current) {
@@ -100,22 +123,22 @@ export default function AdminUsersPage() {
       // Ignore stale finally
       if (currentRequestId === requestIdRef.current) {
         setLoading(false);
-        setLoadingMore(false);
       }
     }
   }, [roleFilter, toast, tCommon]);
 
-  const handleLoadMore = () => {
-    if (!loadingMore && !loading) {
-      loadUsers(users.length, true);
+  const handleRoleFilterChange = (value: string) => {
+    setRoleFilter(value as 'all' | 'admin' | 'user');
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && !loading) {
+      loadUsers(newPage);
     }
   };
 
-  const handleRoleFilterChange = (value: string) => {
-    setRoleFilter(value as 'all' | 'admin' | 'user');
-    setUsers([]);
-    setHasMore(false);
-  };
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const handleGrantAdmin = async (userId: number) => {
     try {
@@ -157,6 +180,216 @@ export default function AdminUsersPage() {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleCreateUser = async () => {
+    if (!createEmail) {
+      toast({
+        title: tCommon('error'),
+        description: t('emailRequired'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const response = await adminAPI.createUser({ email: createEmail });
+      const { link } = response.data;
+
+      // Show reset link dialog
+      setResetLinkData({ link, email: createEmail });
+      setShowResetLinkDialog(true);
+
+      // Reset form
+      setCreateEmail('');
+      setShowCreateDialog(false);
+      loadUsers(0, false);
+
+      toast({
+        title: tCommon('success'),
+        description: t('createSuccess'),
+      });
+    } catch (error: any) {
+      console.error('Failed to create user:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('createFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUser) return;
+
+    setResetLoading(true);
+    try {
+      const response = await adminAPI.resetUserPassword(resetUser.id);
+      const { link } = response.data;
+
+      // Show reset link dialog
+      setResetLinkData({ link, email: resetUser.email });
+      setShowResetLinkDialog(true);
+
+      toast({
+        title: tCommon('success'),
+        description: t('resetSuccess'),
+      });
+    } catch (error: any) {
+      console.error('Failed to reset password:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('resetFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setResetLoading(false);
+      setShowResetConfirmDialog(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!resetLinkData) return;
+
+    const copyToClipboard = async () => {
+      // Fallback: 使用传统方法
+      const textArea = document.createElement('textarea');
+      textArea.value = resetLinkData.link;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: t('copySuccess'),
+        description: t('copySuccessDesc'),
+      });
+    };
+
+    // 检查 clipboard API 是否可用
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(resetLinkData.link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({
+          title: t('copySuccess'),
+          description: t('copySuccessDesc'),
+        });
+      } catch (error) {
+        console.error('Clipboard API failed, using fallback:', error);
+        await copyToClipboard();
+      }
+    } else {
+      // clipboard API 不可用，直接使用 fallback
+      await copyToClipboard();
+    }
+  };
+
+  const openResetConfirm = (userId: number, email: string) => {
+    setResetUser({ id: userId, email });
+    setShowResetConfirmDialog(true);
+  };
+
+  const handleDisableUser = async () => {
+    if (!targetUser) return;
+
+    setActionLoading(true);
+    try {
+      await adminAPI.disableUser(targetUser.id);
+      toast({
+        title: tCommon('success'),
+        description: t('disableSuccess'),
+      });
+      // Optimistically update user in list
+      setUsers(prev => prev.map(u =>
+        u.id === targetUser.id ? { ...u, is_disabled: true } : u
+      ));
+      setShowDisableConfirmDialog(false);
+    } catch (error: any) {
+      console.error('Failed to disable user:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('disableFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEnableUser = async () => {
+    if (!targetUser) return;
+
+    setActionLoading(true);
+    try {
+      await adminAPI.enableUser(targetUser.id);
+      toast({
+        title: tCommon('success'),
+        description: t('enableSuccess'),
+      });
+      // Optimistically update user in list
+      setUsers(prev => prev.map(u =>
+        u.id === targetUser.id ? { ...u, is_disabled: false } : u
+      ));
+      setShowEnableConfirmDialog(false);
+    } catch (error: any) {
+      console.error('Failed to enable user:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('enableFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!targetUser) return;
+
+    setActionLoading(true);
+    try {
+      await adminAPI.deleteUser(targetUser.id);
+      toast({
+        title: tCommon('success'),
+        description: t('deleteSuccess'),
+      });
+      // Remove user from list
+      setUsers(prev => prev.filter(u => u.id !== targetUser.id));
+      setShowDeleteConfirmDialog(false);
+      setTotal(prev => Math.max(0, prev - 1));
+    } catch (error: any) {
+      console.error('Failed to delete user:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('deleteFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openDisableConfirm = (userId: number, email: string) => {
+    setTargetUser({ id: userId, email });
+    setShowDisableConfirmDialog(true);
+  };
+
+  const openEnableConfirm = (userId: number, email: string) => {
+    setTargetUser({ id: userId, email });
+    setShowEnableConfirmDialog(true);
+  };
+
+  const openDeleteConfirm = (userId: number, email: string) => {
+    setTargetUser({ id: userId, email });
+    setShowDeleteConfirmDialog(true);
   };
 
   const formatTokens = (tokens: number): string => {
@@ -213,6 +446,40 @@ export default function AdminUsersPage() {
                   <SelectItem value="user">{t('roleFilter.user')}</SelectItem>
                 </SelectContent>
               </Select>
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t('createUser')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t('createUserTitle')}</DialogTitle>
+                    <DialogDescription>{t('createUserDescription')}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">{t('email')}</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={createEmail}
+                        onChange={(e) => setCreateEmail(e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                      {tCommon('cancel')}
+                    </Button>
+                    <Button onClick={handleCreateUser} disabled={createLoading}>
+                      {createLoading ? tCommon('loading') : tCommon('confirm')}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardHeader>
@@ -248,6 +515,11 @@ export default function AdminUsersPage() {
                                   Admin
                                 </span>
                               )}
+                              {u.is_disabled && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-500 text-white flex-shrink-0">
+                                  {t('statusDisabled')}
+                                </span>
+                              )}
                             </span>
                             {u.name && (
                               <span className="text-xs text-gray-500">{u.name}</span>
@@ -270,20 +542,64 @@ export default function AdminUsersPage() {
                           {formatTime(u.last_used_at)}
                         </TableCell>
                         <TableCell>
-                          {u.id !== currentUser?.id && (
-                            <Button
-                              onClick={() => u.is_admin ? handleRevokeAdmin(u.id!) : handleGrantAdmin(u.id!)}
-                              size="sm"
-                              variant="ghost"
-                              aria-label={u.is_admin ? 'Revoke admin' : 'Grant admin'}
-                            >
-                              {u.is_admin ? (
-                                <ShieldOff className="w-4 h-4" />
-                              ) : (
-                                <Shield className="w-4 h-4" />
-                              )}
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {u.id !== currentUser?.id && (
+                              <>
+                                <Button
+                                  onClick={() => u.is_admin ? handleRevokeAdmin(u.id!) : handleGrantAdmin(u.id!)}
+                                  size="sm"
+                                  variant="ghost"
+                                  aria-label={u.is_admin ? 'Revoke admin' : 'Grant admin'}
+                                >
+                                  {u.is_admin ? (
+                                    <ShieldOff className="w-4 h-4" />
+                                  ) : (
+                                    <Shield className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                {!u.is_disabled ? (
+                                  <Button
+                                    onClick={() => openDisableConfirm(u.id!, u.email)}
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label={t('disableUser')}
+                                  >
+                                    <Ban className="w-4 h-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => openEnableConfirm(u.id!, u.email)}
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label={t('enableUser')}
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {u.is_disabled && (
+                                  <Button
+                                    onClick={() => openDeleteConfirm(u.id!, u.email)}
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label={t('deleteUser')}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                            {!u.is_disabled && (
+                              <Button
+                                onClick={() => openResetConfirm(u.id!, u.email)}
+                                size="sm"
+                                variant="ghost"
+                                aria-label="Reset password"
+                                disabled={resetLoading}
+                              >
+                                <KeyRound className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -291,10 +607,25 @@ export default function AdminUsersPage() {
                 </Table>
               </div>
 
-              {hasMore && (
-                <div className="text-center pt-4">
-                  <Button onClick={handleLoadMore} variant="outline" disabled={loadingMore}>
-                    {loadingMore ? t('loadingMore') : t('loadMore')}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <Button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    variant="outline"
+                    disabled={currentPage === 1 || loading}
+                  >
+                    {tCommon('previous')}
+                  </Button>
+                  <span className="text-sm text-gray-600">
+                    {tCommon('page')} {currentPage} {tCommon('pageOf')} {totalPages}
+                  </span>
+                  <Button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    variant="outline"
+                    disabled={currentPage === totalPages || loading}
+                  >
+                    {tCommon('next')}
                   </Button>
                 </div>
               )}
@@ -306,6 +637,120 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Password Confirmation Dialog */}
+      <Dialog open={showResetConfirmDialog} onOpenChange={setShowResetConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resetPassword')}</DialogTitle>
+            <DialogDescription>
+              {resetUser && `${t('resetConfirm')} ${resetUser.email}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetConfirmDialog(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetLoading}>
+              {resetLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable User Confirmation Dialog */}
+      <Dialog open={showDisableConfirmDialog} onOpenChange={setShowDisableConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('disableUser')}</DialogTitle>
+            <DialogDescription>
+              {targetUser && t('confirmDisable', { email: targetUser.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDisableConfirmDialog(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleDisableUser} disabled={actionLoading}>
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Enable User Confirmation Dialog */}
+      <Dialog open={showEnableConfirmDialog} onOpenChange={setShowEnableConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('enableUser')}</DialogTitle>
+            <DialogDescription>
+              {targetUser && t('confirmEnable', { email: targetUser.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEnableConfirmDialog(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleEnableUser} disabled={actionLoading}>
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('deleteUser')}</DialogTitle>
+            <DialogDescription>
+              {targetUser && t('confirmDelete', { email: targetUser.email })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirmDialog(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleDeleteUser} disabled={actionLoading} variant="destructive">
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Link Dialog */}
+      <Dialog open={showResetLinkDialog} onOpenChange={setShowResetLinkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resetLink')}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={resetLinkData?.link || ''}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500">
+              {t('resetLinkHint')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowResetLinkDialog(false)}>
+              {tCommon('close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

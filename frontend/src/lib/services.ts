@@ -141,6 +141,21 @@ export const adminAPI = {
   revokeAdmin: (userId: number) =>
     api.put(`/api/admin/users/${userId}/revoke-admin`),
 
+  createUser: (data: { email: string }) =>
+    api.post('/api/admin/users/create', data),
+
+  resetUserPassword: (userId: number) =>
+    api.post(`/api/admin/users/${userId}/reset-password`),
+
+  disableUser: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/disable`),
+
+  enableUser: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/enable`),
+
+  deleteUser: (userId: number) =>
+    api.delete(`/api/admin/users/${userId}`),
+
   // Provider configuration API
   getProviders: (params?: { skip?: number; limit?: number; enabled_only?: boolean }) =>
     api.get('/api/admin/providers', { params }),
@@ -408,4 +423,13 @@ export const clawAPI = {
 
   deleteArchive: (id: number, timestamp: string) =>
     api.delete(`/api/claws/${id}/archives/${timestamp}`),
+};
+
+// Password Reset API
+export const passwordResetAPI = {
+  verifyToken: (token: string) =>
+    api.post('/api/password-reset/verify', { token }),
+
+  setPassword: (token: string, new_password: string) =>
+    api.post('/api/password-reset/set-password', { token, new_password }),
 };

@@ -7,6 +7,7 @@ from .provider_config import ProviderConfig, ProviderModel
 from .claw import Claw, ClawType, ClawStatus
 from .system_setting import SystemSetting
 from .api_key_limit_history import APIKeyLimitHistory
+from .password_reset_token import PasswordResetToken
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "ClawStatus",
     "SystemSetting",
     "APIKeyLimitHistory",
+    "PasswordResetToken",
 ]

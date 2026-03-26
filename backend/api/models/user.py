@@ -50,3 +50,7 @@ class User(SQLModel, table=True):
 
     # Password change requirement
     force_password_change: bool = Field(default=False, description="Whether user must change password on next login")
+
+    # User status
+    is_disabled: bool = Field(default=False, description="Whether user is disabled")
+    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")

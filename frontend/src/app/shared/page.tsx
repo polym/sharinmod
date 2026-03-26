@@ -7,7 +7,7 @@ import { MySharedPage } from '@/components/MySharedPage';
 
 export default function SharedPage() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const { isAuthenticated, setShowLoginDialog } = useAuthStore();
+  const { isAuthenticated, setShowLoginDialog, showResetPasswordDialog } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,12 +16,12 @@ export default function SharedPage() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    
-    if (!isAuthenticated) {
+
+    // Don't show login dialog if reset password dialog is open
+    if (!isAuthenticated && !showResetPasswordDialog) {
       setShowLoginDialog(true);
-      return;
     }
-  }, [isAuthenticated, setShowLoginDialog, isHydrated]);
+  }, [isAuthenticated, setShowLoginDialog, showResetPasswordDialog, isHydrated]);
 
   if (!isHydrated || !isAuthenticated) {
     return (

@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import Annotated, Optional, List
 from api.database import get_db
 from api.dependencies.auth import require_admin
-from api.services.user_service import get_all_users, grant_admin_privilege, revoke_admin_privilege
+from api.services.user_service import get_all_users, grant_admin_privilege, revoke_admin_privilege, disable_user, enable_user, soft_delete_user
 from api.services.provider_config_service import (
     get_all_providers,
     get_provider_by_id,
@@ -44,6 +44,9 @@ from api.services.api_key_limit_history_service import (
     get_all_limit_history,
 )
 from api.schemas.user import UserResponse, UserListResponse, RoleFilter
+from api.schemas.password_reset import UserCreateRequest, PasswordResetTokenResponse
+from api.services.password_reset_service import create_user_with_reset_token, reset_user_password, generate_reset_link
+from api.models.user import User
 from api.schemas.provider_config import (
     ProviderConfigResponse,
     ProviderConfigCreate,
@@ -103,6 +106,7 @@ def list_users(
             'contributed_tokens': u.contributed_tokens,
             'consumed_tokens': u.consumed_tokens,
             'is_admin': u.is_admin,
+            'is_disabled': u.is_disabled,
             'subscription_count': stats.get('subscription_count', 0),
             'active_subscription_count': stats.get('active_subscription_count', 0),
             'last_used_at': stats.get('last_used_at'),
@@ -161,6 +165,151 @@ def revoke_admin(
             detail="User not found"
         )
     return UserResponse.model_validate(user)
+
+
+@router.post("/users/create", response_model=PasswordResetTokenResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    user_data: UserCreateRequest,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> PasswordResetTokenResponse:
+    """
+    Create a new user with force_password_change=True and generate reset token (admin only)
+
+    Args:
+        user_data: User creation data (email only)
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Reset token and password reset link
+    """
+    success, reset_token, error_msg = create_user_with_reset_token(db, user_data.email)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+
+    # Generate reset link using configured WEBSITE_BASE_URL
+    from api.config import settings
+    link = generate_reset_link(reset_token.token, settings.WEBSITE_BASE_URL)
+
+    return PasswordResetTokenResponse(
+        token=reset_token.token,
+        link=link,
+        expires_at=reset_token.expires_at
+    )
+
+
+@router.post("/users/{user_id}/reset-password", response_model=PasswordResetTokenResponse)
+def reset_password(
+    user_id: int,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> PasswordResetTokenResponse:
+    """
+    Reset user password by clearing hashed_password and generating new reset token (admin only)
+
+    Args:
+        user_id: ID of the user to reset password for
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Reset token and password reset link
+    """
+    success, reset_token, error_msg = reset_user_password(db, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_msg
+        )
+
+    # Generate reset link using configured WEBSITE_BASE_URL
+    from api.config import settings
+    link = generate_reset_link(reset_token.token, settings.WEBSITE_BASE_URL)
+
+    return PasswordResetTokenResponse(
+        token=reset_token.token,
+        link=link,
+        expires_at=reset_token.expires_at
+    )
+
+
+@router.put("/users/{user_id}/disable", response_model=UserResponse)
+def disable_user_endpoint(
+    user_id: int,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> UserResponse:
+    """
+    Disable a user account (admin only)
+
+    Args:
+        user_id: ID of the user to disable
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Updated user object
+    """
+    user = disable_user(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return UserResponse.model_validate(user)
+
+
+@router.put("/users/{user_id}/enable", response_model=UserResponse)
+def enable_user_endpoint(
+    user_id: int,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> UserResponse:
+    """
+    Enable a user account (admin only)
+
+    Args:
+        user_id: ID of the user to enable
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Updated user object
+    """
+    user = enable_user(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return UserResponse.model_validate(user)
+
+
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_endpoint(
+    user_id: int,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> None:
+    """
+    Soft delete a user account (admin only)
+
+    Args:
+        user_id: ID of the user to delete
+        current_admin: Current authenticated admin user
+        db: Database session
+    """
+    user = soft_delete_user(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
 
 # ==================== Provider Configuration Routes ====================
 

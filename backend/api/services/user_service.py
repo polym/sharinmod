@@ -90,7 +90,7 @@ def get_all_users(
         Tuple of (list of User objects, total count, stats dict per user_id)
     """
     # Build base query for users
-    base_query = select(User)
+    base_query = select(User).where(User.deleted_at == None)
 
     # Apply role filter
     if role_filter == 'admin':
@@ -102,7 +102,7 @@ def get_all_users(
     base_query = base_query.order_by(User.created_at.desc())
 
     # Get total count (before pagination)
-    count_query = select(func.count()).select_from(User)
+    count_query = select(func.count()).select_from(User).where(User.deleted_at == None)
     if role_filter == 'admin':
         count_query = count_query.where(User.is_admin == True)
     elif role_filter == 'user':
@@ -209,4 +209,67 @@ def change_password(db: Session, user: User, new_password: str) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
+    return user
+
+
+def disable_user(db: Session, user_id: int) -> User | None:
+    """
+    Disable a user account
+
+    Args:
+        db: Database session
+        user_id: ID of the user to disable
+
+    Returns:
+        Updated User object, or None if user not found
+    """
+    user = db.get(User, user_id)
+    if user:
+        user.is_disabled = True
+        user.updated_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def enable_user(db: Session, user_id: int) -> User | None:
+    """
+    Enable a user account
+
+    Args:
+        db: Database session
+        user_id: ID of the user to enable
+
+    Returns:
+        Updated User object, or None if user not found
+    """
+    user = db.get(User, user_id)
+    if user:
+        user.is_disabled = False
+        user.updated_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
+
+
+def soft_delete_user(db: Session, user_id: int) -> User | None:
+    """
+    Soft delete a user account
+
+    Args:
+        db: Database session
+        user_id: ID of the user to soft delete
+
+    Returns:
+        Updated User object, or None if user not found
+    """
+    user = db.get(User, user_id)
+    if user:
+        user.deleted_at = datetime.utcnow()
+        user.updated_at = datetime.utcnow()
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     return user

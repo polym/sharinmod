@@ -63,6 +63,7 @@ class UserResponse(BaseModel):
     consumed_tokens: int = 0
     is_admin: bool = False  # 默认 False 兼容旧数据
     force_password_change: bool = False  # 是否需要强制修改密码
+    is_disabled: bool = False  # 用户停用状态
 
     @computed_field
     @property
