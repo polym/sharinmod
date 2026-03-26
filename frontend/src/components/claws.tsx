@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown, Globe } from 'lucide-react';
 import { clawAPI, modelAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -254,6 +254,14 @@ export function ClawsPage() {
       document.cookie = `sharinmod-fb-token=${encodeURIComponent(token)}; path=/; SameSite=Strict`;
     }
     window.open(`/api/claws/${clawId}/filebrowser/`, '_blank');
+  };
+
+  const openOpenClawWeb = (clawId: number) => {
+    const token = useAuthStore.getState().token;
+    if (token) {
+      document.cookie = `sharinmod-ow-token=${encodeURIComponent(token)}; path=/; SameSite=Strict`;
+    }
+    window.open(`/api/claws/${clawId}/openclaw-web/`, '_blank');
   };
 
   // Auto-scroll to bottom when new log lines arrive
@@ -952,6 +960,15 @@ export function ClawsPage() {
                           title="文件管理"
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openOpenClawWeb(claw.id)}
+                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          title="OpenClaw Web"
+                        >
+                          <Globe className="w-3.5 h-3.5" />
                         </Button>
                         {(pruncEnabled && clawsArchiveEnabled) && (
                           <Button
