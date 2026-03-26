@@ -13,11 +13,17 @@ from sqlalchemy import text
 from api.models.usage_log import UsageLog, UsageLogStatus, UsageLogKind
 from api.models.unified_api_key import UnifiedAPIKey
 from api.models.subscription import Subscription
+from api.models.user import User
+from api.models.claw import Claw
 from api.schemas.usage_log import (
     UsageLogList,
     UsageLogResponse,
     UsageOverviewResponse,
-    QuarterHourlyTokenData
+    QuarterHourlyTokenData,
+    DailyTrendData,
+    UserRankingData,
+    ModelUsageData,
+    SystemOverviewResponse
 )
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
@@ -689,4 +695,105 @@ def get_user_usage_overview(
         output_tokens=output_tokens,
         quarter_hourly_distribution=quarter_hourly_distribution,
         timezone=tz_str
+    )
+
+
+def get_system_overview(
+    db: Session,
+    days: int = 7
+) -> SystemOverviewResponse:
+    """
+    Get system-wide usage overview statistics
+
+    Args:
+        db: Database session
+        days: Number of days to include for trend data (default: 7)
+
+    Returns:
+        SystemOverviewResponse with aggregated system statistics
+    """
+    # Get total tokens across all time
+    total_tokens_query = select(func.sum(UsageLog.total_tokens))
+    total_tokens = db.exec(total_tokens_query).one() or 0
+
+    # Get today's tokens (UTC date)
+    today_utc = datetime.now(timezone.utc).date()
+    utc_start = datetime.combine(today_utc, datetime.min.time()).replace(tzinfo=timezone.utc)
+    utc_end = datetime.combine(today_utc, datetime.max.time()).replace(tzinfo=timezone.utc)
+
+    today_tokens_query = select(func.sum(UsageLog.total_tokens)).where(
+        UsageLog.request_time >= utc_start,
+        UsageLog.request_time <= utc_end
+    )
+    today_tokens = db.exec(today_tokens_query).one() or 0
+
+    # Get user count (exclude soft-deleted users)
+    user_count_query = select(func.count()).select_from(User).where(User.deleted_at.is_(None))
+    user_count = db.exec(user_count_query).one()
+
+    # Get claw count (all claws regardless of status)
+    claw_count_query = select(func.count()).select_from(Claw)
+    claw_count = db.exec(claw_count_query).one()
+
+    # Get daily trends for the specified number of days
+    utc_start_trends = datetime.now(timezone.utc) - timedelta(days=days)
+    daily_trends_query = text("""
+        SELECT DATE(request_time) AS date, SUM(total_tokens) AS tokens
+        FROM usage_logs
+        WHERE request_time >= :start_date
+        GROUP BY DATE(request_time)
+        ORDER BY date DESC
+    """)
+    daily_trends_result = db.execute(
+        daily_trends_query,
+        {"start_date": utc_start_trends}
+    ).fetchall()
+
+    daily_trends = [
+        DailyTrendData(date=row[0], total_tokens=row[1] or 0)
+        for row in daily_trends_result
+    ]
+
+    # Get top 10 users by token consumption
+    user_rankings_query = text("""
+        SELECT user_id, SUM(total_tokens) AS tokens
+        FROM usage_logs
+        GROUP BY user_id
+        ORDER BY tokens DESC
+        LIMIT 10
+    """)
+    user_rankings_result = db.execute(user_rankings_query).fetchall()
+
+    user_rankings = [
+        UserRankingData(user_id=row[0], consumed_tokens=row[1] or 0)
+        for row in user_rankings_result
+    ]
+
+    # Get model usage distribution
+    model_usage_query = text("""
+        SELECT model_name, SUM(total_tokens) AS tokens
+        FROM usage_logs
+        GROUP BY model_name
+        ORDER BY tokens DESC
+    """)
+    model_usage_result = db.execute(model_usage_query).fetchall()
+
+    model_usage_list = [
+        ModelUsageData(model_name=row[0], total_tokens=row[1] or 0, percentage=0.0)
+        for row in model_usage_result
+    ]
+
+    # Calculate percentages
+    if total_tokens > 0:
+        for model_data in model_usage_list:
+            model_data.percentage = round((model_data.total_tokens / total_tokens) * 100, 2)
+
+    return SystemOverviewResponse(
+        total_tokens=total_tokens,
+        today_tokens=today_tokens,
+        user_count=user_count,
+        claw_count=claw_count,
+        daily_trends=daily_trends,
+        user_rankings=user_rankings,
+        model_usage=model_usage_list
     )

@@ -11,8 +11,8 @@ from api.database import get_db
 from api.dependencies.auth import get_current_user
 from api.models.user import User
 from api.models.usage_log import UsageLogStatus
-from api.schemas.usage_log import UsageLogList, UsageOverviewResponse
-from api.services.usage_log_service import get_user_usage_logs, get_user_usage_overview
+from api.schemas.usage_log import UsageLogList, UsageOverviewResponse, SystemOverviewResponse
+from api.services.usage_log_service import get_user_usage_logs, get_user_usage_overview, get_system_overview
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 
@@ -82,3 +82,26 @@ def get_my_usage_overview(
         timezone_str=timezone,
         unified_api_key_id=unified_api_key_id
     )
+
+
+@router.get("/overview/system", response_model=SystemOverviewResponse)
+def get_system_overview_endpoint(
+    days: int = Query(7, ge=1, le=30, description="Number of days for trend data"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get system-wide usage overview statistics
+
+    Requires JWT authentication
+    Returns aggregated system statistics including:
+    - Total/today tokens
+    - User count
+    - Claw count
+    - Daily trends
+    - User rankings (top 10)
+    - Model usage distribution
+
+    All authenticated users can access this endpoint
+    """
+    return get_system_overview(db, days)

@@ -125,6 +125,12 @@ export const usageAPI = {
   },
 };
 
+// Overview API
+export const overviewAPI = {
+  getSystemOverview: (params?: { days?: number }) =>
+    api.get('/api/usage/overview/system', { params })
+};
+
 // Model API
 export const modelAPI = {
   getModels: () => api.get('/api/models'),
