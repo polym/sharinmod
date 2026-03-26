@@ -161,18 +161,20 @@ class UserRankingData(BaseModel):
     }
 
 
-class ModelUsageData(BaseModel):
-    """Model token usage distribution data"""
-    model_name: str = Field(description="Model name")
-    total_tokens: int = Field(description="Total tokens consumed by this model")
-    percentage: float = Field(description="Percentage of total tokens")
+class ClawRankingData(BaseModel):
+    """Claw token consumption ranking data"""
+    claw_id: int = Field(description="Claw ID")
+    claw_name: str = Field(description="Claw display name")
+    user_name: str = Field(description="Owner user name")
+    consumed_tokens: int = Field(description="Total tokens consumed by this claw")
 
     model_config = {
         "json_schema_extra": {
             "example": {
-                "model_name": "gpt-4",
-                "total_tokens": 5000,
-                "percentage": 50.0
+                "claw_id": 1,
+                "claw_name": "MyClaw",
+                "user_name": "张三",
+                "consumed_tokens": 5000
             }
         }
     }
@@ -186,7 +188,7 @@ class SystemOverviewResponse(BaseModel):
     claw_count: int = Field(description="Total number of claw instances")
     daily_trends: List[TrendData] = Field(description="Token consumption trends (96 data points, granularity depends on days parameter)")
     user_rankings: List[UserRankingData] = Field(description="Top 10 users by token consumption")
-    model_usage: List[ModelUsageData] = Field(description="Model token usage distribution")
+    claw_rankings: List[ClawRankingData] = Field(description="Top 10 claws by token consumption")
 
     model_config = {
         "json_schema_extra": {
@@ -196,16 +198,16 @@ class SystemOverviewResponse(BaseModel):
                 "user_count": 50,
                 "claw_count": 20,
                 "daily_trends": [
-                    {"date": "2026-03-26", "total_tokens": 5000},
-                    {"date": "2026-03-25", "total_tokens": 4500}
+                    {"time_slot": 0, "total_tokens": 5000},
+                    {"time_slot": 1, "total_tokens": 4500}
                 ],
                 "user_rankings": [
                     {"user_id": 1, "user_name": "张三", "consumed_tokens": 10000},
                     {"user_id": 2, "user_name": "李四", "consumed_tokens": 8000}
                 ],
-                "model_usage": [
-                    {"model_name": "gpt-4", "total_tokens": 50000, "percentage": 50.0},
-                    {"model_name": "claude-3-opus", "total_tokens": 30000, "percentage": 30.0}
+                "claw_rankings": [
+                    {"claw_id": 1, "claw_name": "MyClaw", "user_name": "张三", "consumed_tokens": 5000},
+                    {"claw_id": 2, "claw_name": "TestClaw", "user_name": "李四", "consumed_tokens": 3000}
                 ]
             }
         }

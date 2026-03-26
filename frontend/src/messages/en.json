@@ -218,6 +218,27 @@
     "refresh": "Refresh data",
     "refreshFailed": "Failed to refresh data"
   },
+  "overview": {
+    "title": "Overview",
+    "description": "System usage overview dashboard",
+    "totalTokens": "Total Tokens",
+    "todayTokens": "Today's Tokens",
+    "userCount": "Total Users",
+    "clawCount": "Total Claws",
+    "tokenTrend": "Token Consumption Trends",
+    "userRankings": "Token Usage Rankings (Top 10)",
+    "clawRankings": "Claw Usage Rankings (Top 10)",
+    "timeRange": "Time Range",
+    "day": "days",
+    "loading": "Loading...",
+    "noData": "No data",
+    "error": "Failed to load, please try again",
+    "timeRanges": {
+      "1": "Last 1 day",
+      "7": "Last 7 days",
+      "30": "Last 30 days"
+    }
+  },
   "usageTable": {
     "time": "Time",
     "client": "Client",

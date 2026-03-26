@@ -173,7 +173,7 @@
     "clawCount": "龙虾数量",
     "tokenTrend": "Token 消耗趋势",
     "userRankings": "Token 使用排行 (Top 10)",
-    "modelUsage": "模型使用占比",
+    "clawRankings": "龙虾使用排行 (Top 10)",
     "timeRange": "时间范围",
     "day": "天",
     "loading": "加载中...",

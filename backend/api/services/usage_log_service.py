@@ -23,7 +23,7 @@ from api.schemas.usage_log import (
     TrendData,
     DailyTrendData,  # Alias for backward compatibility
     UserRankingData,
-    ModelUsageData,
+    ClawRankingData,
     SystemOverviewResponse
 )
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
@@ -788,7 +788,7 @@ def get_system_overview(
     # Use alias for backward compatibility
     daily_trends = trends_data
 
-    # Get top 10 users by token consumption (filtered by time range)
+    # Get top 10 users by token consumption (all time)
     user_rankings_query = text("""
         SELECT u.id as user_id,
                u.name,
@@ -797,15 +797,11 @@ def get_system_overview(
         FROM usage_logs ul
         JOIN users u ON ul.user_id = u.id
         WHERE u.deleted_at IS NULL
-          AND ul.request_time >= :start_date
         GROUP BY u.id, u.name, u.email
         ORDER BY tokens DESC
         LIMIT 10
     """)
-    user_rankings_result = db.execute(
-        user_rankings_query,
-        {"start_date": utc_start_trends}
-    ).fetchall()
+    user_rankings_result = db.execute(user_rankings_query).fetchall()
 
     user_rankings = [
         UserRankingData(
@@ -816,29 +812,31 @@ def get_system_overview(
         for row in user_rankings_result
     ]
 
-    # Get model usage distribution (filtered by time range)
-    model_usage_query = text("""
-        SELECT model_name, SUM(total_tokens) AS tokens
-        FROM usage_logs
-        WHERE request_time >= :start_date
-        GROUP BY model_name
+    # Get top 10 claws by token consumption (all time)
+    claw_rankings_query = text("""
+        SELECT c.id as claw_id,
+               c.name as claw_name,
+               u.name as user_name,
+               SUM(ul.total_tokens) AS tokens
+        FROM usage_logs ul
+        JOIN claws c ON ul.unified_api_key_id = c.unified_api_key_id
+        JOIN users u ON c.user_id = u.id
+        WHERE c.unified_api_key_id IS NOT NULL
+        GROUP BY c.id, c.name, u.name
         ORDER BY tokens DESC
+        LIMIT 10
     """)
-    model_usage_result = db.execute(
-        model_usage_query,
-        {"start_date": utc_start_trends}
-    ).fetchall()
+    claw_rankings_result = db.execute(claw_rankings_query).fetchall()
 
-    model_usage_list = [
-        ModelUsageData(model_name=row[0], total_tokens=row[1] or 0, percentage=0.0)
-        for row in model_usage_result
+    claw_rankings = [
+        ClawRankingData(
+            claw_id=row[0],
+            claw_name=row[1],
+            user_name=row[2],
+            consumed_tokens=row[3] or 0
+        )
+        for row in claw_rankings_result
     ]
-
-    # Calculate percentages based on time range total
-    time_range_total = sum(item.total_tokens for item in model_usage_list)
-    if time_range_total > 0:
-        for model_data in model_usage_list:
-            model_data.percentage = round((model_data.total_tokens / time_range_total) * 100, 2)
 
     return SystemOverviewResponse(
         total_tokens=total_tokens,
@@ -847,5 +845,5 @@ def get_system_overview(
         claw_count=claw_count,
         daily_trends=daily_trends,
         user_rankings=user_rankings,
-        model_usage=model_usage_list
+        claw_rankings=claw_rankings
     )
