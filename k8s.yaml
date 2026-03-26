@@ -202,6 +202,78 @@ data:
 
 ---
 
+# Kubernetes kubeconfig 文件（用于 Claw Status Consumer 访问 K8s API）
+# 默认使用 in-cluster 配置，使用 ServiceAccount 自动注入的 token 和 ca.crt
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeconfig
+  namespace: sharinmod
+data:
+  kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        server: https://kubernetes.default.svc
+      name: in-cluster
+    contexts:
+    - context:
+        cluster: in-cluster
+        user: serviceaccount
+      name: default-context
+    current-context: default-context
+    users:
+    - name: serviceaccount
+      user:
+        tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+---
+
+# ServiceAccount 和 RBAC（用于 Claw Status Consumer 访问 K8s API）
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sharinmod-backend
+  namespace: sharinmod
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: claw-status-reader
+  namespace: sharinmod
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/status"]
+    verbs: ["get", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: claw-status-reader-binding
+  namespace: sharinmod
+subjects:
+  - kind: ServiceAccount
+    name: sharinmod-backend
+    namespace: sharinmod
+roleRef:
+  kind: Role
+  name: claw-status-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
 # LiteLLM 配置文件
 apiVersion: v1
 kind: ConfigMap
@@ -662,6 +734,84 @@ spec:
             name: sharinmod-config
 
 ---
+# =============================================================================
+# Claw Status Consumer（Claw 状态同步消费者）
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claw-status-consumer
+  namespace: sharinmod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: claw-status-consumer
+  template:
+    metadata:
+      labels:
+        app: claw-status-consumer
+    spec:
+      serviceAccountName: sharinmod-backend  # 使用 RBAC ServiceAccount
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres -p 5432 -U postgres; do
+                echo "Waiting for postgres..."; sleep 2
+              done
+        - name: wait-for-redis
+          image: redis:7-alpine
+          command:
+            - sh
+            - -c
+            - |
+              until redis-cli -h redis ping | grep -q PONG; do
+                echo "Waiting for redis..."; sleep 2
+              done
+      containers:
+        - name: consumer
+          image: sharinmod-backend:latest  # 替换为实际镜像地址
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "api.consumers.claw_status_consumer"]
+          # 从 sharinmod-env Secret 整体导入 .env 中的所有变量
+          envFrom:
+            - secretRef:
+                name: sharinmod-env
+          # 覆盖需要使用 K8s Service 名的变量
+          env:
+            - name: CONFIG_PATH
+              value: "/app/config.yaml"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: DATABASE_URI
+              value: "postgresql://postgres:postgres@postgres:5432/sharinmod"
+            - name: LITELLM_BASE_URL
+              value: "http://litellm:4000"
+            - name: KUBECONFIG_PATH
+              value: "/app/kubeconfig"
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            - name: kubeconfig
+              mountPath: /app/kubeconfig
+              subPath: kubeconfig
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: sharinmod-config
+        - name: kubeconfig
+          configMap:
+            name: kubeconfig
+
+---
+
 # =============================================================================
 # Nginx（入口，NodePort 30888）
 # =============================================================================
