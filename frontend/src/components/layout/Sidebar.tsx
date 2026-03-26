@@ -3,7 +3,7 @@
 import { Store, Key, BarChart3, Share } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type PageType = 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users';
+export type PageType = 'overview' | 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users';
 
 interface SidebarProps {
   currentPage: PageType;
@@ -11,6 +11,7 @@ interface SidebarProps {
 }
 
 const menuItems = [
+  { id: 'overview' as PageType, label: '总览', icon: BarChart3 },
   { id: 'marketplace' as PageType, label: '广场', icon: Store },
   { id: 'my-shared' as PageType, label: '我的共享', icon: Share },
   { id: 'api-keys' as PageType, label: 'API Keys', icon: Key },

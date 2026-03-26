@@ -1,5 +1,6 @@
 {
   "sidebar": {
+    "overview": "总览",
     "marketplace": "广场",
     "myShared": "我的共享",
     "apiKeys": "API Keys",
@@ -162,6 +163,27 @@
     "loadingMore": "加载中...",
     "refresh": "刷新数据",
     "refreshFailed": "刷新数据失败"
+  },
+  "overview": {
+    "title": "系统总览",
+    "description": "查看系统整体使用情况统计",
+    "totalTokens": "总消耗 Tokens",
+    "todayTokens": "今日消耗 Tokens",
+    "userCount": "用户总数",
+    "clawCount": "龙虾数量",
+    "tokenTrend": "Token 消耗趋势",
+    "userRankings": "Token 使用排行 (Top 10)",
+    "modelUsage": "模型使用占比",
+    "timeRange": "时间范围",
+    "day": "天",
+    "loading": "加载中...",
+    "noData": "暂无数据",
+    "error": "加载失败，请重试",
+    "timeRanges": {
+      "1": "最近 1 天",
+      "7": "最近 7 天",
+      "30": "最近 30 天"
+    }
   },
   "usageTable": {
     "time": "时间",

@@ -17,7 +17,8 @@ import {
   LayoutGrid,
   Cpu,
   Bot,
-  Sliders
+  Sliders,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,7 @@ export function Sidebar() {
   const { user } = useAuthStore();
 
   const mainNavItems = [
+    { icon: <TrendingUp className="w-4 h-4" />, label: t('overview'), href: "/overview" },
     { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
     { icon: <Bot className="w-4 h-4" />, label: t('claws'), href: "/claws" },
     { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
