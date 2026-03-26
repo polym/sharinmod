@@ -147,6 +147,15 @@ export const adminAPI = {
   resetUserPassword: (userId: number) =>
     api.post(`/api/admin/users/${userId}/reset-password`),
 
+  disableUser: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/disable`),
+
+  enableUser: (userId: number) =>
+    api.put(`/api/admin/users/${userId}/enable`),
+
+  deleteUser: (userId: number) =>
+    api.delete(`/api/admin/users/${userId}`),
+
   // Provider configuration API
   getProviders: (params?: { skip?: number; limit?: number; enabled_only?: boolean }) =>
     api.get('/api/admin/providers', { params }),

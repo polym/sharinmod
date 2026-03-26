@@ -389,7 +389,11 @@
     "copied": "Copied",
     "submit": "Submit",
     "tokens": "Tokens",
-    "email": "Email"
+    "email": "Email",
+    "page": "Page",
+    "pageOf": "of",
+    "previous": "Previous",
+    "next": "Next"
   },
   "adminProviders": {
     "title": "Provider Configuration",
@@ -498,7 +502,22 @@
     "resetLinkHint": "Please send this link to the user. They can set a new password through this link. The link is valid for 24 hours.",
     "copySuccess": "Copied",
     "copySuccessDesc": "Link copied to clipboard",
-    "copyFailed": "Copy failed, please copy manually"
+    "copyFailed": "Copy failed, please copy manually",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusDisabled": "Disabled",
+    "disableUser": "Disable",
+    "enableUser": "Enable",
+    "deleteUser": "Delete",
+    "confirmDisable": "Are you sure you want to disable user {email}? The user will not be able to log in.",
+    "confirmEnable": "Are you sure you want to enable user {email}?",
+    "confirmDelete": "Are you sure you want to delete user {email}? This action cannot be undone.",
+    "disableSuccess": "User disabled",
+    "enableSuccess": "User enabled",
+    "deleteSuccess": "User deleted",
+    "disableFailed": "Failed to disable",
+    "enableFailed": "Failed to enable",
+    "deleteFailed": "Failed to delete"
   },
   "adminModelConfig": {
     "title": "Model Config",

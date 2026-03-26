@@ -13,6 +13,7 @@ export interface User {
   consumed_tokens?: number;
   is_admin?: boolean;
   force_password_change?: boolean;
+  is_disabled?: boolean;
   subscription_count?: number;
   active_subscription_count?: number;
   last_used_at?: string;

@@ -390,7 +390,11 @@
     "copied": "已复制",
     "submit": "提交",
     "tokens": "Tokens",
-    "email": "邮箱"
+    "email": "邮箱",
+    "page": "第",
+    "pageOf": "页",
+    "previous": "上一页",
+    "next": "下一页"
   },
   "adminProviders": {
     "title": "订阅配置",
@@ -499,7 +503,22 @@
     "resetLinkHint": "请将此链接发送给用户，用户可通过该链接设置新密码。链接有效期 24 小时。",
     "copySuccess": "已复制",
     "copySuccessDesc": "链接已复制到剪贴板",
-    "copyFailed": "复制失败，请手动复制"
+    "copyFailed": "复制失败，请手动复制",
+    "status": "状态",
+    "statusActive": "激活",
+    "statusDisabled": "已停用",
+    "disableUser": "停用",
+    "enableUser": "激活",
+    "deleteUser": "删除",
+    "confirmDisable": "确定要停用用户 {email}？停用后用户无法登录。",
+    "confirmEnable": "确定要激活用户 {email}？",
+    "confirmDelete": "确定要删除用户 {email}？此操作不可撤销。",
+    "disableSuccess": "用户已停用",
+    "enableSuccess": "用户已激活",
+    "deleteSuccess": "用户已删除",
+    "disableFailed": "停用失败",
+    "enableFailed": "激活失败",
+    "deleteFailed": "删除失败"
   },
   "adminModelConfig": {
     "title": "模型配置",
