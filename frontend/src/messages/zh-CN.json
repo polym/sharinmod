@@ -664,8 +664,6 @@
   },
   "adminSettings": {
     "title": "系统设置",
-    "description": "管理系统级别的全局配置",
-    "configTitle": "系统配置",
     "save": "保存",
     "saving": "保存中...",
     "apikeyLimit": {
@@ -680,13 +678,9 @@
     },
     "toast": {
       "loadError": "加载配置失败",
-      "loadErrorDetail": "无法获取系统配置，请刷新页面重试",
       "saveSuccess": "保存成功",
-      "saveSuccessDetail": "系统配置已更新",
       "saveError": "保存失败",
-      "saveErrorDetail": "更新系统配置失败，请稍后重试",
-      "invalidValue": "无效的值",
-      "invalidValueDetail": "请输入有效的正整数"
+      "invalidValue": "无效的值"
     }
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,18 +94,11 @@ export function AdminSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-600 mt-2">{t('description')}</p>
-      </div>
+      <h1 className="text-2xl font-semibold text-gray-900">{t('title')}</h1>
 
-      <Card className="clay-card border-2 border-indigo-100">
-        <CardHeader>
-          <CardTitle>{t('configTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* APIKey 每日限额 */}
-          <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+      <Card className="border border-gray-200">
+        <CardContent className="pt-6 space-y-5">
+          <div className="space-y-2">
             <Label htmlFor="daily-limit">{t('apikeyLimit.dailyLimit')}</Label>
             <Input
               id="daily-limit"
@@ -113,12 +106,11 @@ export function AdminSettings() {
               min="1"
               value={config.default_daily_token_limit}
               onChange={(e) => setConfig({ ...config, default_daily_token_limit: e.target.value })}
-              className="clay-input max-w-md"
+              className="max-w-xs"
             />
           </div>
 
-          {/* 最大龙虾数量 */}
-          <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+          <div className="space-y-2">
             <Label htmlFor="max-claws">{t('clawLimit.maxClaws')}</Label>
             <Input
               id="max-claws"
@@ -126,12 +118,11 @@ export function AdminSettings() {
               min="1"
               value={config.max_claws_per_user}
               onChange={(e) => setConfig({ ...config, max_claws_per_user: e.target.value })}
-              className="clay-input max-w-md"
+              className="max-w-xs"
             />
           </div>
 
-          {/* 龙虾 APIKey 限额 */}
-          <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+          <div className="space-y-2">
             <Label htmlFor="claw-limit">{t('clawApikeyLimit.dailyLimit')}</Label>
             <Input
               id="claw-limit"
@@ -139,13 +130,14 @@ export function AdminSettings() {
               min="1"
               value={config.claw_apikey_daily_token_limit}
               onChange={(e) => setConfig({ ...config, claw_apikey_daily_token_limit: e.target.value })}
-              className="clay-input max-w-md"
+              className="max-w-xs"
               placeholder={t('clawApikeyLimit.placeholder')}
             />
+            <p className="text-xs text-gray-500">{t('clawApikeyLimit.placeholder')}</p>
           </div>
 
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={handleSave} disabled={saving} className="clay-btn-primary">
+          <div className="flex justify-end pt-2">
+            <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {saving ? t('saving') : t('save')}
             </Button>
