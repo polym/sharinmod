@@ -9,19 +9,58 @@ interface QuarterHourlyTokenData {
 
 interface UsageBarChartProps {
   quarterHourlyDistribution: QuarterHourlyTokenData[];
+  days?: number;  // Number of days for trend data (default: 1)
 }
 
 // Tooltip padding constant for boundary detection
 const TOOLTIP_PADDING = 12;
 
-// Format quarter_hour (0-95) to time string like "0:00", "10:15", "14:30"
-const formatQuarterHour = (qh: number): string => {
-  const hours = Math.floor(qh / 4);
-  const minutes = (qh % 4) * 15;
-  return `${hours}:${minutes.toString().padStart(2, '0')}`;
+// Format time_slot to label based on days parameter
+const formatTimeSlot = (slot: number, totalDays: number): string => {
+  const totalMinutes = totalDays * 24 * 60;
+  const minutesPerOneSlot = totalMinutes / 96;
+  const slotMinutes = slot * minutesPerOneSlot;
+
+  // Calculate the datetime at this slot (relative to current time, going backwards)
+  const now = new Date();
+  const totalEndTime = now.getTime();
+  const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
+  const slotDate = new Date(slotTime);
+
+  if (totalDays === 1) {
+    // 1 day: show time (e.g., 00:00, 04:00, 08:00, ...)
+    const hours = slotDate.getHours();
+    const minutes = slotDate.getMinutes();
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  } else {
+    // Multi-day: show month-day (e.g., 3-20, 3-22, 3-24, ...)
+    const month = slotDate.getMonth() + 1;
+    const day = slotDate.getDate();
+    return `${month}-${day}`;
+  }
 };
 
-export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps) {
+// Format time_slot for tooltip (full datetime)
+const formatTimeSlotTooltip = (slot: number, totalDays: number): string => {
+  const totalMinutes = totalDays * 24 * 60;
+  const minutesPerOneSlot = totalMinutes / 96;
+  const slotMinutes = slot * minutesPerOneSlot;
+
+  // Calculate the datetime at this slot
+  const now = new Date();
+  const totalEndTime = now.getTime();
+  const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
+  const slotDate = new Date(slotTime);
+
+  const month = slotDate.getMonth() + 1;
+  const day = slotDate.getDate();
+  const hours = slotDate.getHours();
+  const minutes = slotDate.getMinutes();
+
+  return `${month}-${day} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+export function UsageBarChart({ quarterHourlyDistribution, days = 1 }: UsageBarChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [tooltipFlip, setTooltipFlip] = useState<'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none'>('none');
@@ -103,9 +142,22 @@ export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps)
   const chartData = sortedData.map(d => d.tokens);
   const maxValue = Math.max(...chartData, 1);
 
-  // Calculate label indices (show labels at every 2 hours: 0:00, 2:00, 4:00, ..., 22:00)
-  // quarter_hour indices: 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88
-  const labelIndices = [0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88];
+  // Calculate label indices based on days parameter
+  let labelIndices: number[];
+  if (days === 1) {
+    // 1 day: show labels at every 4 hours (0:00, 4:00, 8:00, 12:00, 16:00, 20:00)
+    labelIndices = [0, 16, 32, 48, 64, 80];
+  } else if (days === 7) {
+    // 7 days: show labels every ~1.5 days (6 slots each)
+    labelIndices = [0, 14, 29, 43, 58, 73, 87, 95];
+  } else if (days === 30) {
+    // 30 days: show labels every ~5 days (16 slots each)
+    labelIndices = [0, 16, 32, 48, 64, 80, 95];
+  } else {
+    // Default: show 6 evenly spaced labels
+    const step = Math.floor(96 / 5);
+    labelIndices = Array.from({ length: 6 }, (_, i) => Math.min(i * step, 95));
+  }
 
   // Prevent division by zero
   const safeLength = Math.max(chartData.length - 1, 1);
@@ -135,7 +187,7 @@ export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps)
               setMousePosition(null);
             }}
             role="graphics-symbol"
-            aria-label={`${formatQuarterHour(sortedData[idx].quarter_hour)} - ${chartData[idx]} tokens`}
+            aria-label={`${formatTimeSlot(sortedData[idx].quarter_hour, days)} - ${chartData[idx]} tokens`}
           />
         ))}
         {/* Tooltip overlay */}
@@ -153,7 +205,7 @@ export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps)
               <span className="font-semibold text-sm">{chartData[hoverIndex]} tokens</span>
               <br />
               <span className="text-indigo-200 text-xs">
-                {formatQuarterHour(sortedData[hoverIndex].quarter_hour)}
+                {formatTimeSlotTooltip(sortedData[hoverIndex].quarter_hour, days)}
               </span>
             </div>
           </div>
@@ -172,7 +224,7 @@ export function UsageBarChart({ quarterHourlyDistribution }: UsageBarChartProps)
               className={`absolute transform ${isFirst ? '' : '-translate-x-1/2'}`}
               style={{ left: `${leftPercent}%` }}
             >
-              {formatQuarterHour(idx)}
+              {formatTimeSlot(idx, days)}
             </span>
           );
         })}

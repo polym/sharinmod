@@ -199,7 +199,7 @@ export function OverviewPage() {
               {overviewData.daily_trends.length > 0 ? (
                 <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-64 bg-white">
                   <div className="p-4 h-full">
-                    <UsageBarChart quarterHourlyDistribution={convertToChartFormat(overviewData.daily_trends)} />
+                    <UsageBarChart quarterHourlyDistribution={convertToChartFormat(overviewData.daily_trends)} days={parseInt(timeRange)} />
                   </div>
                 </div>
               ) : (
