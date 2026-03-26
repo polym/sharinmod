@@ -24,6 +24,7 @@ import { adminAPI } from '@/lib/services';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
+import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
 
 interface UserListResponse {
   items: User[];
@@ -72,19 +73,13 @@ export default function AdminUsersPage() {
 
   // Track pending requests to prevent race conditions
   const requestIdRef = useRef(0);
+  // Keep latest currentPage ref for auto-refresh
+  const currentPageRef = useRef(1);
 
+  // Update currentPageRef when currentPage changes
   useEffect(() => {
-    if (!isAuthenticated) {
-      setShowLoginDialog(true);
-      return;
-    }
-
-    if (currentUser?.is_admin) {
-      loadUsers(1);
-    } else {
-      router.push('/marketplace');
-    }
-  }, [currentUser, isAuthenticated, roleFilter]);
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   const loadUsers = useCallback(async (page: number = 1) => {
     // Increment request ID for this request
@@ -126,6 +121,26 @@ export default function AdminUsersPage() {
       }
     }
   }, [roleFilter, toast, tCommon]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setShowLoginDialog(true);
+      return;
+    }
+
+    if (currentUser?.is_admin) {
+      loadUsers(1);
+    } else {
+      router.push('/marketplace');
+    }
+  }, [currentUser, isAuthenticated, roleFilter, loadUsers]);
+
+  // Auto-refresh user list every 30 seconds when page is visible, keeping current page
+  useIntervalOnVisible(() => {
+    if (isAuthenticated && currentUser?.is_admin && currentPageRef.current >= 1) {
+      loadUsers(currentPageRef.current);
+    }
+  }, isAuthenticated && currentUser?.is_admin ? 30000 : null);
 
   const handleRoleFilterChange = (value: string) => {
     setRoleFilter(value as 'all' | 'admin' | 'user');
@@ -204,7 +219,7 @@ export default function AdminUsersPage() {
       // Reset form
       setCreateEmail('');
       setShowCreateDialog(false);
-      loadUsers(0, false);
+      loadUsers(1);
 
       toast({
         title: tCommon('success'),
