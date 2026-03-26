@@ -455,7 +455,7 @@ export function UnifiedAPIKeys() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-[80px]">
                         {apiKey.status === 'daily_limit_exceeded' ? (
                           <span className="clay-badge-warning">{t('statusDailyLimitExceeded')}</span>
                         ) : (
@@ -465,33 +465,53 @@ export function UnifiedAPIKeys() {
                         )}
                       </TableCell>
                       <TableCell className="text-indigo-700">
-                        {apiKey.daily_token_limit ? (
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                              <span>{t('dailyUsed')}: {apiKey.daily_tokens_used.toLocaleString()}</span>
-                              <span>{t('dailyLimit')}: {apiKey.daily_token_limit.toLocaleString()}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
-                                  apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.8
-                                    ? 'bg-red-500'
-                                    : apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.5
-                                    ? 'bg-yellow-500'
-                                    : 'bg-green-500'
-                                }`}
-                                style={{
-                                  width: `${Math.min((apiKey.daily_tokens_used / apiKey.daily_token_limit) * 100, 100)}%`
-                                }}
-                              />
-                            </div>
-                            {apiKey.status === 'daily_limit_exceeded' && (
-                              <p className="text-xs text-red-600 font-medium">{t('dailyLimitExceededMessage')}</p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-indigo-400">{t('noLimit')}</span>
-                        )}
+                        <div className="space-y-1.5 min-w-[120px]">
+                          {apiKey.daily_token_limit ? (
+                            <>
+                              <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${
+                                    apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.8
+                                      ? 'bg-red-500'
+                                      : apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.5
+                                      ? 'bg-amber-500'
+                                      : 'bg-emerald-500'
+                                  }`}
+                                  style={{
+                                    width: `${Math.min((apiKey.daily_tokens_used / apiKey.daily_token_limit) * 100, 100)}%`
+                                  }}
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs font-medium tabular-nums">
+                                  {apiKey.daily_tokens_used.toLocaleString()}
+                                </span>
+                                <span className="text-indigo-400 text-xs">/</span>
+                                <span className="text-xs text-indigo-400 tabular-nums">
+                                  {apiKey.daily_token_limit.toLocaleString()}
+                                </span>
+                                {apiKey.status === 'daily_limit_exceeded' && (
+                                  <span className="text-xs font-medium text-red-600" title={t('dailyLimitExceededMessage')}>
+                                    ⚠
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="h-1.5 bg-indigo-50 rounded-full overflow-hidden">
+                                <div className="h-full bg-indigo-200 rounded-full w-0" />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs font-medium tabular-nums">
+                                  {apiKey.daily_tokens_used.toLocaleString()}
+                                </span>
+                                <span className="text-indigo-400 text-xs">/</span>
+                                <span className="text-xs text-indigo-400 font-mono">+inf</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-indigo-700">
                         {formatDate(apiKey.created_at)}
