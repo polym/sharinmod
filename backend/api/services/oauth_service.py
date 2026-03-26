@@ -151,9 +151,15 @@ async def get_or_create_github_user(db: Session, github_user_info: dict) -> User
         oauth_provider_user_id=github_id,
     )
 
-    # 创建用户并同步到 LiteLLM - 修复：使用 await 而不是 asyncio.run()
-    litellm_user_id = await create_user_in_litellm(email)
-    new_user.litellm_user_id = litellm_user_id
+    # 创建用户并同步到 LiteLLM
+    try:
+        litellm_user_id = await create_user_in_litellm(email)
+        new_user.litellm_user_id = litellm_user_id
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建用户失败（LiteLLM 服务异常）: {str(e)}。请联系管理员处理。"
+        )
 
     # 添加到数据库
     db.add(new_user)
@@ -225,8 +231,14 @@ async def get_or_create_gitlab_user(db: Session, gitlab_user_info: dict) -> User
     )
 
     # 创建用户并同步到 LiteLLM
-    litellm_user_id = await create_user_in_litellm(email)
-    new_user.litellm_user_id = litellm_user_id
+    try:
+        litellm_user_id = await create_user_in_litellm(email)
+        new_user.litellm_user_id = litellm_user_id
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"创建用户失败（LiteLLM 服务异常）: {str(e)}。请联系管理员处理。"
+        )
 
     # 添加到数据库
     db.add(new_user)

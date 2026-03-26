@@ -172,7 +172,7 @@ def revoke_admin(
 
 
 @router.post("/users/create", response_model=PasswordResetTokenResponse, status_code=status.HTTP_201_CREATED)
-def create_user(
+async def create_user(
     user_data: UserCreateRequest,
     current_admin: Annotated[User, Depends(require_admin)],
     db: Session = Depends(get_db)
@@ -188,10 +188,10 @@ def create_user(
     Returns:
         Reset token and password reset link
     """
-    success, reset_token, error_msg = create_user_with_reset_token(db, user_data.email)
+    success, reset_token, error_msg = await create_user_with_reset_token(db, user_data.email)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=error_msg
         )
 
