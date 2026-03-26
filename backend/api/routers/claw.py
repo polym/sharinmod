@@ -301,6 +301,7 @@ _HOP_BY_HOP_HEADERS = frozenset({
 _K8S_NS_RE = re.compile(r'^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?$')
 
 _FB_COOKIE_NAME = "sharinmod-fb-token"
+_OW_COOKIE_NAME = "sharinmod-ow-token"
 
 
 @router.get("/{claw_id}/archives", response_model=ArchiveList)
@@ -545,16 +546,15 @@ def delete_claw_archive(
     )
 
 
-def _filter_cookie_header(cookie_header: str | None) -> str | None:
+def _filter_cookie_header(cookie_header: str | None, cookie_name: str = _FB_COOKIE_NAME) -> str | None:
     """
-    过滤掉 sharinmod-fb-token cookie，保留其他 cookie（如 filebrowser 的 auth）
+    过滤掉 sharinmod 专用 cookie，保留其他 cookie
     """
     if not cookie_header:
         return None
-    # 过滤掉 sharinmod-fb-token，保留其他 cookie
     cookies = [
         c.strip() for c in cookie_header.split(";")
-        if c.strip() and not c.strip().startswith(f"{_FB_COOKIE_NAME}=")
+        if c.strip() and not c.strip().startswith(f"{cookie_name}=")
     ]
     return "; ".join(cookies) if cookies else None
 
@@ -634,6 +634,113 @@ async def proxy_filebrowser(
         if filtered_cookie:
             fwd_headers["cookie"] = filtered_cookie
     fwd_headers["X-Auth-User"] = "sharinmod"
+
+    body = await request.body()
+    async_client = httpx.AsyncClient(timeout=300.0)
+    try:
+        upstream_req = async_client.build_request(
+            method=request.method,
+            url=target_base,
+            headers=fwd_headers,
+            content=body,
+        )
+        upstream_resp = await async_client.send(upstream_req, stream=True)
+    except Exception:
+        await async_client.aclose()
+        raise
+
+    async def _stream_response():
+        try:
+            async for chunk in upstream_resp.aiter_raw():
+                yield chunk
+        finally:
+            await upstream_resp.aclose()
+            await async_client.aclose()
+
+    resp_headers = {
+        k: v for k, v in upstream_resp.headers.items()
+        if k.lower() not in _HOP_BY_HOP_HEADERS
+    }
+    return StreamingResponse(
+        _stream_response(),
+        status_code=upstream_resp.status_code,
+        headers=resp_headers,
+    )
+
+
+def _get_openclaw_web_user(request: Request, session: Session = Depends(get_db)) -> User:
+    """
+    Auth for openclaw-web proxy: accepts either
+    - Authorization: Bearer <jwt>  (programmatic / axios)
+    - Cookie sharinmod-ow-token=<jwt>  (browser, all subsequent SPA requests)
+    """
+    token: str | None = None
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    if not token:
+        token = request.cookies.get(_OW_COOKIE_NAME)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    email = verify_token(token)
+    if email is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+    user = get_user_by_email(session, email)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+
+@router.get("/{claw_id}/openclaw-web", include_in_schema=False)
+async def redirect_to_openclaw_web(
+    claw_id: int,
+    current_user: User = Depends(_get_openclaw_web_user),
+    session: Session = Depends(get_db),
+):
+    """重定向到 openclaw-web 根路径（补充 trailing slash）"""
+    get_user_claw_by_id(session, current_user.id, claw_id)  # ownership check，非所有者返回 404
+    return RedirectResponse(url=f"/api/claws/{claw_id}/openclaw-web/", status_code=302)
+
+
+@router.api_route(
+    "/{claw_id}/openclaw-web/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    include_in_schema=False,
+)
+async def proxy_openclaw_web(
+    claw_id: int,
+    path: str,
+    request: Request,
+    current_user: User = Depends(_get_openclaw_web_user),
+    session: Session = Depends(get_db),
+):
+    """
+    将 openclaw-web 请求代理到对应 pod 的 3000 端口。
+    ownership check 确保用户只能访问自己的龙虾。
+    """
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+    namespace = claw.k8s_namespace or "default"
+    if not _K8S_NS_RE.match(namespace):
+        raise HTTPException(status_code=500, detail="Invalid namespace in claw record")
+
+    # Pod headless DNS: {pod-name}.{svc-name}.{namespace}.svc.cluster.local
+    target_base = (
+        f"http://claw-{claw_id}-0.claw-{claw_id}.{namespace}.svc.cluster.local:3000"
+        f"/{path}"
+    )
+    if request.query_params:
+        target_base += f"?{request.query_params}"
+
+    # 过滤 hop-by-hop headers
+    fwd_headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in _HOP_BY_HOP_HEADERS
+    }
+    # 过滤掉 sharinmod-ow-token
+    if "cookie" in request.headers:
+        filtered_cookie = _filter_cookie_header(request.headers["cookie"], _OW_COOKIE_NAME)
+        if filtered_cookie:
+            fwd_headers["cookie"] = filtered_cookie
 
     body = await request.body()
     async_client = httpx.AsyncClient(timeout=300.0)

@@ -252,6 +252,7 @@ def create_headless_service(claw_id: int, namespace: str = "default") -> str:
             ports=[
                 client.V1ServicePort(port=80, name="placeholder"),
                 client.V1ServicePort(port=8080, name="filebrowser"),
+                client.V1ServicePort(port=3000, name="openclaw-web"),
             ],
         ),
     )
