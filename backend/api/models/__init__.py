@@ -5,6 +5,7 @@ from .unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from .api_key_usage import APIKeyUsageHistory, APIKeyAction
 from .provider_config import ProviderConfig, ProviderModel
 from .claw import Claw, ClawType, ClawStatus
+from .password_reset_token import PasswordResetToken
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "Claw",
     "ClawType",
     "ClawStatus",
+    "PasswordResetToken",
 ]

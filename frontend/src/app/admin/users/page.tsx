@@ -2,11 +2,22 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, ShieldOff } from 'lucide-react';
+import { Shield, ShieldOff, KeyRound, Plus, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import type { User } from '@/lib/store';
 import { adminAPI } from '@/lib/services';
@@ -35,6 +46,23 @@ export default function AdminUsersPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+
+  // Create user dialog state
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // Reset password state
+  const [resetLoading, setResetLoading] = useState(false);
+
+  // Reset link dialog state
+  const [showResetLinkDialog, setShowResetLinkDialog] = useState(false);
+  const [resetLinkData, setResetLinkData] = useState<{ link: string; email: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Reset confirmation dialog state
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = useState(false);
+  const [resetUser, setResetUser] = useState<{ id: number; email: string } | null>(null);
 
   // Track pending requests to prevent race conditions
   const requestIdRef = useRef(0);
@@ -159,6 +187,121 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!createEmail) {
+      toast({
+        title: tCommon('error'),
+        description: t('emailRequired'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const response = await adminAPI.createUser({ email: createEmail });
+      const { link } = response.data;
+
+      // Show reset link dialog
+      setResetLinkData({ link, email: createEmail });
+      setShowResetLinkDialog(true);
+
+      // Reset form
+      setCreateEmail('');
+      setShowCreateDialog(false);
+      loadUsers(0, false);
+
+      toast({
+        title: tCommon('success'),
+        description: t('createSuccess'),
+      });
+    } catch (error: any) {
+      console.error('Failed to create user:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('createFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUser) return;
+
+    setResetLoading(true);
+    try {
+      const response = await adminAPI.resetUserPassword(resetUser.id);
+      const { link } = response.data;
+
+      // Show reset link dialog
+      setResetLinkData({ link, email: resetUser.email });
+      setShowResetLinkDialog(true);
+
+      toast({
+        title: tCommon('success'),
+        description: t('resetSuccess'),
+      });
+    } catch (error: any) {
+      console.error('Failed to reset password:', error);
+      toast({
+        title: tCommon('error'),
+        description: error.response?.data?.detail || t('resetFailed'),
+        variant: 'destructive',
+      });
+    } finally {
+      setResetLoading(false);
+      setShowResetConfirmDialog(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!resetLinkData) return;
+
+    const copyToClipboard = async () => {
+      // Fallback: 使用传统方法
+      const textArea = document.createElement('textarea');
+      textArea.value = resetLinkData.link;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: t('copySuccess'),
+        description: t('copySuccessDesc'),
+      });
+    };
+
+    // 检查 clipboard API 是否可用
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(resetLinkData.link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({
+          title: t('copySuccess'),
+          description: t('copySuccessDesc'),
+        });
+      } catch (error) {
+        console.error('Clipboard API failed, using fallback:', error);
+        await copyToClipboard();
+      }
+    } else {
+      // clipboard API 不可用，直接使用 fallback
+      await copyToClipboard();
+    }
+  };
+
+  const openResetConfirm = (userId: number, email: string) => {
+    setResetUser({ id: userId, email });
+    setShowResetConfirmDialog(true);
+  };
+
   const formatTokens = (tokens: number): string => {
     if (tokens < 1000) {
       return tokens.toLocaleString();
@@ -213,6 +356,40 @@ export default function AdminUsersPage() {
                   <SelectItem value="user">{t('roleFilter.user')}</SelectItem>
                 </SelectContent>
               </Select>
+              <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    {t('createUser')}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{t('createUserTitle')}</DialogTitle>
+                    <DialogDescription>{t('createUserDescription')}</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">{t('email')}</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={createEmail}
+                        onChange={(e) => setCreateEmail(e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+                      {tCommon('cancel')}
+                    </Button>
+                    <Button onClick={handleCreateUser} disabled={createLoading}>
+                      {createLoading ? tCommon('loading') : tCommon('confirm')}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardHeader>
@@ -270,20 +447,31 @@ export default function AdminUsersPage() {
                           {formatTime(u.last_used_at)}
                         </TableCell>
                         <TableCell>
-                          {u.id !== currentUser?.id && (
+                          <div className="flex items-center gap-1">
+                            {u.id !== currentUser?.id && (
+                              <Button
+                                onClick={() => u.is_admin ? handleRevokeAdmin(u.id!) : handleGrantAdmin(u.id!)}
+                                size="sm"
+                                variant="ghost"
+                                aria-label={u.is_admin ? 'Revoke admin' : 'Grant admin'}
+                              >
+                                {u.is_admin ? (
+                                  <ShieldOff className="w-4 h-4" />
+                                ) : (
+                                  <Shield className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
                             <Button
-                              onClick={() => u.is_admin ? handleRevokeAdmin(u.id!) : handleGrantAdmin(u.id!)}
+                              onClick={() => openResetConfirm(u.id!, u.email)}
                               size="sm"
                               variant="ghost"
-                              aria-label={u.is_admin ? 'Revoke admin' : 'Grant admin'}
+                              aria-label="Reset password"
+                              disabled={resetLoading}
                             >
-                              {u.is_admin ? (
-                                <ShieldOff className="w-4 h-4" />
-                              ) : (
-                                <Shield className="w-4 h-4" />
-                              )}
+                              <KeyRound className="w-4 h-4" />
                             </Button>
-                          )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -306,6 +494,60 @@ export default function AdminUsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Password Confirmation Dialog */}
+      <Dialog open={showResetConfirmDialog} onOpenChange={setShowResetConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resetPassword')}</DialogTitle>
+            <DialogDescription>
+              {resetUser && `${t('resetConfirm')} ${resetUser.email}?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowResetConfirmDialog(false)}>
+              {tCommon('cancel')}
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resetLoading}>
+              {resetLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Link Dialog */}
+      <Dialog open={showResetLinkDialog} onOpenChange={setShowResetLinkDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('resetLink')}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={resetLinkData?.link || ''}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500">
+              {t('resetLinkHint')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowResetLinkDialog(false)}>
+              {tCommon('close')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

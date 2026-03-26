@@ -353,6 +353,21 @@
     "changeSuccess": "密码修改成功",
     "changeFailed": "密码修改失败"
   },
+  "passwordReset": {
+    "title": "设置密码",
+    "description": "为账户 {email} 设置新密码",
+    "setPassword": "设置密码",
+    "setting": "设置中...",
+    "success": "密码设置成功",
+    "error": "密码设置失败",
+    "passwordSet": "密码已设置，即将跳转到登录页面",
+    "passwordSetFailed": "密码设置失败，请重试",
+    "invalidToken": "令牌无效",
+    "tokenExpiredOrUsed": "令牌已过期或已被使用",
+    "invalidLink": "无效链接",
+    "invalidLinkDescription": "重置密码链接无效或已过期，请联系管理员获取新链接",
+    "backToHome": "返回首页"
+  },
   "common": {
     "loading": "加载中...",
     "error": "错误",
@@ -374,7 +389,8 @@
     "copy": "复制",
     "copied": "已复制",
     "submit": "提交",
-    "tokens": "Tokens"
+    "tokens": "Tokens",
+    "email": "邮箱"
   },
   "adminProviders": {
     "title": "订阅配置",
@@ -467,7 +483,23 @@
     "grantSuccess": "已授予管理员权限",
     "revokeSuccess": "已撤销管理员权限",
     "grantFailed": "授权失败",
-    "revokeFailed": "撤销失败"
+    "revokeFailed": "撤销失败",
+    "createUser": "创建用户",
+    "createUserTitle": "创建新用户",
+    "createUserDescription": "输入邮箱地址创建用户，用户将收到重置密码链接",
+    "emailRequired": "请输入邮箱地址",
+    "createSuccess": "用户创建成功",
+    "createFailed": "创建用户失败",
+    "resetPassword": "重置密码",
+    "resetConfirm": "确定要重置",
+    "resetSuccess": "密码重置成功",
+    "resetFailed": "密码重置失败",
+    "resetLink": "重置密码链接",
+    "resetLinkLabel": "重置密码链接",
+    "resetLinkHint": "请将此链接发送给用户，用户可通过该链接设置新密码。链接有效期 24 小时。",
+    "copySuccess": "已复制",
+    "copySuccessDesc": "链接已复制到剪贴板",
+    "copyFailed": "复制失败，请手动复制"
   },
   "adminModelConfig": {
     "title": "模型配置",

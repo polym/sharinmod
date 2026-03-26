@@ -65,6 +65,21 @@
     "changeSuccess": "Password changed successfully",
     "changeFailed": "Failed to change password"
   },
+  "passwordReset": {
+    "title": "Set Password",
+    "description": "Set a new password for account {email}",
+    "setPassword": "Set Password",
+    "setting": "Setting...",
+    "success": "Password set successfully",
+    "error": "Failed to set password",
+    "passwordSet": "Password has been set. Redirecting to login page...",
+    "passwordSetFailed": "Failed to set password. Please try again.",
+    "invalidToken": "Invalid Token",
+    "tokenExpiredOrUsed": "Token has expired or has been used",
+    "invalidLink": "Invalid Link",
+    "invalidLinkDescription": "The password reset link is invalid or has expired. Please contact an administrator for a new link.",
+    "backToHome": "Back to Home"
+  },
   "language": {
     "zh-CN": "中文",
     "en": "English"
@@ -373,7 +388,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "submit": "Submit",
-    "tokens": "Tokens"
+    "tokens": "Tokens",
+    "email": "Email"
   },
   "adminProviders": {
     "title": "Provider Configuration",
@@ -466,7 +482,23 @@
     "grantSuccess": "Admin granted",
     "revokeSuccess": "Admin revoked",
     "grantFailed": "Grant failed",
-    "revokeFailed": "Revoke failed"
+    "revokeFailed": "Revoke failed",
+    "createUser": "Create User",
+    "createUserTitle": "Create New User",
+    "createUserDescription": "Enter email to create a user. A password reset link will be generated.",
+    "emailRequired": "Please enter an email address",
+    "createSuccess": "User created successfully",
+    "createFailed": "Failed to create user",
+    "resetPassword": "Reset Password",
+    "resetConfirm": "Are you sure you want to reset the password for",
+    "resetSuccess": "Password reset successfully",
+    "resetFailed": "Failed to reset password",
+    "resetLink": "Password reset link",
+    "resetLinkLabel": "Reset password link",
+    "resetLinkHint": "Please send this link to the user. They can set a new password through this link. The link is valid for 24 hours.",
+    "copySuccess": "Copied",
+    "copySuccessDesc": "Link copied to clipboard",
+    "copyFailed": "Copy failed, please copy manually"
   },
   "adminModelConfig": {
     "title": "Model Config",

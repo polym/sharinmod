@@ -36,6 +36,7 @@ from api.routers.usage import router as usage_router
 from api.routers.oauth import router as oauth_router
 from api.routers.admin import router as admin_router
 from api.routers.claw import router as claw_router
+from api.routers.password_reset import router as password_reset_router
 from api.middleware.ip_whitelist import ip_whitelist_middleware
 from api.utils import *
 from api.services.archive_scheduler import archive_scheduler
@@ -145,6 +146,7 @@ def create_app(settings: Settings):
     app.include_router(usage_router)
     app.include_router(admin_router)
     app.include_router(claw_router)
+    app.include_router(password_reset_router)
     Instrumentator().instrument(app).expose(app)
     add_pagination(app)
     return app

@@ -34,6 +34,9 @@ from api.services.provider_config_service import (
     get_supported_providers_for_model,
 )
 from api.schemas.user import UserResponse, UserListResponse, RoleFilter
+from api.schemas.password_reset import UserCreateRequest, PasswordResetTokenResponse
+from api.services.password_reset_service import create_user_with_reset_token, reset_user_password, generate_reset_link
+from api.models.user import User
 from api.schemas.provider_config import (
     ProviderConfigResponse,
     ProviderConfigCreate,
@@ -146,6 +149,76 @@ def revoke_admin(
             detail="User not found"
         )
     return UserResponse.model_validate(user)
+
+
+@router.post("/users/create", response_model=PasswordResetTokenResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    user_data: UserCreateRequest,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> PasswordResetTokenResponse:
+    """
+    Create a new user with force_password_change=True and generate reset token (admin only)
+
+    Args:
+        user_data: User creation data (email only)
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Reset token and password reset link
+    """
+    success, reset_token, error_msg = create_user_with_reset_token(db, user_data.email)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=error_msg
+        )
+
+    # Generate reset link using configured WEBSITE_BASE_URL
+    from api.config import settings
+    link = generate_reset_link(reset_token.token, settings.WEBSITE_BASE_URL)
+
+    return PasswordResetTokenResponse(
+        token=reset_token.token,
+        link=link,
+        expires_at=reset_token.expires_at
+    )
+
+
+@router.post("/users/{user_id}/reset-password", response_model=PasswordResetTokenResponse)
+def reset_password(
+    user_id: int,
+    current_admin: Annotated[User, Depends(require_admin)],
+    db: Session = Depends(get_db)
+) -> PasswordResetTokenResponse:
+    """
+    Reset user password by clearing hashed_password and generating new reset token (admin only)
+
+    Args:
+        user_id: ID of the user to reset password for
+        current_admin: Current authenticated admin user
+        db: Database session
+
+    Returns:
+        Reset token and password reset link
+    """
+    success, reset_token, error_msg = reset_user_password(db, user_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=error_msg
+        )
+
+    # Generate reset link using configured WEBSITE_BASE_URL
+    from api.config import settings
+    link = generate_reset_link(reset_token.token, settings.WEBSITE_BASE_URL)
+
+    return PasswordResetTokenResponse(
+        token=reset_token.token,
+        link=link,
+        expires_at=reset_token.expires_at
+    )
 
 # ==================== Provider Configuration Routes ====================
 
