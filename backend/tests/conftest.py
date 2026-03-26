@@ -1,8 +1,31 @@
 """
 Shared pytest fixtures and configuration for backend tests
 """
+import glob
+import os
 import pytest
 from unittest.mock import AsyncMock, Mock, patch
+
+
+@pytest.fixture(name="cleanup_memory_files", autouse=True, scope="session")
+def cleanup_memory_files_fixture():
+    """
+    Auto-use fixture that cleans up :memory:* files created by SQLite during testing.
+
+    SQLite may create temporary files like :memory:<uuid> in the working directory.
+    This fixture ensures they are cleaned up after the test session.
+    """
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    memory_pattern = os.path.join(backend_dir, ":memory:*")
+
+    yield
+
+    # Cleanup after all tests complete
+    for memory_file in glob.glob(memory_pattern):
+        try:
+            os.remove(memory_file)
+        except OSError:
+            pass  # File might be locked or already deleted
 
 
 @pytest.fixture(name="mock_litellm_client", autouse=True)
