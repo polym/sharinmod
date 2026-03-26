@@ -270,6 +270,16 @@ export const adminAPI = {
   updateDefaultDailyTokenLimit: (value: string) =>
     api.put(`/api/admin/default-daily-token-limit`, { value }),
 
+  // System Settings Config API
+  getSystemSettingsConfig: () =>
+    api.get('/api/admin/system-settings-config'),
+
+  updateSystemSettingsConfig: (data: {
+    default_daily_token_limit: number;
+    max_claws_per_user: number;
+    claw_apikey_daily_token_limit: number | null;
+  }) => api.put('/api/admin/system-settings-config', data),
+
   // API Key Limit History API
   getAllLimitHistory: (params?: { page?: number; page_size?: number }) =>
     api.get('/api/admin/api-key-limit-history', { params }),

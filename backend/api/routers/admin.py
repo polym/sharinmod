@@ -38,6 +38,8 @@ from api.services.system_setting_service import (
     get_system_setting,
     set_system_setting,
     get_default_daily_token_limit,
+    get_system_settings_config,
+    update_system_settings_config,
 )
 from api.services.api_key_limit_history_service import (
     get_limit_history,
@@ -66,6 +68,8 @@ from api.schemas.system_setting import (
     SystemSettingResponse,
     SystemSettingUpdate,
     SystemSettingsListResponse,
+    SystemSettingsConfigRequest,
+    SystemSettingsConfigResponse,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -991,6 +995,45 @@ def update_default_daily_token_limit_endpoint(
         description='Default daily token limit for new API keys'
     )
     return SystemSettingResponse.model_validate(setting)
+
+
+@router.get("/system-settings-config", response_model=SystemSettingsConfigResponse)
+def get_system_settings_config_endpoint(
+    db: Session = Depends(get_db),
+) -> SystemSettingsConfigResponse:
+    """
+    Get all system settings config (admin only)
+
+    Returns:
+        System settings config with default_daily_token_limit, max_claws_per_user, claw_apikey_daily_token_limit
+    """
+    config = get_system_settings_config(db)
+    return SystemSettingsConfigResponse(**config)
+
+
+@router.put("/system-settings-config", response_model=SystemSettingsConfigResponse)
+def update_system_settings_config_endpoint(
+    update_data: SystemSettingsConfigRequest,
+    db: Session = Depends(get_db),
+) -> SystemSettingsConfigResponse:
+    """
+    Update system settings config (admin only)
+
+    Args:
+        update_data: System settings config with default_daily_token_limit, max_claws_per_user, claw_apikey_daily_token_limit
+        db: Database session
+
+    Returns:
+        Updated system settings config
+    """
+    update_system_settings_config(
+        db,
+        default_daily_token_limit=update_data.default_daily_token_limit,
+        max_claws_per_user=update_data.max_claws_per_user,
+        claw_apikey_daily_token_limit=update_data.claw_apikey_daily_token_limit
+    )
+    config = get_system_settings_config(db)
+    return SystemSettingsConfigResponse(**config)
 
 
 # ==================== API Key Limit History Routes ====================

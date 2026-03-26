@@ -653,5 +653,32 @@
       "deleteSuccess": "Model deleted",
       "deleteFailed": "Failed to delete model"
     }
+  },
+  "adminSettings": {
+    "title": "System Settings",
+    "description": "Manage system-level global configurations",
+    "configTitle": "System Configuration",
+    "save": "Save",
+    "saving": "Saving...",
+    "apikeyLimit": {
+      "dailyLimit": "APIKey Daily Limit"
+    },
+    "clawLimit": {
+      "maxClaws": "Max Claws Per User"
+    },
+    "clawApikeyLimit": {
+      "dailyLimit": "Claw APIKey Daily Limit",
+      "placeholder": "Leave empty to use default limit"
+    },
+    "toast": {
+      "loadError": "Failed to load settings",
+      "loadErrorDetail": "Unable to retrieve system settings, please refresh the page",
+      "saveSuccess": "Settings saved",
+      "saveSuccessDetail": "System settings have been updated",
+      "saveError": "Save failed",
+      "saveErrorDetail": "Failed to update system settings, please try again later",
+      "invalidValue": "Invalid value",
+      "invalidValueDetail": "Please enter a valid positive integer"
+    }
   }
 }

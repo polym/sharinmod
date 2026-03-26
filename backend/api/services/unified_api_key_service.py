@@ -12,7 +12,7 @@ from api.models.user import User
 from api.models.api_key_usage import APIKeyAction
 from api.utils.token_generator import generate_unified_token, is_token_unique
 from api.services.api_key_usage_service import log_api_key_usage
-from api.services.system_setting_service import get_default_daily_token_limit
+from api.services.system_setting_service import get_default_daily_token_limit, get_claw_apikey_daily_token_limit
 from api.config import settings
 
 
@@ -270,8 +270,13 @@ async def create_unified_api_key_async(
     litellm_key = litellm_result["key"]
     api_key_hash = litellm_result.get("token_id")
 
-    # Get default daily token limit from system settings
-    default_limit = get_default_daily_token_limit(session)
+    # Get daily token limit from system settings
+    # For auto-created keys (claw), use claw-specific limit if set, otherwise use default
+    if is_auto_created:
+        claw_limit = get_claw_apikey_daily_token_limit(session)
+        daily_limit = claw_limit if claw_limit is not None else get_default_daily_token_limit(session)
+    else:
+        daily_limit = get_default_daily_token_limit(session)
 
     # Create unified API key record with LiteLLM key and hash
     unified_api_key = UnifiedAPIKey(
@@ -283,7 +288,7 @@ async def create_unified_api_key_async(
         litellm_key=litellm_key,
         api_key_hash=api_key_hash,  # Store token_id for callback matching
         is_auto_created=is_auto_created,
-        daily_token_limit=default_limit,
+        daily_token_limit=daily_limit,
         daily_tokens_used=0,
         last_reset_date=date.today()
     )

@@ -28,7 +28,18 @@ def _load_claw_type_config(claw_type: str) -> dict:
     return config["claw_types"][claw_type]
 
 
-MAX_CLAWS_PER_USER = 10
+def get_max_claws_per_user(session: Session) -> int:
+    """
+    Get the maximum number of claws per user from system settings
+
+    Args:
+        session: Database session
+
+    Returns:
+        Maximum claws per user (defaults to 10 if not set)
+    """
+    from api.services.system_setting_service import get_max_claws_per_user as _get_max
+    return _get_max(session)
 
 
 def count_user_claws(session: Session, user_id: int) -> int:
@@ -56,7 +67,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     """
     Create a new Claw:
     1. Check feature flag
-    2. Check quota (max 10 per user)
+    2. Check quota (max claws per user from system settings)
     3. Auto-create API Key with claw name
     4. Persist a PENDING record to obtain the ID
     5. Build IMAGE, COMMAND and CONFIG_FILES dict from config.yaml
@@ -74,10 +85,11 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
 
     logger.info(f"[FEATURE_FLAGS] Claw creation attempt for user {current_user.id} (feature enabled)")
 
-    if count_user_claws(session, current_user.id) >= MAX_CLAWS_PER_USER:
+    max_claws = get_max_claws_per_user(session)
+    if count_user_claws(session, current_user.id) >= max_claws:
         raise HTTPException(
             status_code=400,
-            detail=f"每用户最多 {MAX_CLAWS_PER_USER} 只龙虾"
+            detail=f"每用户最多 {max_claws} 只龙虾"
         )
 
     # Auto-create API Key with claw name
