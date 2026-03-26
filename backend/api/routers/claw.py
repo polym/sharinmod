@@ -726,7 +726,7 @@ async def proxy_openclaw_web(
     # Pod headless DNS: {pod-name}.{svc-name}.{namespace}.svc.cluster.local
     target_base = (
         f"http://claw-{claw_id}-0.claw-{claw_id}.{namespace}.svc.cluster.local:3000"
-        f"/{path}"
+        f"/api/claws/{claw_id}/openclaw-web/{path}"
     )
     if request.query_params:
         target_base += f"?{request.query_params}"
