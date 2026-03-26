@@ -26,6 +26,8 @@ interface AuthState {
   token: string | null;
   showLoginDialog: boolean;
   showChangePasswordDialog: boolean;
+  showResetPasswordDialog: boolean;
+  resetPasswordToken: string | null;
   redirectAfterLogin: string | null;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   login: (user: User, token: string) => void;
@@ -33,6 +35,7 @@ interface AuthState {
   updateUser: (user: User) => void;
   setShowLoginDialog: (show: boolean) => void;
   setShowChangePasswordDialog: (show: boolean) => void;
+  setShowResetPasswordDialog: (show: boolean, token?: string) => void;
   setRedirectAfterLogin: (path: string | null) => void;
 }
 
@@ -44,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       showLoginDialog: false,
       showChangePasswordDialog: false,
+      showResetPasswordDialog: false,
+      resetPasswordToken: null,
       redirectAfterLogin: null,
       _isLoggingOut: false,
       login: (user: User, token: string) => {
@@ -69,6 +74,9 @@ export const useAuthStore = create<AuthState>()(
       },
       setShowChangePasswordDialog: (show: boolean) => {
         set({ showChangePasswordDialog: show });
+      },
+      setShowResetPasswordDialog: (show: boolean, token?: string) => {
+        set({ showResetPasswordDialog: show, resetPasswordToken: token || null });
       },
       setRedirectAfterLogin: (path: string | null) => {
         set({ redirectAfterLogin: path });

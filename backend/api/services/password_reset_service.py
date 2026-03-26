@@ -2,7 +2,7 @@
 Password reset service layer for business logic
 """
 from sqlmodel import Session, select
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from api.models.user import User
 from api.models.password_reset_token import PasswordResetToken
@@ -12,6 +12,11 @@ from api.utils.token_generator import generate_unified_token
 
 # Token validity period: 24 hours
 TOKEN_EXPIRY_HOURS = 24
+
+
+def _utcnow() -> datetime:
+    """Get current UTC time as naive datetime (for database compatibility)"""
+    return datetime.utcnow()
 
 
 def create_reset_token(db: Session, user: User) -> PasswordResetToken:
@@ -26,7 +31,7 @@ def create_reset_token(db: Session, user: User) -> PasswordResetToken:
         PasswordResetToken object
     """
     token = generate_unified_token()
-    expires_at = datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS)
+    expires_at = _utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
 
     reset_token = PasswordResetToken(
         token=token,
@@ -67,7 +72,7 @@ def verify_reset_token(db: Session, token: str) -> Tuple[bool, Optional[User], O
         return False, None, "令牌已使用"
 
     # Check if token has expired
-    if reset_token.expires_at < datetime.now(timezone.utc):
+    if reset_token.expires_at < _utcnow():
         return False, None, "令牌已过期"
 
     # Get user
@@ -101,7 +106,7 @@ def set_password_by_token(db: Session, token: str, new_password: str) -> Tuple[b
     # Set new password
     user.hashed_password = hash_password(new_password)
     user.force_password_change = False
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = _utcnow()
 
     # Mark token as used
     statement = select(PasswordResetToken).where(PasswordResetToken.token == token)
@@ -177,7 +182,7 @@ def reset_user_password(db: Session, user_id: int) -> Tuple[bool, Optional[Passw
     # Clear password and set force_password_change flag
     user.hashed_password = None
     user.force_password_change = True
-    user.updated_at = datetime.now(timezone.utc)
+    user.updated_at = _utcnow()
 
     db.add(user)
     db.commit()

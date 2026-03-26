@@ -1,7 +1,7 @@
 """
 Password reset router for public password reset endpoints
 """
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Body
 from sqlmodel import Session
 from api.database import get_db
 from api.schemas.password_reset import SetPasswordRequest, VerifyTokenResponse
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/password-reset", tags=["password-reset"])
 
 @router.post("/verify", response_model=VerifyTokenResponse)
 def verify_token(
-    token: str,
+    token: str = Body(..., embed=True),
     db: Session = Depends(get_db)
 ) -> VerifyTokenResponse:
     """
@@ -40,8 +40,7 @@ def verify_token(
 
 @router.post("/set-password")
 def set_password(
-    token: str,
-    password_data: SetPasswordRequest,
+    data: dict = Body(...),
     db: Session = Depends(get_db)
 ) -> dict:
     """
@@ -55,7 +54,9 @@ def set_password(
     Returns:
         Success message
     """
-    success, user, error_msg = set_password_by_token(db, token, password_data.new_password)
+    token = data.get('token')
+    new_password = data.get('new_password')
+    success, user, error_msg = set_password_by_token(db, token, new_password)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

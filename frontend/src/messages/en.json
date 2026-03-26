@@ -67,7 +67,7 @@
   },
   "passwordReset": {
     "title": "Set Password",
-    "description": "Set a new password for account {email}",
+    "description": "Please enter a new password",
     "setPassword": "Set Password",
     "setting": "Setting...",
     "success": "Password set successfully",

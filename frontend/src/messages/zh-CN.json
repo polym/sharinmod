@@ -355,7 +355,7 @@
   },
   "passwordReset": {
     "title": "设置密码",
-    "description": "为账户 {email} 设置新密码",
+    "description": "请输入新密码",
     "setPassword": "设置密码",
     "setting": "设置中...",
     "success": "密码设置成功",
