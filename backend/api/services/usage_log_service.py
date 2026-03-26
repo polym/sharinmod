@@ -788,39 +788,57 @@ def get_system_overview(
     # Use alias for backward compatibility
     daily_trends = trends_data
 
-    # Get top 10 users by token consumption
+    # Get top 10 users by token consumption (filtered by time range)
     user_rankings_query = text("""
-        SELECT user_id, SUM(total_tokens) AS tokens
-        FROM usage_logs
-        GROUP BY user_id
+        SELECT u.id as user_id,
+               u.name,
+               u.email,
+               SUM(ul.total_tokens) AS tokens
+        FROM usage_logs ul
+        JOIN users u ON ul.user_id = u.id
+        WHERE u.deleted_at IS NULL
+          AND ul.request_time >= :start_date
+        GROUP BY u.id, u.name, u.email
         ORDER BY tokens DESC
         LIMIT 10
     """)
-    user_rankings_result = db.execute(user_rankings_query).fetchall()
+    user_rankings_result = db.execute(
+        user_rankings_query,
+        {"start_date": utc_start_trends}
+    ).fetchall()
 
     user_rankings = [
-        UserRankingData(user_id=row[0], consumed_tokens=row[1] or 0)
+        UserRankingData(
+            user_id=row[0],
+            user_name=row[1] or row[2].split('@')[0],  # Use name or email prefix
+            consumed_tokens=row[3] or 0
+        )
         for row in user_rankings_result
     ]
 
-    # Get model usage distribution
+    # Get model usage distribution (filtered by time range)
     model_usage_query = text("""
         SELECT model_name, SUM(total_tokens) AS tokens
         FROM usage_logs
+        WHERE request_time >= :start_date
         GROUP BY model_name
         ORDER BY tokens DESC
     """)
-    model_usage_result = db.execute(model_usage_query).fetchall()
+    model_usage_result = db.execute(
+        model_usage_query,
+        {"start_date": utc_start_trends}
+    ).fetchall()
 
     model_usage_list = [
         ModelUsageData(model_name=row[0], total_tokens=row[1] or 0, percentage=0.0)
         for row in model_usage_result
     ]
 
-    # Calculate percentages
-    if total_tokens > 0:
+    # Calculate percentages based on time range total
+    time_range_total = sum(item.total_tokens for item in model_usage_list)
+    if time_range_total > 0:
         for model_data in model_usage_list:
-            model_data.percentage = round((model_data.total_tokens / total_tokens) * 100, 2)
+            model_data.percentage = round((model_data.total_tokens / time_range_total) * 100, 2)
 
     return SystemOverviewResponse(
         total_tokens=total_tokens,

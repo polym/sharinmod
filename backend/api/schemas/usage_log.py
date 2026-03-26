@@ -147,12 +147,14 @@ DailyTrendData = TrendData
 class UserRankingData(BaseModel):
     """User token consumption ranking data"""
     user_id: int = Field(description="User ID")
+    user_name: str = Field(description="User display name")
     consumed_tokens: int = Field(description="Total tokens consumed by this user")
 
     model_config = {
         "json_schema_extra": {
             "example": {
                 "user_id": 1,
+                "user_name": "张三",
                 "consumed_tokens": 10000
             }
         }
@@ -198,8 +200,8 @@ class SystemOverviewResponse(BaseModel):
                     {"date": "2026-03-25", "total_tokens": 4500}
                 ],
                 "user_rankings": [
-                    {"user_id": 1, "consumed_tokens": 10000},
-                    {"user_id": 2, "consumed_tokens": 8000}
+                    {"user_id": 1, "user_name": "张三", "consumed_tokens": 10000},
+                    {"user_id": 2, "user_name": "李四", "consumed_tokens": 8000}
                 ],
                 "model_usage": [
                     {"model_name": "gpt-4", "total_tokens": 50000, "percentage": 50.0},

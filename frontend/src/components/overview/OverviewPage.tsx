@@ -22,6 +22,7 @@ type DailyTrendData = TrendData;
 
 interface UserRankingData {
   user_id: number;
+  user_name: string;
   consumed_tokens: number;
 }
 
@@ -248,7 +249,7 @@ export function OverviewPage() {
                           }`}>
                             {index + 1}
                           </div>
-                          <span className="text-sm font-medium text-indigo-900">用户 #{user.user_id}</span>
+                          <span className="text-sm font-medium text-indigo-900">{user.user_name}</span>
                         </div>
                         <span className="text-sm font-bold text-indigo-600">
                           {user.consumed_tokens.toLocaleString()}
