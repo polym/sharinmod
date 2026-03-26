@@ -1,8 +1,8 @@
 """
 Pydantic schemas for unified API key endpoints
 """
-from pydantic import BaseModel, Field, validator
-from datetime import datetime, timezone
+from pydantic import BaseModel, Field, validator, computed_field
+from datetime import datetime, timezone, date
 from typing import Optional, List, Dict, Callable
 from api.models.unified_api_key import UnifiedAPIKeyStatus
 
@@ -31,11 +31,23 @@ class UnifiedAPIKeyResponse(BaseModel):
     created_at: datetime
     revoked_at: Optional[datetime]
     last_used_at: Optional[datetime]
-    
+    daily_token_limit: Optional[int]
+    daily_tokens_used: int
+    last_reset_date: Optional[date]
+
+    @computed_field
+    @property
+    def daily_limit_exceeded(self) -> bool:
+        """Check if daily limit is exceeded"""
+        if self.daily_token_limit is None:
+            return False
+        return self.daily_tokens_used >= self.daily_token_limit
+
     class Config:
         from_attributes = True
-        json_encoders: Dict[type[datetime], Callable] = {
-            datetime: lambda v: v.isoformat() if v.tzinfo else v.replace(tzinfo=timezone.utc).isoformat()
+        json_encoders: Dict[type, Callable] = {
+            datetime: lambda v: v.isoformat() if v.tzinfo else v.replace(tzinfo=timezone.utc).isoformat(),
+            date: lambda v: v.isoformat()
         }
 
 

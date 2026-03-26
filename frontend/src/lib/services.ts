@@ -238,6 +238,29 @@ export const adminAPI = {
 
   deleteModel: (modelId: number) =>
     api.delete(`/api/admin/providers/models/${modelId}`),
+
+  // System Settings API
+  getSystemSettings: () =>
+    api.get('/api/admin/system-settings'),
+
+  getSystemSetting: (key: string) =>
+    api.get(`/api/admin/system-settings/${key}`),
+
+  updateSystemSetting: (key: string, value: string) =>
+    api.put(`/api/admin/system-settings/${key}`, { value }),
+
+  getDefaultDailyTokenLimit: () =>
+    api.get('/api/admin/default-daily-token-limit'),
+
+  updateDefaultDailyTokenLimit: (value: string) =>
+    api.put(`/api/admin/default-daily-token-limit`, { value }),
+
+  // API Key Limit History API
+  getAllLimitHistory: (params?: { page?: number; page_size?: number }) =>
+    api.get('/api/admin/api-key-limit-history', { params }),
+
+  getAPIKeyLimitHistory: (apiKeyId: number, params?: { page?: number; page_size?: number }) =>
+    api.get(`/api/admin/api-keys/${apiKeyId}/limit-history`, { params }),
 };
 
 // Model Config API - unified model catalog management

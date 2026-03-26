@@ -33,6 +33,16 @@ from api.services.provider_config_service import (
     delete_global_model,
     get_supported_providers_for_model,
 )
+from api.services.system_setting_service import (
+    get_all_system_settings,
+    get_system_setting,
+    set_system_setting,
+    get_default_daily_token_limit,
+)
+from api.services.api_key_limit_history_service import (
+    get_limit_history,
+    get_all_limit_history,
+)
 from api.schemas.user import UserResponse, UserListResponse, RoleFilter
 from api.schemas.provider_config import (
     ProviderConfigResponse,
@@ -48,6 +58,11 @@ from api.schemas.provider_config import (
     GlobalModelUpdate,
     GlobalModelResponse,
     SupportedProviderInfo,
+)
+from api.schemas.system_setting import (
+    SystemSettingResponse,
+    SystemSettingUpdate,
+    SystemSettingsListResponse,
 )
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -722,3 +737,165 @@ def delete_global_model_route(
 ) -> None:
     """删除全局模型（需先解除供应商绑定）"""
     delete_global_model(db, model_id)
+
+
+# ==================== System Settings Routes ====================
+
+
+@router.get("/system-settings", response_model=SystemSettingsListResponse)
+def get_system_settings_endpoint(
+    db: Session = Depends(get_db),
+) -> SystemSettingsListResponse:
+    """
+    Get all system settings (admin only)
+
+    Returns:
+        Dictionary of all system settings
+    """
+    settings_dict = get_all_system_settings(db)
+    return SystemSettingsListResponse(
+        settings={key: SystemSettingResponse.model_validate(value)
+                 for key, value in settings_dict.items()}
+    )
+
+
+@router.get("/system-settings/{key}", response_model=SystemSettingResponse)
+def get_system_setting_endpoint(
+    key: str,
+    db: Session = Depends(get_db),
+) -> SystemSettingResponse:
+    """
+    Get a single system setting by key (admin only)
+
+    Args:
+        key: Setting key
+        db: Database session
+
+    Returns:
+        System setting
+
+    Raises:
+        HTTPException: If setting not found
+    """
+    setting = get_system_setting(db, key)
+    if not setting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Setting '{key}' not found"
+        )
+    return SystemSettingResponse.model_validate(setting)
+
+
+@router.put("/system-settings/{key}", response_model=SystemSettingResponse)
+def update_system_setting_endpoint(
+    key: str,
+    update_data: SystemSettingUpdate,
+    db: Session = Depends(get_db),
+) -> SystemSettingResponse:
+    """
+    Update or create a system setting (admin only)
+
+    Args:
+        key: Setting key
+        update_data: Update data with new value
+        db: Database session
+
+    Returns:
+        Updated or created system setting
+    """
+    setting = set_system_setting(db, key, update_data.value)
+    return SystemSettingResponse.model_validate(setting)
+
+
+@router.get("/default-daily-token-limit", response_model=int)
+def get_default_daily_token_limit_endpoint(
+    db: Session = Depends(get_db),
+) -> int:
+    """
+    Get the default daily token limit (admin only)
+
+    Returns:
+        Default daily token limit
+    """
+    return get_default_daily_token_limit(db)
+
+
+@router.put("/default-daily-token-limit", response_model=SystemSettingResponse)
+def update_default_daily_token_limit_endpoint(
+    update_data: SystemSettingUpdate,
+    db: Session = Depends(get_db),
+) -> SystemSettingResponse:
+    """
+    Update the default daily token limit (admin only)
+
+    Args:
+        update_data: Update data with new limit value
+        db: Database session
+
+    Returns:
+        Updated system setting
+    """
+    setting = set_system_setting(
+        db,
+        'default_daily_token_limit',
+        update_data.value,
+        description='Default daily token limit for new API keys'
+    )
+    return SystemSettingResponse.model_validate(setting)
+
+
+# ==================== API Key Limit History Routes ====================
+
+
+@router.get("/api-key-limit-history")
+def get_all_limit_history_endpoint(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    Get all API key limit history (admin only)
+
+    Args:
+        page: Page number
+        page_size: Items per page
+        db: Database session
+
+    Returns:
+        Paginated list of limit history entries
+    """
+    history, total = get_all_limit_history(db, page, page_size)
+    return {
+        "items": history,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }
+
+
+@router.get("/api-keys/{api_key_id}/limit-history")
+def get_api_key_limit_history_endpoint(
+    api_key_id: int,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    Get limit history for a specific API key (admin only)
+
+    Args:
+        api_key_id: ID of the API key
+        page: Page number
+        page_size: Items per page
+        db: Database session
+
+    Returns:
+        Paginated list of limit history entries for the key
+    """
+    history, total = get_limit_history(db, api_key_id, page, page_size)
+    return {
+        "items": history,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }

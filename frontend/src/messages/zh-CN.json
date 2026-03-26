@@ -8,7 +8,8 @@
     "claws": "领养龙虾",
     "adminProviders": "订阅配置",
     "adminUsers": "用户管理",
-    "adminModels": "模型配置"
+    "adminModels": "模型配置",
+    "adminSettings": "系统设置"
   },
   "topbar": {
     "settings": "设置",
@@ -34,10 +35,16 @@
     "status": "状态",
     "statusActive": "活跃",
     "statusRevoked": "已停用",
+    "statusDailyLimitExceeded": "超限停用",
     "statusEnabled": "已启用",
     "statusDisabled": "已停用",
     "createdAt": "创建时间",
     "lastUsedAt": "最近使用时间",
+    "dailyUsage": "每日使用",
+    "dailyUsed": "今日已用",
+    "dailyLimit": "每日上限",
+    "dailyLimitExceededMessage": "今日额度已用完，将在明日 00:00 自动恢复",
+    "noLimit": "无限制",
     "actions": "操作",
     "noKeys": "您还没有 API Key",
     "unnamed": "未命名",
@@ -602,6 +609,32 @@
       "updateFailed": "更新失败",
       "deleteSuccess": "模型已删除",
       "deleteFailed": "删除失败"
+    }
+  },
+  "adminSettings": {
+    "title": "系统设置",
+    "description": "管理系统级别的全局配置",
+    "tabs": {
+      "apikeyLimit": "APIKey 限额"
+    },
+    "apikeyLimit": {
+      "title": "APIKey 每日 Token 限额",
+      "description": "设置新创建 API Key 的默认每日 Token 使用上限",
+      "dailyLimit": "默认每日 Token 上限",
+      "placeholder": "输入每日 Token 上限",
+      "hint": "此设置仅影响新创建的 API Key，现有 API Key 的限额不会被更改"
+    },
+    "save": "保存",
+    "saving": "保存中...",
+    "toast": {
+      "loadError": "加载配置失败",
+      "loadErrorDetail": "无法获取系统配置，请刷新页面重试",
+      "saveSuccess": "保存成功",
+      "saveSuccessDetail": "默认每日 Token 上限已更新",
+      "saveError": "保存失败",
+      "saveErrorDetail": "更新系统配置失败，请稍后重试",
+      "invalidValue": "无效的值",
+      "invalidValueDetail": "请输入有效的正整数"
     }
   }
 }

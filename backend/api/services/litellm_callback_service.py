@@ -11,7 +11,7 @@ import logging
 import redis
 import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 
 from sqlmodel import Session, select
 from sqlalchemy import text
@@ -20,6 +20,7 @@ from api.models.user import User
 from api.models.shared_api_key import SharedAPIKey
 from api.models.subscription import Subscription
 from api.models.usage_log import UsageLogKind
+from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
 
 logger = logging.getLogger(__name__)
@@ -279,7 +280,8 @@ def update_token_statistics(
     session: Session,
     callback: LiteLLMSpendlogCallbackRequest,
     consumer_user: User,
-    subscription: Optional[Subscription] = None
+    subscription: Optional[Subscription] = None,
+    unified_api_key_id: Optional[int] = None
 ) -> bool:
     """
     Update token statistics for all parties involved using atomic UPDATE operations
@@ -291,6 +293,7 @@ def update_token_statistics(
         callback: Parsed callback data
         consumer_user: User who consumed tokens
         subscription: Subscription linking to contributor (optional)
+        unified_api_key_id: ID of unified API key (optional)
 
     Returns:
         True if update successful, False otherwise
@@ -335,6 +338,59 @@ def update_token_statistics(
                 text("UPDATE users SET contributed_tokens = contributed_tokens + :tokens WHERE id = :user_id"),
                 {"tokens": total_tokens, "user_id": subscription.user_id}
             )
+
+        # Update daily token usage and check limit for unified API key
+        if unified_api_key_id:
+            # Get current state to check limit
+            key_statement = select(UnifiedAPIKey).where(UnifiedAPIKey.id == unified_api_key_id)
+            unified_key = session.exec(key_statement).first()
+
+            if unified_key and unified_key.daily_token_limit is not None:
+                today = date.today()
+
+                # Reset if date changed
+                if unified_key.last_reset_date != today:
+                    unified_key.last_reset_date = today
+                    unified_key.daily_tokens_used = 0
+                    session.add(unified_key)
+
+                # Calculate new usage
+                new_usage = unified_key.daily_tokens_used + total_tokens
+
+                # Check if limit exceeded
+                if new_usage > unified_key.daily_token_limit and unified_key.status == UnifiedAPIKeyStatus.ACTIVE:
+                    # Disable the key due to limit exceeded
+                    unified_key.status = UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED
+                    unified_key.daily_tokens_used = new_usage
+                    session.add(unified_key)
+
+                    # Create history entry
+                    from api.services.api_key_limit_history_service import create_limit_history_entry
+                    create_limit_history_entry(
+                        session,
+                        unified_api_key_id=unified_api_key_id,
+                        action="disable",
+                        tokens_used=new_usage,
+                        token_limit=unified_key.daily_token_limit,
+                        reason="daily limit exceeded"
+                    )
+
+                    logger.warning(
+                        f"API key {unified_api_key_id} exceeded daily limit: "
+                        f"{new_usage}/{unified_key.daily_token_limit}"
+                    )
+                else:
+                    # Just update token usage
+                    session.execute(
+                        text("UPDATE unified_api_keys SET daily_tokens_used = daily_tokens_used + :tokens, last_reset_date = :today WHERE id = :id"),
+                        {"tokens": total_tokens, "id": unified_api_key_id, "today": today}
+                    )
+            elif unified_key:
+                # No limit set, just update last_reset_date and usage
+                session.execute(
+                    text("UPDATE unified_api_keys SET last_reset_date = :today, daily_tokens_used = daily_tokens_used + :tokens WHERE id = :id"),
+                    {"today": date.today(), "tokens": total_tokens, "id": unified_api_key_id}
+                )
 
         session.commit()
         logger.info(
@@ -513,7 +569,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
                 # Update token statistics for success callbacks
                 if callback_status == "success":
-                    return update_token_statistics(session, callback, consumer, subscription)
+                    return update_token_statistics(session, callback, consumer, subscription, unified_api_key_id)
                 return True
             else:
                 # No existing record, create new one
@@ -553,7 +609,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         else:
             # Success callback (or default): update token statistics + create success usage log
             if consumer:
-                stats_updated = update_token_statistics(session, callback, consumer, subscription)
+                stats_updated = update_token_statistics(session, callback, consumer, subscription, unified_api_key_id)
 
                 # Create usage log (don't fail if this errors)
                 if stats_updated:

@@ -3,7 +3,7 @@ Service layer for unified API key management
 """
 from sqlmodel import Session, select
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import HTTPException
 import httpx
 
@@ -12,6 +12,7 @@ from api.models.user import User
 from api.models.api_key_usage import APIKeyAction
 from api.utils.token_generator import generate_unified_token, is_token_unique
 from api.services.api_key_usage_service import log_api_key_usage
+from api.services.system_setting_service import get_default_daily_token_limit
 from api.config import settings
 
 
@@ -269,6 +270,9 @@ async def create_unified_api_key_async(
     litellm_key = litellm_result["key"]
     api_key_hash = litellm_result.get("token_id")
 
+    # Get default daily token limit from system settings
+    default_limit = get_default_daily_token_limit(session)
+
     # Create unified API key record with LiteLLM key and hash
     unified_api_key = UnifiedAPIKey(
         user_id=user.id,
@@ -278,7 +282,10 @@ async def create_unified_api_key_async(
         description=description,
         litellm_key=litellm_key,
         api_key_hash=api_key_hash,  # Store token_id for callback matching
-        is_auto_created=is_auto_created
+        is_auto_created=is_auto_created,
+        daily_token_limit=default_limit,
+        daily_tokens_used=0,
+        last_reset_date=date.today()
     )
     
     session.add(unified_api_key)
@@ -459,6 +466,13 @@ async def unblock_unified_api_key_async(
         raise HTTPException(
             status_code=404,
             detail="API key not found or not owned by you"
+        )
+
+    # Check if key is disabled due to daily limit
+    if api_key.status == UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED:
+        raise HTTPException(
+            status_code=400,
+            detail="无法手动启用因超限被停用的 APIKey，请等待次日自动恢复"
         )
 
     # Only allow unblocking revoked keys
@@ -666,15 +680,22 @@ async def update_unified_api_key_async(
         UnifiedAPIKey.id == api_key_id,
         UnifiedAPIKey.user_id == user.id
     )
-    
+
     api_key = session.exec(statement).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=404,
             detail="API key not found or not owned by you"
         )
-    
+
+    # Check if user is trying to manually enable a key that was disabled due to daily limit
+    if status == UnifiedAPIKeyStatus.ACTIVE and api_key.status == UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED:
+        raise HTTPException(
+            status_code=400,
+            detail="无法手动启用因超限被停用的 APIKey，请等待次日自动恢复"
+        )
+
     # Update fields if provided
     if api_key_name is not None:
         api_key.api_key_name = api_key_name

@@ -25,6 +25,9 @@ interface UnifiedAPIKey {
   created_at: string;
   revoked_at?: string;
   last_used_at?: string;
+  daily_token_limit?: number;
+  daily_tokens_used: number;
+  last_reset_date?: string;
 }
 
 export function UnifiedAPIKeys() {
@@ -395,6 +398,7 @@ export function UnifiedAPIKeys() {
                     <TableHead className="text-indigo-900 font-bold">{t('name')}</TableHead>
                     <TableHead className="text-indigo-900 font-bold">API Key</TableHead>
                     <TableHead className="text-indigo-900 font-bold">{t('status')}</TableHead>
+                    <TableHead className="text-indigo-900 font-bold">{t('dailyUsage')}</TableHead>
                     <TableHead className="text-indigo-900 font-bold">{t('createdAt')}</TableHead>
                     <TableHead className="text-indigo-900 font-bold">{t('lastUsedAt')}</TableHead>
                     <TableHead className="text-indigo-900 font-bold">{t('actions')}</TableHead>
@@ -452,9 +456,42 @@ export function UnifiedAPIKeys() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
-                          {apiKey.status === 'active' ? t('statusActive') : t('statusRevoked')}
-                        </span>
+                        {apiKey.status === 'daily_limit_exceeded' ? (
+                          <span className="clay-badge-warning">{t('statusDailyLimitExceeded')}</span>
+                        ) : (
+                          <span className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
+                            {apiKey.status === 'active' ? t('statusActive') : t('statusRevoked')}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-indigo-700">
+                        {apiKey.daily_token_limit ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span>{t('dailyUsed')}: {apiKey.daily_tokens_used.toLocaleString()}</span>
+                              <span>{t('dailyLimit')}: {apiKey.daily_token_limit.toLocaleString()}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.8
+                                    ? 'bg-red-500'
+                                    : apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.5
+                                    ? 'bg-yellow-500'
+                                    : 'bg-green-500'
+                                }`}
+                                style={{
+                                  width: `${Math.min((apiKey.daily_tokens_used / apiKey.daily_token_limit) * 100, 100)}%`
+                                }}
+                              />
+                            </div>
+                            {apiKey.status === 'daily_limit_exceeded' && (
+                              <p className="text-xs text-red-600 font-medium">{t('dailyLimitExceededMessage')}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-indigo-400">{t('noLimit')}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-indigo-700">
                         {formatDate(apiKey.created_at)}

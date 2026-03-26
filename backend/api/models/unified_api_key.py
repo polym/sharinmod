@@ -1,9 +1,9 @@
 """
 Unified API Key model for platform-generated API access keys
 """
-from sqlmodel import SQLModel, Field, Index
-from datetime import datetime
-from typing import Optional
+from sqlmodel import SQLModel, Field, Index, Relationship
+from datetime import datetime, date
+from typing import Optional, List
 from enum import Enum
 
 
@@ -11,6 +11,7 @@ class UnifiedAPIKeyStatus(str, Enum):
     """Unified API key status"""
     ACTIVE = "active"
     REVOKED = "revoked"
+    DAILY_LIMIT_EXCEEDED = "daily_limit_exceeded"
 
 
 class UnifiedAPIKey(SQLModel, table=True):
@@ -36,8 +37,18 @@ class UnifiedAPIKey(SQLModel, table=True):
     revoked_at: Optional[datetime] = Field(default=None)
     last_used_at: Optional[datetime] = Field(default=None)
     is_auto_created: bool = Field(default=False, description="Auto-created for claw, not counted in user quota")
+
+    # Daily token limit fields
+    daily_token_limit: Optional[int] = Field(default=None, description="Daily token limit for this API key")
+    daily_tokens_used: int = Field(default=0, description="Tokens used today")
+    last_reset_date: Optional[date] = Field(default=None, description="Last date when daily tokens were reset")
     
     # Index for user + status queries (enforcing 5-key limit)
     __table_args__ = (
         Index("idx_user_status", "user_id", "status"),
+    )
+
+    # Relationships
+    limit_history: List["APIKeyLimitHistory"] = Relationship(
+        back_populates="unified_api_key"
     )
