@@ -461,8 +461,9 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             MAX_ERROR_STR_LENGTH = 5000
             if error_str and len(error_str) > MAX_ERROR_STR_LENGTH:
                 # Middle truncation: keep head and tail, truncate middle
-                half = MAX_ERROR_STR_LENGTH // 2
-                error_str = error_str[:half] + "... [truncated] ... " + error_str[-half:]
+                truncation_marker = "... [truncated] ... "
+                half = (MAX_ERROR_STR_LENGTH - len(truncation_marker)) // 2
+                error_str = error_str[:half] + truncation_marker + error_str[-half:]
 
             # Build error_details structure
             error_detail = {

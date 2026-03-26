@@ -21,16 +21,17 @@ from api.services.litellm_callback_service import (
     find_user_by_api_key_hash,
     find_subscription_by_model_id
 )
+from api.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Maximum length for debug log output
-MAX_LOG_LENGTH = 1000
+# Truncation marker for log output
+TRUNCATION_MARKER = "... [truncated] ... "
 
 
 def truncate_json_str(json_str: str) -> str:
     """
-    Truncate a JSON string in the middle if it exceeds MAX_LOG_LENGTH.
+    Truncate a JSON string in the middle if it exceeds MAX_LOG_TRUNCATE_LENGTH.
 
     Args:
         json_str: The JSON string to potentially truncate
@@ -39,10 +40,10 @@ def truncate_json_str(json_str: str) -> str:
         Truncated string with "... [truncated] ..." in the middle,
         or the original string if under the limit
     """
-    if len(json_str) <= MAX_LOG_LENGTH:
+    if len(json_str) <= settings.MAX_LOG_TRUNCATE_LENGTH:
         return json_str
-    half = MAX_LOG_LENGTH // 2
-    return json_str[:half] + "... [truncated] ... " + json_str[-half:]
+    half = (settings.MAX_LOG_TRUNCATE_LENGTH - len(TRUNCATION_MARKER)) // 2
+    return json_str[:half] + TRUNCATION_MARKER + json_str[-half:]
 
 
 load_dotenv("../.env")

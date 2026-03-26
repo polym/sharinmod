@@ -218,6 +218,9 @@ class Settings(BaseSettings):
     FEATURE_FLAG_ENABLE_GITHUB_OAUTH: bool = True
     FEATURE_FLAG_ENABLE_GITLAB_OAUTH: bool = True
 
+    # Logging
+    MAX_LOG_TRUNCATE_LENGTH: int = 1000  # Maximum length for truncated log output
+
     @classmethod
     def settings_customise_sources(
         cls,

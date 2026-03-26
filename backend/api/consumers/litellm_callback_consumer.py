@@ -38,8 +38,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Maximum length for failure callback log output
-MAX_LOG_LENGTH = 1000
+# Truncation marker for log output
+TRUNCATION_MARKER = "... [truncated] ... "
 
 # Global flag for graceful shutdown
 shutdown_requested = False
@@ -101,10 +101,10 @@ def process_message(redis_client: redis.Redis, session: Session) -> bool:
     # Log failure callback data for debugging
     if callback_data.get("status") == "failure":
         json_str = json.dumps(callback_data, indent=2, ensure_ascii=False)
-        if len(json_str) > MAX_LOG_LENGTH:
+        if len(json_str) > settings.MAX_LOG_TRUNCATE_LENGTH:
             # Middle truncation: keep head and tail, truncate middle
-            half = MAX_LOG_LENGTH // 2
-            json_str = json_str[:half] + "... [truncated] ... " + json_str[-half:]
+            half = (settings.MAX_LOG_TRUNCATE_LENGTH - len(TRUNCATION_MARKER)) // 2
+            json_str = json_str[:half] + TRUNCATION_MARKER + json_str[-half:]
         logger.error(f"Failure callback received:\n{json_str}")
 
     try:

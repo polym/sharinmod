@@ -394,8 +394,9 @@ def update_usage_log_for_retry(
                             # Middle truncation on the last error's error_str
                             last_error_str = existing_errors[-1].get("error_str", "")
                             if len(last_error_str) > 1000:
-                                half = 500
-                                existing_errors[-1]["error_str"] = last_error_str[:half] + "... [truncated] ... " + last_error_str[-half:]
+                                truncation_marker = "... [truncated] ... "
+                                half = (1000 - len(truncation_marker)) // 2
+                                existing_errors[-1]["error_str"] = last_error_str[:half] + truncation_marker + last_error_str[-half:]
                             else:
                                 existing_errors[-1]["error_str"] = last_error_str
                             updated_error_details = json.dumps(existing_errors)
