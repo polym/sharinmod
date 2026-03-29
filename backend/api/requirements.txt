@@ -51,3 +51,4 @@ itsdangerous>=2.1.0
 aiofiles>=23.0.0
 kubernetes==29.0.0
 apscheduler==3.10.4
+websockets>=12.0
