@@ -691,9 +691,13 @@
     },
     "toast": {
       "loadError": "Failed to load settings",
+      "loadErrorDetail": "Unable to load system settings, please refresh the page",
       "saveSuccess": "Settings saved",
+      "saveSuccessDetail": "System settings have been updated",
       "saveError": "Save failed",
-      "invalidValue": "Invalid value"
+      "saveErrorDetail": "An error occurred while saving settings, please try again",
+      "invalidValue": "Invalid value",
+      "invalidValueDetail": "Please enter a valid positive integer"
     }
   }
 }
