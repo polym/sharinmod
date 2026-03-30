@@ -42,7 +42,7 @@
     "statusDisabled": "已停用",
     "createdAt": "创建时间",
     "lastUsedAt": "最近使用时间",
-    "dailyUsage": "每日使用",
+    "dailyUsage": "今日限额",
     "dailyUsed": "今日已用",
     "dailyLimit": "每日上限",
     "dailyLimitExceededMessage": "今日额度已用完，将在明日 00:00 自动恢复",

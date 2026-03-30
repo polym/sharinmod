@@ -946,7 +946,7 @@ export function ClawsPage() {
                   <TableHead>{t('table.type')}</TableHead>
                   <TableHead>{t('table.chatTool')}</TableHead>
                   <TableHead>{t('table.status')}</TableHead>
-                  <TableHead>创建时间</TableHead>
+                  <TableHead>{t('table.dailyLimit')}</TableHead>
                   <TableHead>{t('table.createdAt')}</TableHead>
                   <TableHead className="text-right">{t('table.actions')}</TableHead>
                 </TableRow>
