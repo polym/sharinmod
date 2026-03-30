@@ -23,6 +23,8 @@ from api.services.unified_api_key_service import (
     regenerate_unified_api_key_async,
     update_unified_api_key_async
 )
+from api.models.operation_log import OperationType, ResourceType
+from api.utils.operation_log import log_operation
 
 
 router = APIRouter(prefix="/api/api-keys", tags=["unified-api-keys"])
@@ -49,6 +51,7 @@ async def generate_api_key(
 
 
 @router.post("/unified", status_code=status.HTTP_201_CREATED, response_model=UnifiedAPIKeyResponse)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.CREATE, use_return_value=True)
 async def create_unified_api_key_endpoint(
     request: UnifiedAPIKeyGenerate,
     current_user: User = Depends(get_current_user),
@@ -121,6 +124,7 @@ def revoke_api_key(
 
 
 @router.put("/unified/{api_key_id}/block", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.DISABLE, resource_id_param="api_key_id")
 async def block_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -138,6 +142,7 @@ async def block_api_key(
 
 
 @router.put("/unified/{api_key_id}/unblock", status_code=status.HTTP_200_OK, response_model=UnifiedAPIKeyResponse)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.ENABLE, resource_id_param="api_key_id")
 async def unblock_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -155,6 +160,7 @@ async def unblock_api_key(
 
 
 @router.delete("/unified/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.DELETE, resource_id_param="api_key_id")
 async def delete_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -172,6 +178,7 @@ async def delete_api_key(
 
 
 @router.post("/unified/{api_key_id}/regenerate", response_model=UnifiedAPIKeyResponse)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.RESET_TOKEN, resource_id_param="api_key_id")
 async def regenerate_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -189,6 +196,7 @@ async def regenerate_api_key(
 
 
 @router.put("/unified/{api_key_id}", response_model=UnifiedAPIKeyResponse)
+@log_operation(ResourceType.UNIFIED_API_KEY, OperationType.UPDATE, resource_id_param="api_key_id")
 async def update_api_key(
     api_key_id: int,
     request: UnifiedAPIKeyUpdate,

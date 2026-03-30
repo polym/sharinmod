@@ -26,6 +26,8 @@ from api.services.claw_service import (
 )
 from api.utils.jwt import verify_token
 from api.services.user_service import get_user_by_email
+from api.models.operation_log import OperationType, ResourceType
+from api.utils.operation_log import log_operation
 
 router = APIRouter(prefix="/api/claws", tags=["claws"])
 
@@ -56,6 +58,7 @@ def get_claw_config(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=ClawResponse)
+@log_operation(ResourceType.CLAW, OperationType.CREATE, use_return_value=True)
 async def create_claw(
     request: ClawCreate,
     current_user: User = Depends(get_current_user),
@@ -113,6 +116,7 @@ def list_claws(
 
 
 @router.put("/{claw_id}", response_model=ClawResponse)
+@log_operation(ResourceType.CLAW, OperationType.UPDATE, resource_id_param="claw_id")
 def update_claw(
     claw_id: int,
     request: ClawUpdate,
@@ -128,6 +132,7 @@ def update_claw(
 
 
 @router.delete("/{claw_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.CLAW, OperationType.DELETE, resource_id_param="claw_id")
 async def delete_claw(
     claw_id: int,
     current_user: User = Depends(get_current_user),
@@ -144,6 +149,7 @@ async def delete_claw(
 
 
 @router.post("/{claw_id}/restart", response_model=ClawResponse)
+@log_operation(ResourceType.CLAW, OperationType.RESTART, resource_id_param="claw_id")
 async def restart_claw(
     claw_id: int,
     current_user: User = Depends(get_current_user),

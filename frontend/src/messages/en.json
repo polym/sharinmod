@@ -8,7 +8,8 @@
     "claws": "My Claws",
     "adminProviders": "Provider Config",
     "adminUsers": "User Management",
-    "adminModels": "Model Config"
+    "adminModels": "Model Config",
+    "adminLogs": "Operation Logs"
   },
   "topbar": {
     "settings": "Settings",
@@ -414,7 +415,9 @@
     "page": "Page",
     "pageOf": "of",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "firstPage": "First",
+    "lastPage": "Last"
   },
   "adminProviders": {
     "title": "Provider Configuration",
@@ -539,6 +542,46 @@
     "disableFailed": "Failed to disable",
     "enableFailed": "Failed to enable",
     "deleteFailed": "Failed to delete"
+  },
+  "adminLogs": {
+    "title": "Operation Logs",
+    "description": "View all system operations",
+    "operationType": "Operation",
+    "resourceType": "Resource",
+    "resourceId": "Resource ID",
+    "operator": "Operator",
+    "timestamp": "Timestamp",
+    "noLogs": "No operation logs found",
+    "filter": {
+      "allOperations": "All Operations",
+      "allResources": "All Resources",
+      "operationType": "Operation Type",
+      "resourceType": "Resource Type"
+    },
+    "operationTypes": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "restart": "Restart",
+      "enable": "Enable",
+      "disable": "Disable",
+      "reset_password": "Reset Password",
+      "grant_admin": "Grant Admin",
+      "revoke_admin": "Revoke Admin",
+      "reset_token": "Reset Token"
+    },
+    "resourceTypes": {
+      "user": "User",
+      "claw": "Claw",
+      "provider": "Provider",
+      "provider_model": "Provider Model",
+      "unified_api_key": "Unified API Key",
+      "shared_api_key": "Shared API Key",
+      "global_model": "Global Model",
+      "system_setting": "System Setting"
+    },
+    "showing": "Showing {start} to {end} of {total} entries",
+    "pageInfo": "Page {current} of {total}"
   },
   "adminModelConfig": {
     "title": "Model Config",

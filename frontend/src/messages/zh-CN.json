@@ -10,6 +10,7 @@
     "adminProviders": "订阅配置",
     "adminUsers": "用户管理",
     "adminModels": "模型配置",
+    "adminLogs": "操作日志",
     "adminSettings": "系统设置"
   },
   "topbar": {
@@ -423,7 +424,9 @@
     "page": "第",
     "pageOf": "页",
     "previous": "上一页",
-    "next": "下一页"
+    "next": "下一页",
+    "firstPage": "首页",
+    "lastPage": "末页"
   },
   "adminProviders": {
     "title": "订阅配置",
@@ -548,6 +551,46 @@
     "disableFailed": "停用失败",
     "enableFailed": "激活失败",
     "deleteFailed": "删除失败"
+  },
+  "adminLogs": {
+    "title": "操作日志",
+    "description": "查看所有系统操作记录",
+    "operationType": "操作类型",
+    "resourceType": "资源类型",
+    "resourceId": "资源 ID",
+    "operator": "操作者",
+    "timestamp": "时间戳",
+    "noLogs": "暂无操作日志",
+    "filter": {
+      "allOperations": "全部操作",
+      "allResources": "全部资源",
+      "operationType": "操作类型",
+      "resourceType": "资源类型"
+    },
+    "operationTypes": {
+      "create": "创建",
+      "update": "更新",
+      "delete": "删除",
+      "restart": "重启",
+      "enable": "启用",
+      "disable": "停用",
+      "reset_password": "重置密码",
+      "grant_admin": "授权管理员",
+      "revoke_admin": "撤销管理员",
+      "reset_token": "重置令牌"
+    },
+    "resourceTypes": {
+      "user": "用户",
+      "claw": "龙虾",
+      "provider": "提供商",
+      "provider_model": "提供商模型",
+      "unified_api_key": "统一 API Key",
+      "shared_api_key": "共享 API Key",
+      "global_model": "全局模型",
+      "system_setting": "系统设置"
+    },
+    "showing": "显示 {start} 到 {end}，共 {total} 条",
+    "pageInfo": "第 {current} / {total} 页"
   },
   "adminModelConfig": {
     "title": "模型配置",

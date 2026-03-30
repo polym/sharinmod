@@ -8,6 +8,7 @@ from .claw import Claw, ClawType, ClawStatus
 from .system_setting import SystemSetting
 from .api_key_limit_history import APIKeyLimitHistory
 from .password_reset_token import PasswordResetToken
+from .operation_log import OperationLog, OperationType, ResourceType
 
 __all__ = [
     "User",
@@ -25,4 +26,7 @@ __all__ = [
     "SystemSetting",
     "APIKeyLimitHistory",
     "PasswordResetToken",
+    "OperationLog",
+    "OperationType",
+    "ResourceType",
 ]
