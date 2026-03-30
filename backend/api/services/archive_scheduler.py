@@ -160,6 +160,20 @@ class ArchiveScheduler:
                 logger.info(f"[ArchiveScheduler][IntervalBackup] Processing claw-{claw_id} (namespace: {namespace})")
 
                 try:
+                    # Clean up old interval archives first (keep only retention count)
+                    retention_interval = self.config.get("retention_interval", 5)
+                    if retention_interval is not None and retention_interval < 1:
+                        logger.warning(f"[ArchiveScheduler][IntervalBackup] claw-{claw_id}: Invalid retention_interval={retention_interval}, using default 5")
+                        retention_interval = 5
+                    logger.info(f"[ArchiveScheduler][IntervalBackup] claw-{claw_id}: Cleaning up old interval archives (retention={retention_interval})...")
+                    k8s_service.cleanup_old_archives(
+                        claw_id,
+                        namespace,
+                        retention_config={
+                            "interval_retention": retention_interval,
+                        },
+                    )
+
                     # Create new interval archive
                     logger.debug(f"[ArchiveScheduler][IntervalBackup] claw-{claw_id}: Creating interval archive...")
                     timestamp = k8s_service.create_auto_archive(
