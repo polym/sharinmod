@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import Anser from 'ansi-to-html';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -52,10 +53,13 @@ interface PlazaModel {
 }
 
 // 类型显示名称映射（用于列表显示）
-const TYPE_DISPLAY_NAMES: Record<string, string> = {
-  NANOBOT: '性能型',
-  OPENCLAW: '全能型',
-};
+function getTypeLabel(type: string, t: (key: string) => string): string {
+  const labels: Record<string, string> = {
+    NANOBOT: t('type.NANOBOT'),
+    OPENCLAW: t('type.OPENCLAW'),
+  };
+  return labels[type] || type;
+}
 
 const CHAT_TOOLS = [
   { value: 'WEIXIN', label: '微信', icon: '💬', supportedTypes: ['OPENCLAW'] },
@@ -63,18 +67,29 @@ const CHAT_TOOLS = [
   { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] }
 ];
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  PENDING:  { label: '准备中', className: 'bg-yellow-100 text-yellow-700 border border-yellow-200' },
-  RUNNING:  { label: '运行中', className: 'bg-green-100  text-green-700  border border-green-200' },
-  FAILED:   { label: '失败',   className: 'bg-red-100    text-red-700    border border-red-200' },
-  STOPPED:  { label: '已停止', className: 'bg-gray-100   text-gray-700   border border-gray-200' },
-  UNHEALTHY: { label: '不健康', className: 'bg-orange-100 text-orange-700 border border-orange-200' },
+// 状态样式配置（不包含标签文本，仅样式）
+const STATUS_STYLES: Record<string, string> = {
+  PENDING:  'bg-yellow-100 text-yellow-700 border border-yellow-200',
+  RUNNING:  'bg-green-100  text-green-700  border border-green-200',
+  FAILED:   'bg-red-100    text-red-700    border border-red-200',
+  STOPPED:  'bg-gray-100   text-gray-700   border border-gray-200',
+  UNHEALTHY: 'bg-orange-100 text-orange-700 border border-orange-200',
 };
 
 // 获取状态显示配置
-function getStatusConfig(status: string): { label: string; className: string } {
-  // 对未知状态返回安全的默认值，避免暴露内部状态字符串
-  return STATUS_LABELS[status] ?? { label: '未知状态', className: 'bg-gray-100 text-gray-700' };
+function getStatusConfig(status: string, t: (key: string) => string): { label: string; className: string } {
+  const statusKeyMap: Record<string, string> = {
+    PENDING: 'status.pending',
+    RUNNING: 'status.running',
+    FAILED: 'status.failed',
+    STOPPED: 'status.stopped',
+    UNHEALTHY: 'status.failed', // 复用失败翻译
+  };
+  const key = statusKeyMap[status] || 'status.failed';
+  return {
+    label: t(key),
+    className: STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700'
+  };
 }
 
 // ANSI 转换器实例
@@ -86,8 +101,8 @@ const anser = new Anser({
   stream: false,
 });
 
-function StatusBadge({ status }: { status: string }) {
-  const cfg = getStatusConfig(status);
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
+  const cfg = getStatusConfig(status, t);
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.className}`}>
       {cfg.label}
@@ -162,6 +177,8 @@ function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config
 }
 
 export function ClawsPage() {
+  const t = useTranslations('claws');
+  const tCommon = useTranslations('common');
   const [claws, setClaws] = useState<Claw[]>([]);
   const [loading, setLoading] = useState(true);
   const [clawCreationDisabled, setClawCreationDisabled] = useState(false);
@@ -890,9 +907,9 @@ export function ClawsPage() {
       <Card className="border-[3px] border-indigo-100 shadow-md rounded-2xl bg-gradient-to-br from-white to-indigo-50/30">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-900">领养龙虾</CardTitle>
+            <CardTitle className="text-xl font-bold text-gray-900">{t('title')}</CardTitle>
             <CardDescription className="text-gray-500 mt-1">
-              管理您的龙虾家族（最多 10 只）
+              {t('description')}
             </CardDescription>
           </div>
           {!clawCreationDisabled && (
@@ -901,33 +918,33 @@ export function ClawsPage() {
               className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              创建龙虾
+              {t('createButton')}
             </Button>
           )}
           {clawCreationDisabled && (
             <div className="text-sm text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg">
-              龙虾创建功能已禁用
+              {t('disabledMessage')}
             </div>
           )}
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-indigo-400 font-medium">加载中...</div>
+            <div className="text-center py-8 text-indigo-400 font-medium">{t('loading')}</div>
           ) : claws.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <div className="text-4xl mb-3">🦞</div>
-              <p className="font-medium">还没有龙虾，快去领养一只吧！</p>
+              <p className="font-medium">{t('emptyState.title')}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>对话</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>创建时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('table.name')}</TableHead>
+                  <TableHead>{t('table.type')}</TableHead>
+                  <TableHead>{t('table.chatTool')}</TableHead>
+                  <TableHead>{t('table.status')}</TableHead>
+                  <TableHead>{t('table.createdAt')}</TableHead>
+                  <TableHead className="text-right">{t('table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -936,7 +953,7 @@ export function ClawsPage() {
                     <TableCell className="font-medium">{claw.name}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
-                        {TYPE_DISPLAY_NAMES[claw.type] || claw.type}
+                        {getTypeLabel(claw.type, t)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -948,7 +965,7 @@ export function ClawsPage() {
                         <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
                       ) : null}
                     </TableCell>
-                    <TableCell><StatusBadge status={claw.status} /></TableCell>
+                    <TableCell><StatusBadge status={claw.status} t={t} /></TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -957,7 +974,7 @@ export function ClawsPage() {
                           size="sm"
                           onClick={() => openFilebrowser(claw.id)}
                           className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
-                          title="文件管理"
+                          title={t('tooltip.filebrowser')}
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
                         </Button>
@@ -966,7 +983,7 @@ export function ClawsPage() {
                           size="sm"
                           onClick={() => openOpenClawWeb(claw.id)}
                           className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
-                          title="OpenClaw Web"
+                          title={t('tooltip.openclawweb')}
                         >
                           <Globe className="w-3.5 h-3.5" />
                         </Button>
@@ -986,7 +1003,7 @@ export function ClawsPage() {
                           size="sm"
                           onClick={() => openRestart(claw)}
                           className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
-                          title="重启"
+                          title={t('tooltip.restart')}
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                         </Button>
@@ -999,16 +1016,16 @@ export function ClawsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openLogs(claw)}>
                               <ScrollText className="w-4 h-4 mr-2" />
-                              日志
+                              {t('tooltip.logs')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEdit(claw)}>
                               <Edit className="w-4 h-4 mr-2" />
-                              编辑
+                              {t('tooltip.edit')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openDelete(claw)} className="text-red-600">
                               <Trash2 className="w-4 h-4 mr-2" />
-                              删除
+                              {t('tooltip.delete')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

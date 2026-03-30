@@ -708,5 +708,42 @@
       "invalidValue": "无效的值",
       "invalidValueDetail": "请输入有效的正整数"
     }
+  },
+  "claws": {
+    "title": "领养龙虾",
+    "description": "管理您的龙虾家族（最多 10 只）",
+    "createButton": "创建龙虾",
+    "disabledMessage": "龙虾创建功能已禁用",
+    "loading": "加载中...",
+    "emptyState": {
+      "title": "还没有龙虾，快去领养一只吧！"
+    },
+    "table": {
+      "name": "名称",
+      "type": "类型",
+      "chatTool": "对话",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "准备中",
+      "running": "运行中",
+      "failed": "失败",
+      "stopped": "已停止",
+      "unknown": "未知状态"
+    },
+    "type": {
+      "NANOBOT": "性能型",
+      "OPENCLAW": "全能型"
+    },
+    "tooltip": {
+      "filebrowser": "文件管理",
+      "openclawweb": "OpenClaw Web",
+      "restart": "重启",
+      "logs": "日志",
+      "edit": "编辑",
+      "delete": "删除"
+    }
   }
 }
