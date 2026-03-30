@@ -1,5 +1,6 @@
 {
   "sidebar": {
+    "overview": "Overview",
     "marketplace": "Marketplace",
     "myShared": "My Shared",
     "apiKeys": "API Keys",
@@ -9,7 +10,8 @@
     "adminProviders": "Provider Config",
     "adminUsers": "User Management",
     "adminModels": "Model Config",
-    "adminLogs": "Operation Logs"
+    "adminLogs": "Operation Logs",
+    "adminSettings": "System Settings"
   },
   "topbar": {
     "settings": "Settings",
@@ -742,6 +744,43 @@
       "saveErrorDetail": "An error occurred while saving settings, please try again",
       "invalidValue": "Invalid value",
       "invalidValueDetail": "Please enter a valid positive integer"
+    }
+  },
+  "claws": {
+    "title": "My Claws",
+    "description": "Manage your claw family (max 10 claws)",
+    "createButton": "Create Claw",
+    "disabledMessage": "Claw creation is disabled",
+    "loading": "Loading...",
+    "emptyState": {
+      "title": "No claws yet, adopt one now!"
+    },
+    "table": {
+      "name": "Name",
+      "type": "Type",
+      "chatTool": "Chat",
+      "status": "Status",
+      "createdAt": "Created",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "failed": "Failed",
+      "stopped": "Stopped",
+      "unknown": "Unknown Status"
+    },
+    "type": {
+      "NANOBOT": "Performance",
+      "OPENCLAW": "All-Purpose"
+    },
+    "tooltip": {
+      "filebrowser": "File Manager",
+      "openclawweb": "OpenClaw Web",
+      "restart": "Restart",
+      "logs": "Logs",
+      "edit": "Edit",
+      "delete": "Delete"
     }
   }
 }
