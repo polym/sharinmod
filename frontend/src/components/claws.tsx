@@ -892,7 +892,7 @@ export function ClawsPage() {
           <div>
             <CardTitle className="text-xl font-bold text-gray-900">领养龙虾</CardTitle>
             <CardDescription className="text-gray-500 mt-1">
-              管理您的龙虾家族（最多 10 只）
+              管理您的龙虾家族
             </CardDescription>
           </div>
           {!clawCreationDisabled && (
