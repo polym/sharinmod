@@ -778,11 +778,22 @@ export function ClawsPage() {
   const handleRestart = async () => {
     if (!restartingClaw) return;
     setRestarting(true);
+
+    // 立即更新本地状态为"重启中"（PENDING）
+    setClaws(prevClaws =>
+      prevClaws.map(claw =>
+        claw.id === restartingClaw.id ? { ...claw, status: 'PENDING' } : claw
+      )
+    );
+
+    // 关闭对话框并清除状态
+    setRestartOpen(false);
+    setRestartingClaw(null);
+
     try {
       await clawAPI.restartClaw(restartingClaw.id);
-      toast({ title: '成功', description: `龙虾「${restartingClaw.name}」重启成功` });
-      setRestartOpen(false);
-      setRestartingClaw(null);
+      toast({ title: '成功', description: `龙虾「${restartingClaw.name}」已开始重启` });
+      // 重启成功后刷新列表获取最新状态
       loadClaws();
     } catch (error: any) {
       toast({
@@ -790,6 +801,8 @@ export function ClawsPage() {
         description: error.response?.data?.detail || '重启失败，请重试',
         variant: 'destructive',
       });
+      // 失败时刷新列表恢复原状态
+      loadClaws();
     } finally {
       setRestarting(false);
     }
