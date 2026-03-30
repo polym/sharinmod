@@ -4,7 +4,7 @@ Service layer for Claw management
 import logging
 import os
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 
 from fastapi import HTTPException
 from sqlmodel import Session, select, func
@@ -52,6 +52,37 @@ def get_user_claws(session: Session, user_id: int) -> List[Claw]:
     """Return all claws for a user, ordered by creation date (newest first)."""
     statement = select(Claw).where(Claw.user_id == user_id).order_by(Claw.created_at.desc())
     return session.exec(statement).all()
+
+
+def get_user_claws_with_usage(session: Session, user_id: int) -> List[Dict]:
+    """
+    Return all claws for a user with daily usage data, ordered by creation date (newest first).
+
+    Returns a list of dicts compatible with ClawResponse schema.
+    """
+    from api.models.unified_api_key import UnifiedAPIKey
+
+    # LEFT JOIN 获取关联的 API Key 数据
+    stmt = (
+        select(Claw, UnifiedAPIKey)
+        .outerjoin(UnifiedAPIKey, Claw.unified_api_key_id == UnifiedAPIKey.id)
+        .where(Claw.user_id == user_id)
+        .order_by(Claw.created_at.desc())
+    )
+
+    results = session.exec(stmt).all()
+
+    # 转换为响应数据
+    claws_data = []
+    for claw, api_key in results:
+        claw_dict = claw.model_dump()
+        # 如果没有关联 Key，使用默认值
+        claw_dict['daily_tokens_used'] = (api_key.daily_tokens_used or 0) if api_key else 0
+        claw_dict['daily_token_limit'] = api_key.daily_token_limit if api_key else None
+        claw_dict['last_reset_date'] = api_key.last_reset_date.isoformat() if api_key and api_key.last_reset_date else None
+        claws_data.append(claw_dict)
+
+    return claws_data
 
 
 def get_user_claw_by_id(session: Session, user_id: int, claw_id: int) -> Claw:

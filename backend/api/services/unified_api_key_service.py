@@ -321,7 +321,8 @@ def get_user_unified_api_keys(session: Session, user_id: int) -> List[Dict]:
         List of dicts compatible with UnifiedAPIKeyResponse
     """
     statement = select(UnifiedAPIKey).where(
-        UnifiedAPIKey.user_id == user_id
+        UnifiedAPIKey.user_id == user_id,
+        UnifiedAPIKey.is_auto_created == False  # 过滤掉自动创建的 Key
     ).order_by(UnifiedAPIKey.created_at.desc())
     
     results = session.exec(statement).all()

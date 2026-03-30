@@ -19,7 +19,7 @@ from api.config import settings
 from api.services import k8s_service
 from api.services.claw_service import (
     create_claw_async,
-    get_user_claws,
+    get_user_claws_with_usage,
     get_user_claw_by_id,
     update_claw_name,
     delete_claw_async,
@@ -104,11 +104,13 @@ def list_claws(
     session: Session = Depends(get_db),
 ):
     """
-    List all claws belonging to the current user
+    List all claws belonging to the current user with daily usage data
 
     - Returns claws ordered by creation date (newest first)
     """
-    claws = get_user_claws(session, current_user.id)
+    claws_data = get_user_claws_with_usage(session, current_user.id)
+    # 将 dict 列表转换为 ClawResponse 对象列表
+    claws = [ClawResponse(**item) for item in claws_data]
     return ClawList(total=len(claws), items=claws)
 
 

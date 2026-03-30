@@ -36,6 +36,9 @@ interface Claw {
   chat_tool?: string;
   unified_api_key_id?: number;
   user_id?: number;
+  daily_tokens_used: number;
+  daily_token_limit?: number;
+  last_reset_date?: string;
 }
 
 const CLAW_TYPES = [
@@ -926,6 +929,7 @@ export function ClawsPage() {
                   <TableHead>类型</TableHead>
                   <TableHead>对话</TableHead>
                   <TableHead>状态</TableHead>
+                  <TableHead>每日使用</TableHead>
                   <TableHead>创建时间</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
@@ -949,6 +953,49 @@ export function ClawsPage() {
                       ) : null}
                     </TableCell>
                     <TableCell><StatusBadge status={claw.status} /></TableCell>
+                    <TableCell className="text-indigo-700">
+                      <div className="space-y-1.5 min-w-[120px]">
+                        {claw.daily_token_limit && claw.daily_token_limit > 0 ? (
+                          (() => {
+                            const usageRatio = Math.max(0, claw.daily_tokens_used) / claw.daily_token_limit;
+                            const barWidth = Math.min(Math.max(0, usageRatio) * 100, 100);
+                            const barColor = usageRatio >= 0.8 ? 'bg-red-500' : usageRatio >= 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
+                            return (
+                              <>
+                                <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                                    style={{ width: `${barWidth}%` }}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-medium tabular-nums">
+                                    {claw.daily_tokens_used.toLocaleString()}
+                                  </span>
+                                  <span className="text-indigo-400 text-xs">/</span>
+                                  <span className="text-xs text-indigo-400 tabular-nums">
+                                    {claw.daily_token_limit.toLocaleString()}
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()
+                        ) : (
+                          <>
+                            <div className="h-1.5 bg-indigo-50 rounded-full overflow-hidden">
+                              <div className="h-full bg-indigo-200 rounded-full w-0" />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium tabular-nums">
+                                {claw.daily_tokens_used.toLocaleString()}
+                              </span>
+                              <span className="text-indigo-400 text-xs">/</span>
+                              <span className="text-xs text-indigo-400 font-mono">+inf</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

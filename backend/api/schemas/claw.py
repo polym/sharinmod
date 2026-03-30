@@ -60,6 +60,9 @@ class ClawResponse(BaseModel):
     ready: Optional[bool] = Field(default=None, description="claw 容器是否 Ready (从 K8s API 实时获取)")
     created_at: datetime
     updated_at: datetime
+    daily_tokens_used: int = Field(default=0, description="今日已使用 token 数量")
+    daily_token_limit: Optional[int] = Field(default=None, description="每日 token 限额")
+    last_reset_date: Optional[str] = Field(default=None, description="上次重置日期")
 
     class Config:
         from_attributes = True
