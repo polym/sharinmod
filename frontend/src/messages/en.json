@@ -559,8 +559,13 @@
       "allOperations": "All Operations",
       "allResources": "All Resources",
       "operationType": "Operation Type",
-      "resourceType": "Resource Type"
+      "resourceType": "Resource Type",
+      "searchPlaceholder": "Search operator, resource name...",
+      "clearFilters": "Clear Filters"
     },
+    "search": "Search",
+    "goToPage": "Go to",
+    "go": "Go",
     "operationTypes": {
       "create": "Create",
       "update": "Update",

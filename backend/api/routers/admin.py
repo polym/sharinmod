@@ -1144,6 +1144,9 @@ def get_operation_logs_endpoint(
     resource_type: Optional[str] = Query(default=None),
     start_time: Optional[str] = Query(default=None),
     end_time: Optional[str] = Query(default=None),
+    search: Optional[str] = Query(default=None),
+    sort_by: str = Query(default="created_at"),
+    sort_order: str = Query(default="desc"),
     db: Session = Depends(get_db),
 ) -> OperationLogDetailList:
     """
@@ -1157,12 +1160,30 @@ def get_operation_logs_endpoint(
         resource_type: Filter by resource type
         start_time: Filter by start time (RFC3339 format)
         end_time: Filter by end time (RFC3339 format)
+        search: Search in user email, user name, and resource name
+        sort_by: Field to sort by (created_at, operation_type, resource_type)
+        sort_order: Sort order (asc, desc)
         db: Database session
 
     Returns:
         Paginated list of operation logs with user details
     """
     from datetime import datetime
+
+    # Validate sort_by
+    valid_sort_fields = ["created_at", "operation_type", "resource_type"]
+    if sort_by not in valid_sort_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_by: {sort_by}. Valid values: {', '.join(valid_sort_fields)}"
+        )
+
+    # Validate sort_order
+    if sort_order not in ["asc", "desc"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid sort_order: {sort_order}. Valid values: asc, desc"
+        )
 
     # Parse time filters if provided
     parsed_start_time = None
@@ -1217,5 +1238,8 @@ def get_operation_logs_endpoint(
         operation_type=op_type_enum,
         resource_type=res_type_enum,
         start_time=parsed_start_time,
-        end_time=parsed_end_time
+        end_time=parsed_end_time,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order
     )

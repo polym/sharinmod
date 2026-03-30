@@ -566,8 +566,13 @@
       "allOperations": "全部操作",
       "allResources": "全部资源",
       "operationType": "操作类型",
-      "resourceType": "资源类型"
+      "resourceType": "资源类型",
+      "searchPlaceholder": "搜索操作者、资源名称...",
+      "clearFilters": "清除筛选"
     },
+    "search": "搜索",
+    "goToPage": "跳转",
+    "go": "跳转",
     "operationTypes": {
       "create": "创建",
       "update": "更新",

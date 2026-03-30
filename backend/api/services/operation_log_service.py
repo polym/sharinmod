@@ -68,7 +68,8 @@ def _apply_filters(
     operation_type: Optional[OperationType] = None,
     resource_type: Optional[ResourceType] = None,
     start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None,
+    search: Optional[str] = None
 ):
     """
     Apply filters to operation log query.
@@ -80,6 +81,7 @@ def _apply_filters(
         resource_type: Filter by resource type
         start_time: Filter by start time (inclusive)
         end_time: Filter by end time (inclusive)
+        search: Search in user email, user name, and resource name
 
     Returns:
         Filtered query
@@ -94,6 +96,15 @@ def _apply_filters(
         query = query.where(OperationLog.created_at >= start_time)
     if end_time is not None:
         query = query.where(OperationLog.created_at <= end_time)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.where(
+            or_(
+                User.email.ilike(search_pattern),
+                User.name.ilike(search_pattern),
+                OperationLog.resource_name.ilike(search_pattern)
+            )
+        )
     return query
 
 
@@ -103,7 +114,8 @@ def get_operation_logs_count(
     operation_type: Optional[OperationType] = None,
     resource_type: Optional[ResourceType] = None,
     start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None,
+    search: Optional[str] = None
 ) -> int:
     """
     Get count of operation logs matching filters.
@@ -115,12 +127,13 @@ def get_operation_logs_count(
         resource_type: Filter by resource type
         start_time: Filter by start time (inclusive)
         end_time: Filter by end time (inclusive)
+        search: Search in user email, user name, and resource name
 
     Returns:
         Count of matching logs
     """
-    query = select(func.count(OperationLog.id))
-    query = _apply_filters(query, user_id, operation_type, resource_type, start_time, end_time)
+    query = select(func.count(OperationLog.id)).join(User, OperationLog.user_id == User.id)
+    query = _apply_filters(query, user_id, operation_type, resource_type, start_time, end_time, search)
     result = db.exec(query).one()
     return result
 
@@ -133,7 +146,10 @@ def get_operation_logs_with_details(
     operation_type: Optional[OperationType] = None,
     resource_type: Optional[ResourceType] = None,
     start_time: Optional[datetime] = None,
-    end_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None,
+    search: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc"
 ) -> OperationLogDetailList:
     """
     Get operation logs with user details (email and name).
@@ -147,20 +163,34 @@ def get_operation_logs_with_details(
         resource_type: Filter by resource type
         start_time: Filter by start time (inclusive)
         end_time: Filter by end time (inclusive)
+        search: Search in user email, user name, and resource name
+        sort_by: Field to sort by (created_at, operation_type, resource_type)
+        sort_order: Sort order (asc, desc)
 
     Returns:
         Paginated list of operation logs with user and resource details
     """
     # Get total count
-    total = get_operation_logs_count(db, user_id, operation_type, resource_type, start_time, end_time)
+    total = get_operation_logs_count(db, user_id, operation_type, resource_type, start_time, end_time, search)
 
     # Build query with user join
-    query = (
-        select(OperationLog, User)
-        .join(User, OperationLog.user_id == User.id)
-        .order_by(desc(OperationLog.created_at))
-    )
-    query = _apply_filters(query, user_id, operation_type, resource_type, start_time, end_time)
+    query = select(OperationLog, User).join(User, OperationLog.user_id == User.id)
+
+    # Apply filters
+    query = _apply_filters(query, user_id, operation_type, resource_type, start_time, end_time, search)
+
+    # Apply sorting
+    sort_column = OperationLog.created_at  # default
+    if sort_by == "operation_type":
+        sort_column = OperationLog.operation_type
+    elif sort_by == "resource_type":
+        sort_column = OperationLog.resource_type
+
+    if sort_order == "asc":
+        query = query.order_by(sort_column)
+    else:
+        query = query.order_by(desc(sort_column))
+
     query = query.offset(offset).limit(limit)
 
     results = db.exec(query).all()

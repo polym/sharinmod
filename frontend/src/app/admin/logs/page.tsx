@@ -1,18 +1,20 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore } from '@/lib/store';
 import { adminAPI } from '@/lib/services';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, ArrowUpDown, Search, X } from 'lucide-react';
 
 interface OperationLog {
   id: number;
@@ -35,8 +37,26 @@ interface OperationLogListResponse {
 
 const PAGE_SIZE = 20;
 
+// 操作类型颜色映射
+const getOperationTypeStyle = (type: string): string => {
+  const styles: Record<string, string> = {
+    create: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
+    update: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
+    delete: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
+    restart: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800',
+    enable: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
+    disable: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
+    reset_password: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
+    grant_admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
+    revoke_admin: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-200 dark:border-violet-800',
+    reset_token: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800',
+  };
+  return styles[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+};
+
 export default function AdminLogsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('adminLogs');
   const tCommon = useTranslations('common');
   const { locale } = useLocaleStore();
@@ -46,15 +66,64 @@ export default function AdminLogsPage() {
   const [logs, setLogs] = useState<OperationLog[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [jumpToPage, setJumpToPage] = useState<number | ''>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter states
   const [operationTypeFilter, setOperationTypeFilter] = useState<string>('all');
   const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('all');
 
+  // 排序状态
+  const [sortField, setSortField] = useState<'created_at' | 'operation_type' | 'resource_type'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   // Track pending requests to prevent race conditions
   const requestIdRef = useRef(0);
   const currentPageRef = useRef(1);
+
+  // 从 URL 读取初始状态
+  useEffect(() => {
+    const page = parseInt(searchParams.get('page') || '1');
+    const operationType = searchParams.get('operation_type') || 'all';
+    const resourceType = searchParams.get('resource_type') || 'all';
+    const search = searchParams.get('search') || '';
+    const sort = searchParams.get('sort') as 'created_at' | 'operation_type' | 'resource_type' | null;
+    const order = searchParams.get('order') as 'asc' | 'desc' | null;
+
+    setCurrentPage(page);
+    setOperationTypeFilter(operationType);
+    setResourceTypeFilter(resourceType);
+    setSearchQuery(search);
+    if (sort) setSortField(sort);
+    if (order) setSortOrder(order);
+  }, [searchParams]);
+
+  // 更新 URL
+  const updateURL = useCallback((params: Record<string, string | number>) => {
+    const urlParams = new URLSearchParams(searchParams);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === 'all' || value === '' || value === 'created_at' || value === 'desc') {
+        urlParams.delete(key);
+      } else {
+        urlParams.set(key, String(value));
+      }
+    });
+    router.replace(`?${urlParams.toString()}`, { scroll: false });
+  }, [searchParams, router]);
+
+  // 同步状态到 URL
+  useEffect(() => {
+    updateURL({
+      page: currentPage,
+      operation_type: operationTypeFilter,
+      resource_type: resourceTypeFilter,
+      search: searchQuery,
+      sort: sortField,
+      order: sortOrder,
+    });
+  }, [currentPage, operationTypeFilter, resourceTypeFilter, searchQuery, sortField, sortOrder, updateURL]);
 
   useEffect(() => {
     currentPageRef.current = currentPage;
@@ -89,12 +158,17 @@ export default function AdminLogsPage() {
       const params: Record<string, string | number> = {
         offset: (page - 1) * PAGE_SIZE,
         limit: PAGE_SIZE,
+        sort_by: sortField,
+        sort_order: sortOrder,
       };
       if (operationTypeFilter && operationTypeFilter !== 'all') {
         params.operation_type = operationTypeFilter;
       }
       if (resourceTypeFilter && resourceTypeFilter !== 'all') {
         params.resource_type = resourceTypeFilter;
+      }
+      if (searchQuery) {
+        params.search = searchQuery;
       }
 
       const response = await adminAPI.getOperationLogs(params);
@@ -121,9 +195,10 @@ export default function AdminLogsPage() {
     } finally {
       if (currentRequestId === requestIdRef.current) {
         setLoading(false);
+        setIsInitialLoad(false);
       }
     }
-  }, [operationTypeFilter, resourceTypeFilter, toast, tCommon]);
+  }, [operationTypeFilter, resourceTypeFilter, searchQuery, sortField, sortOrder, toast, tCommon]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -146,6 +221,7 @@ export default function AdminLogsPage() {
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages && !loading) {
+      setJumpToPage('');
       loadLogs(newPage);
     }
   };
@@ -162,6 +238,44 @@ export default function AdminLogsPage() {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleSort = (field: 'created_at' | 'operation_type' | 'resource_type') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const handleClearFilters = () => {
+    setOperationTypeFilter('all');
+    setResourceTypeFilter('all');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = operationTypeFilter !== 'all' || resourceTypeFilter !== 'all' || searchQuery !== '';
+
+  // Skeleton rows for loading state
+  const renderSkeletonRows = () => (
+    <>
+      {[...Array(5)].map((_, i) => (
+        <TableRow key={i}>
+          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
+
   return (
     <div className="container mx-auto py-6 max-w-7xl">
       <Card>
@@ -170,13 +284,32 @@ export default function AdminLogsPage() {
           <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex gap-4 mb-6">
+          {/* Search & Filters */}
+          <div className="flex gap-3 mb-6">
+            {/* Search bar */}
+            <div className="relative flex-[2]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t('filter.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Operation Type Filter */}
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">{t('operationType')}</label>
               <Select value={operationTypeFilter} onValueChange={handleOperationTypeFilterChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('filter.operationType')} />
+                  <SelectValue placeholder={t('filter.allOperations')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('filter.allOperations')}</SelectItem>
@@ -193,11 +326,12 @@ export default function AdminLogsPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Resource Type Filter */}
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">{t('resourceType')}</label>
               <Select value={resourceTypeFilter} onValueChange={handleResourceTypeFilterChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('filter.resourceType')} />
+                  <SelectValue placeholder={t('filter.allResources')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('filter.allResources')}</SelectItem>
@@ -212,98 +346,182 @@ export default function AdminLogsPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                onClick={handleClearFilters}
+                size="icon"
+                title={t('filter.clearFilters')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           {/* Table */}
-          {loading ? (
-            <div className="text-center py-8">{tCommon('loading')}</div>
-          ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">{t('noLogs')}</div>
-          ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t('timestamp')}</TableHead>
-                      <TableHead>{t('operator')}</TableHead>
-                      <TableHead>{t('operationType')}</TableHead>
-                      <TableHead>{t('resourceType')}</TableHead>
-                      <TableHead>{t('resourceName')}</TableHead>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 select-none group"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      {t('timestamp')}
+                      <ArrowUpDown className={`h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity ${
+                        sortField === 'created_at' ? 'opacity-100' : ''
+                      }`} />
+                    </div>
+                  </TableHead>
+                  <TableHead>{t('operator')}</TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 select-none group"
+                    onClick={() => handleSort('operation_type')}
+                  >
+                    <div className="flex items-center gap-1">
+                      {t('operationType')}
+                      <ArrowUpDown className={`h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity ${
+                        sortField === 'operation_type' ? 'opacity-100' : ''
+                      }`} />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 select-none group"
+                    onClick={() => handleSort('resource_type')}
+                  >
+                    <div className="flex items-center gap-1">
+                      {t('resourceType')}
+                      <ArrowUpDown className={`h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity ${
+                        sortField === 'resource_type' ? 'opacity-100' : ''
+                      }`} />
+                    </div>
+                  </TableHead>
+                  <TableHead>{t('resourceName')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isInitialLoad && loading ? (
+                  renderSkeletonRows()
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <History className="h-12 w-12 text-muted-foreground" />
+                        <div className="space-y-2">
+                          <p className="text-muted-foreground">{t('noLogs')}</p>
+                          {hasActiveFilters && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleClearFilters}
+                            >
+                              {t('filter.clearFilters')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id} className="hover:bg-muted/50 transition-colors duration-150">
+                      <TableCell className="font-mono text-sm">{formatTime(log.created_at)}</TableCell>
+                      <TableCell>
+                        <span className="font-medium">{log.user_email || `User ${log.user_id}`}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded px-2.5 py-1 text-sm font-medium transition-colors ${getOperationTypeStyle(log.operation_type)}`}>
+                          {getOperationTypeLabel(log.operation_type)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {getResourceTypeLabel(log.resource_type)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium">{log.resource_name || '-'}</span>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {logs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-mono text-sm">{formatTime(log.created_at)}</TableCell>
-                        <TableCell>
-                          <span className="font-medium">{log.user_email || `User ${log.user_id}`}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center rounded-full px-2 py-1 text-sm font-medium">
-                            {getOperationTypeLabel(log.operation_type)}
-                          </span>
-                        </TableCell>
-                        <TableCell>{getResourceTypeLabel(log.resource_type)}</TableCell>
-                        <TableCell>
-                          <span className="font-medium">{log.resource_name || '-'}</span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    {t('showing', {
-                      start: (currentPage - 1) * PAGE_SIZE + 1,
-                      end: Math.min(currentPage * PAGE_SIZE, total),
-                      total
-                    })}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(1)}
-                      disabled={currentPage === 1 || loading}
-                    >
-                      {tCommon('firstPage')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1 || loading}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-sm">
-                      {t('pageInfo', { current: currentPage, total: totalPages })}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages || loading}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={currentPage === totalPages || loading}
-                    >
-                      {tCommon('lastPage')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <div className="text-sm text-muted-foreground">
+                {t('showing', {
+                  start: (currentPage - 1) * PAGE_SIZE + 1,
+                  end: Math.min(currentPage * PAGE_SIZE, total),
+                  total
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  {tCommon('firstPage')}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm whitespace-nowrap px-2">
+                  {t('pageInfo', { current: currentPage, total: totalPages })}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  {tCommon('lastPage')}
+                </Button>
+              </div>
+              {/* Page jump */}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  placeholder={t('goToPage')}
+                  value={jumpToPage}
+                  onChange={(e) => setJumpToPage(e.target.value === '' ? '' : Math.min(Math.max(1, parseInt(e.target.value)), totalPages))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && jumpToPage) {
+                      handlePageChange(jumpToPage);
+                    }
+                  }}
+                  className="w-24 h-9"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => jumpToPage && handlePageChange(jumpToPage)}
+                  disabled={!jumpToPage || loading}
+                >
+                  {t('go')}
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
