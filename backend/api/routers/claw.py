@@ -64,7 +64,7 @@ async def create_claw(
     """
     Create a new Claw (QQ bot Deployment on K8s)
 
-    - Maximum 10 claws per user
+    - Maximum {max_claws} claws per user (Admin users exempt)
     - Returns 201 Created with claw details
     - Creates K8s Deployment named claw-{id}
     """

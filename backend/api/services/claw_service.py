@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List
 
 from fastapi import HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from api.models.claw import Claw, ClawStatus
 from api.models.user import User
@@ -44,8 +44,8 @@ def get_max_claws_per_user(session: Session) -> int:
 
 def count_user_claws(session: Session, user_id: int) -> int:
     """Count total claws owned by a user."""
-    statement = select(Claw).where(Claw.user_id == user_id)
-    return len(session.exec(statement).all())
+    statement = select(func.count(Claw.id)).where(Claw.user_id == user_id)
+    return session.exec(statement).one()
 
 
 def get_user_claws(session: Session, user_id: int) -> List[Claw]:
@@ -85,12 +85,16 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
 
     logger.info(f"[FEATURE_FLAGS] Claw creation attempt for user {current_user.id} (feature enabled)")
 
-    max_claws = get_max_claws_per_user(session)
-    if count_user_claws(session, current_user.id) >= max_claws:
-        raise HTTPException(
-            status_code=400,
-            detail=f"每用户最多 {max_claws} 只龙虾"
-        )
+    # 普通用户受最大龙虾数量限制，Admin 用户豁免
+    if current_user.is_admin:
+        logger.info(f"[ADMIN_QUOTA_EXEMPTION] User {current_user.id} bypassed quota check")
+    else:
+        max_claws = get_max_claws_per_user(session)
+        if count_user_claws(session, current_user.id) >= max_claws:
+            raise HTTPException(
+                status_code=400,
+                detail=f"每用户最多 {max_claws} 只龙虾"
+            )
 
     # Auto-create API Key with claw name
     from api.services.unified_api_key_service import (
