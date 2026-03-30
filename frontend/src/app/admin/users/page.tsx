@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Shield, ShieldOff, KeyRound, Plus, Copy, Check, Ban, Power, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,16 +35,22 @@ const PAGE_SIZE = 10;
 
 export default function AdminUsersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const t = useTranslations('adminUsers');
   const tCommon = useTranslations('common');
   const { locale } = useLocaleStore();
   const { user: currentUser, isAuthenticated, setShowLoginDialog } = useAuthStore();
   const { toast } = useToast();
 
+  // 从 URL 获取初始页码，默认为 1
+  const pageParam = searchParams.get('page');
+  const initialPage = pageParam ? parseInt(pageParam, 10) : 1;
+
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPage);
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
 
   // Create user dialog state
@@ -81,7 +87,30 @@ export default function AdminUsersPage() {
     currentPageRef.current = currentPage;
   }, [currentPage]);
 
-  const loadUsers = useCallback(async (page: number = 1) => {
+  // 更新 URL search params 以持久化页码（只在外部页码变化时，不是 loadUsers 内部更新时）
+  const isInternalPageUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (isInternalPageUpdateRef.current) {
+      isInternalPageUpdateRef.current = false;
+      return;
+    }
+
+    if (currentPage > 1) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('page', currentPage.toString());
+      const newUrl = `${pathname}?${params.toString()}`;
+      router.replace(newUrl, { scroll: false });
+    } else {
+      // 第一页时不显示 page 参数
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('page');
+      const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [currentPage, pathname, searchParams, router]);
+
+  const loadUsers = useCallback(async (page: number = 1, skipPageStateUpdate = false) => {
     // Increment request ID for this request
     const currentRequestId = ++requestIdRef.current;
     setLoading(true);
@@ -101,6 +130,9 @@ export default function AdminUsersPage() {
       const data = response.data as UserListResponse;
       setUsers(data.items);
       setTotal(data.total);
+
+      // 标记为内部更新，避免触发 URL 更新
+      isInternalPageUpdateRef.current = true;
       setCurrentPage(page);
     } catch (error: any) {
       // Ignore stale errors
@@ -122,6 +154,8 @@ export default function AdminUsersPage() {
     }
   }, [roleFilter, toast, tCommon]);
 
+  // 初始加载和角色过滤变化时加载用户
+  const initialLoadRef = useRef(true);
   useEffect(() => {
     if (!isAuthenticated) {
       setShowLoginDialog(true);
@@ -129,7 +163,14 @@ export default function AdminUsersPage() {
     }
 
     if (currentUser?.is_admin) {
-      loadUsers(1);
+      if (initialLoadRef.current) {
+        // 首次加载，使用从 URL 恢复的页码
+        loadUsers(initialPage);
+        initialLoadRef.current = false;
+      } else {
+        // 角色过滤变化，重置到第一页
+        loadUsers(1);
+      }
     } else {
       router.push('/marketplace');
     }
@@ -149,7 +190,10 @@ export default function AdminUsersPage() {
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages && !loading) {
-      loadUsers(newPage);
+      // 直接更新 currentPage，会触发 URL 更新
+      // 然后调用 loadUsers，但跳过内部页码状态更新
+      setCurrentPage(newPage);
+      loadUsers(newPage, true);
     }
   };
 
