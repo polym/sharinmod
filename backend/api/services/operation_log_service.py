@@ -19,7 +19,8 @@ def create_operation_log(
     user_id: int,
     operation_type: OperationType,
     resource_type: ResourceType,
-    resource_id: int
+    resource_id: int,
+    resource_name: Optional[str] = None
 ) -> Optional[OperationLog]:
     """
     Create an operation log entry.
@@ -32,6 +33,7 @@ def create_operation_log(
         operation_type: Type of operation performed
         resource_type: Type of resource affected
         resource_id: ID of the affected resource
+        resource_name: Name of the affected resource (persisted for audit trail)
 
     Returns:
         Created OperationLog object or None if failed
@@ -40,14 +42,16 @@ def create_operation_log(
         # Use a separate session for logging to ensure audit logs
         # are written even if the main business transaction fails.
         # This prevents the "operation logged but didn't happen" problem.
-        from api.database import get_session as get_session_factory
+        from api.database import engine
+        from sqlmodel import Session
 
-        for log_session in get_session_factory():
+        with Session(engine) as log_session:
             log_entry = OperationLog(
                 user_id=user_id,
                 operation_type=operation_type,
                 resource_type=resource_type,
-                resource_id=resource_id
+                resource_id=resource_id,
+                resource_name=resource_name
             )
             log_session.add(log_entry)
             log_session.commit()
@@ -145,7 +149,7 @@ def get_operation_logs_with_details(
         end_time: Filter by end time (inclusive)
 
     Returns:
-        Paginated list of operation logs with user details
+        Paginated list of operation logs with user and resource details
     """
     # Get total count
     total = get_operation_logs_count(db, user_id, operation_type, resource_type, start_time, end_time)
@@ -161,7 +165,7 @@ def get_operation_logs_with_details(
 
     results = db.exec(query).all()
 
-    # Build response items
+    # Build response items (resource_name is now stored in the log)
     items = []
     for log, user in results:
         items.append(OperationLogDetail(
@@ -172,6 +176,7 @@ def get_operation_logs_with_details(
             operation_type=log.operation_type,
             resource_type=log.resource_type,
             resource_id=log.resource_id,
+            resource_name=log.resource_name,
             created_at=log.created_at
         ))
 

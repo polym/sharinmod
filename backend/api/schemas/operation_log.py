@@ -60,6 +60,7 @@ class OperationLogDetail(BaseModel):
     operation_type: OperationType
     resource_type: ResourceType
     resource_id: int
+    resource_name: Optional[str] = None
     created_at: datetime
 
     @field_serializer('created_at')

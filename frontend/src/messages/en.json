@@ -548,6 +548,7 @@
     "description": "View all system operations",
     "operationType": "Operation",
     "resourceType": "Resource",
+    "resourceName": "Resource Name",
     "resourceId": "Resource ID",
     "operator": "Operator",
     "timestamp": "Timestamp",
@@ -575,8 +576,8 @@
       "claw": "Claw",
       "provider": "Provider",
       "provider_model": "Provider Model",
-      "unified_api_key": "Unified API Key",
-      "shared_api_key": "Shared API Key",
+      "unified_api_key": "API Key",
+      "shared_api_key": "Shared Subscription",
       "global_model": "Global Model",
       "system_setting": "System Setting"
     },

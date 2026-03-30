@@ -557,6 +557,7 @@
     "description": "查看所有系统操作记录",
     "operationType": "操作类型",
     "resourceType": "资源类型",
+    "resourceName": "资源名称",
     "resourceId": "资源 ID",
     "operator": "操作者",
     "timestamp": "时间戳",
@@ -584,8 +585,8 @@
       "claw": "龙虾",
       "provider": "提供商",
       "provider_model": "提供商模型",
-      "unified_api_key": "统一 API Key",
-      "shared_api_key": "共享 API Key",
+      "unified_api_key": "API Key",
+      "shared_api_key": "共享订阅",
       "global_model": "全局模型",
       "system_setting": "系统设置"
     },

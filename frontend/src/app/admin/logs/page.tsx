@@ -22,6 +22,7 @@ interface OperationLog {
   operation_type: string;
   resource_type: string;
   resource_id: number;
+  resource_name: string | null;
   created_at: string;
 }
 
@@ -228,7 +229,7 @@ export default function AdminLogsPage() {
                       <TableHead>{t('operator')}</TableHead>
                       <TableHead>{t('operationType')}</TableHead>
                       <TableHead>{t('resourceType')}</TableHead>
-                      <TableHead>{t('resourceId')}</TableHead>
+                      <TableHead>{t('resourceName')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -236,18 +237,17 @@ export default function AdminLogsPage() {
                       <TableRow key={log.id}>
                         <TableCell className="font-mono text-sm">{formatTime(log.created_at)}</TableCell>
                         <TableCell>
-                          <div>
-                            <div className="font-medium">{log.user_name || log.user_email || `User ${log.user_id}`}</div>
-                            <div className="text-sm text-muted-foreground">{log.user_email}</div>
-                          </div>
+                          <span className="font-medium">{log.user_email || `User ${log.user_id}`}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium">
+                          <span className="inline-flex items-center rounded-full px-2 py-1 text-sm font-medium">
                             {getOperationTypeLabel(log.operation_type)}
                           </span>
                         </TableCell>
                         <TableCell>{getResourceTypeLabel(log.resource_type)}</TableCell>
-                        <TableCell className="font-mono">{log.resource_id}</TableCell>
+                        <TableCell>
+                          <span className="font-medium">{log.resource_name || '-'}</span>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

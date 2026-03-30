@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+from sqlalchemy import Enum as SQLEnum, Column, Integer, DateTime, ForeignKey, String
 
 
 class OperationType(str, Enum):
@@ -43,13 +44,41 @@ class OperationLog(SQLModel, table=True):
         operation_type: Type of operation performed
         resource_type: Type of resource affected
         resource_id: ID of the affected resource
+        resource_name: Name of the affected resource (persisted even after resource is deleted)
         created_at: When the operation was performed
     """
     __tablename__ = "operation_logs"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
-    operation_type: OperationType = Field(index=True)
-    resource_type: ResourceType = Field(index=True)
-    resource_id: int = Field(index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    user_id: Optional[int] = Field(
+        sa_column=Column(Integer, ForeignKey("users.id"), nullable=False, index=True),
+        default=None
+    )
+    operation_type: OperationType = Field(
+        sa_column=Column(
+            SQLEnum(
+                OperationType,
+                values_callable=lambda x: [e.value for e in x],
+                name="operationtype"
+            ),
+            nullable=False,
+            index=True
+        )
+    )
+    resource_type: ResourceType = Field(
+        sa_column=Column(
+            SQLEnum(
+                ResourceType,
+                values_callable=lambda x: [e.value for e in x],
+                name="resourcetype"
+            ),
+            nullable=False,
+            index=True
+        )
+    )
+    resource_id: int = Field(sa_column=Column(Integer, nullable=False, index=True))
+    resource_name: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
