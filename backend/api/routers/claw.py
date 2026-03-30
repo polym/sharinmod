@@ -158,10 +158,21 @@ async def restart_claw(
     session: Session = Depends(get_db),
 ):
     """Restart a claw by deleting its K8s Pod and letting StatefulSet recreate it."""
+    from datetime import datetime
+    from api.models.claw import ClawStatus
+
     claw = get_user_claw_by_id(session, current_user.id, claw_id)
     if not claw.k8s_deployment_name:
         raise HTTPException(status_code=400, detail="Claw has no K8s resource")
 
+    # 立即更新数据库状态为 PENDING（重启中）
+    claw.status = ClawStatus.PENDING
+    claw.updated_at = datetime.utcnow()
+    session.add(claw)
+    session.commit()
+    session.refresh(claw)
+
+    # 异步执行 K8s 重启操作
     k8s_service.restart_statefulset_pod(
         claw.k8s_deployment_name,
         namespace=claw.k8s_namespace or "default"
