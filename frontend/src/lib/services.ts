@@ -292,6 +292,17 @@ export const adminAPI = {
 
   getAPIKeyLimitHistory: (apiKeyId: number, params?: { page?: number; page_size?: number }) =>
     api.get(`/api/admin/api-keys/${apiKeyId}/limit-history`, { params }),
+
+  // Operation Logs API
+  getOperationLogs: (params?: {
+    offset?: number;
+    limit?: number;
+    user_id?: number;
+    operation_type?: string;
+    resource_type?: string;
+    start_time?: string;
+    end_time?: string;
+  }) => api.get('/api/admin/operation-logs', { params }),
 };
 
 // Model Config API - unified model catalog management

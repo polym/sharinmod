@@ -18,7 +18,8 @@ import {
   Cpu,
   Bot,
   Sliders,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ export function Sidebar() {
     { icon: <Users className="w-4 h-4" />, label: t('adminUsers'), href: "/admin/users" },
     { icon: <LayoutGrid className="w-4 h-4" />, label: t('adminProviders'), href: "/admin/providers" },
     { icon: <Cpu className="w-4 h-4" />, label: t('adminModels'), href: "/admin/models" },
+    { icon: <FileText className="w-4 h-4" />, label: t('adminLogs'), href: "/admin/logs" },
     { icon: <Sliders className="w-4 h-4" />, label: t('adminSettings'), href: "/admin/settings" },
   ];
 

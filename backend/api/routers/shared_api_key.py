@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
 from sqlmodel import Session
 from api.database import get_db
 from api.models.provider_config import ProviderModel
@@ -18,6 +17,8 @@ from api.services.shared_api_key_service import (
     get_shared_api_key_metrics,
     update_shared_api_key
 )
+from api.models.operation_log import OperationType, ResourceType
+from api.utils.operation_log import log_operation
 from api.services.provider_config_service import get_all_providers
 
 router = APIRouter(prefix="/api/api-keys", tags=["api-keys"])
@@ -55,6 +56,7 @@ async def get_providers(
 
 
 @router.post("/share", response_model=SharedAPIKeyResponse, status_code=status.HTTP_201_CREATED)
+@log_operation(ResourceType.SHARED_API_KEY, OperationType.CREATE, use_return_value=True)
 async def share_api_key(
     api_key_data: SharedAPIKeyCreate,
     current_user: User = Depends(get_current_user),
@@ -95,6 +97,7 @@ async def get_my_shared_api_keys(
 
 
 @router.put("/disable/{api_key_id}", response_model=SharedAPIKeyResponse)
+@log_operation(ResourceType.SHARED_API_KEY, OperationType.DISABLE, resource_id_param="api_key_id")
 async def disable_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -110,6 +113,7 @@ async def disable_api_key(
 
 
 @router.put("/enable/{api_key_id}", response_model=SharedAPIKeyResponse)
+@log_operation(ResourceType.SHARED_API_KEY, OperationType.ENABLE, resource_id_param="api_key_id")
 async def enable_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -125,6 +129,7 @@ async def enable_api_key(
 
 
 @router.delete("/{api_key_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.SHARED_API_KEY, OperationType.DELETE, resource_id_param="api_key_id")
 async def delete_api_key(
     api_key_id: int,
     current_user: User = Depends(get_current_user),
@@ -140,6 +145,7 @@ async def delete_api_key(
 
 
 @router.put("/shared/{api_key_id}", response_model=SharedAPIKeyResponse)
+@log_operation(ResourceType.SHARED_API_KEY, OperationType.UPDATE, resource_id_param="api_key_id")
 async def update_api_key(
     api_key_id: int,
     update_data: SharedAPIKeyUpdate,

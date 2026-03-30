@@ -49,6 +49,7 @@ from api.schemas.user import UserResponse, UserListResponse, RoleFilter
 from api.schemas.password_reset import UserCreateRequest, PasswordResetTokenResponse
 from api.services.password_reset_service import create_user_with_reset_token, reset_user_password, generate_reset_link
 from api.models.user import User
+from api.utils.operation_log import log_operation
 from api.schemas.provider_config import (
     ProviderConfigResponse,
     ProviderConfigCreate,
@@ -71,6 +72,13 @@ from api.schemas.system_setting import (
     SystemSettingsConfigRequest,
     SystemSettingsConfigResponse,
 )
+from api.schemas.operation_log import (
+    OperationLogDetailList,
+)
+from api.services.operation_log_service import (
+    get_operation_logs_with_details,
+)
+from api.models.operation_log import OperationType, ResourceType
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -120,6 +128,7 @@ def list_users(
 
 
 @router.put("/users/{user_id}/grant-admin", response_model=UserResponse)
+@log_operation(ResourceType.USER, OperationType.GRANT_ADMIN, resource_id_param="user_id")
 def grant_admin(
     user_id: int,
     current_admin: Annotated[UserResponse, Depends(require_admin)],
@@ -146,6 +155,7 @@ def grant_admin(
 
 
 @router.put("/users/{user_id}/revoke-admin", response_model=UserResponse)
+@log_operation(ResourceType.USER, OperationType.REVOKE_ADMIN, resource_id_param="user_id")
 def revoke_admin(
     user_id: int,
     current_admin: Annotated[UserResponse, Depends(require_admin)],
@@ -195,6 +205,21 @@ async def create_user(
             detail=error_msg
         )
 
+    # Log the operation manually since we need user_id from reset_token
+    from api.services.operation_log_service import create_operation_log
+    try:
+        create_operation_log(
+            db=db,
+            user_id=current_admin.id,
+            operation_type=OperationType.CREATE,
+            resource_type=ResourceType.USER,
+            resource_id=reset_token.user_id
+        )
+    except Exception as e:
+        # Log failure should not affect the response
+        import logging
+        logging.getLogger(__name__).error(f"Failed to log operation: {e}")
+
     # Generate reset link using configured WEBSITE_BASE_URL
     from api.config import settings
     link = generate_reset_link(reset_token.token, settings.WEBSITE_BASE_URL)
@@ -207,6 +232,7 @@ async def create_user(
 
 
 @router.post("/users/{user_id}/reset-password", response_model=PasswordResetTokenResponse)
+@log_operation(ResourceType.USER, OperationType.RESET_PASSWORD, resource_id_param="user_id")
 def reset_password(
     user_id: int,
     current_admin: Annotated[User, Depends(require_admin)],
@@ -242,6 +268,7 @@ def reset_password(
 
 
 @router.put("/users/{user_id}/disable", response_model=UserResponse)
+@log_operation(ResourceType.USER, OperationType.DISABLE, resource_id_param="user_id")
 def disable_user_endpoint(
     user_id: int,
     current_admin: Annotated[User, Depends(require_admin)],
@@ -268,6 +295,7 @@ def disable_user_endpoint(
 
 
 @router.put("/users/{user_id}/enable", response_model=UserResponse)
+@log_operation(ResourceType.USER, OperationType.ENABLE, resource_id_param="user_id")
 def enable_user_endpoint(
     user_id: int,
     current_admin: Annotated[User, Depends(require_admin)],
@@ -294,6 +322,7 @@ def enable_user_endpoint(
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.USER, OperationType.DELETE, resource_id_param="user_id")
 def delete_user_endpoint(
     user_id: int,
     current_admin: Annotated[User, Depends(require_admin)],
@@ -368,6 +397,7 @@ def get_provider(
 
 
 @router.post("/providers", response_model=ProviderConfigResponse, status_code=status.HTTP_201_CREATED)
+@log_operation(ResourceType.PROVIDER, OperationType.CREATE, use_return_value=True)
 async def create_provider_endpoint(
     provider_key: str = Form(...),
     name: str = Form(...),
@@ -434,6 +464,7 @@ async def create_provider_endpoint(
 
 
 @router.put("/providers/{provider_id}", response_model=ProviderConfigResponse)
+@log_operation(ResourceType.PROVIDER, OperationType.UPDATE, resource_id_param="provider_id")
 async def update_provider_endpoint(
     provider_id: int,
     name: Optional[str] = Form(None),
@@ -486,6 +517,7 @@ async def update_provider_endpoint(
 
 
 @router.delete("/providers/{provider_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.PROVIDER, OperationType.DELETE, resource_id_param="provider_id")
 def delete_provider_endpoint(
     provider_id: int,
     db: Session = Depends(get_db)
@@ -506,6 +538,7 @@ def delete_provider_endpoint(
 
 
 @router.put("/providers/{provider_id}/enable", response_model=ProviderConfigResponse)
+@log_operation(ResourceType.PROVIDER, OperationType.ENABLE, resource_id_param="provider_id")
 def enable_provider_endpoint(
     provider_id: int,
     db: Session = Depends(get_db)
@@ -521,6 +554,7 @@ def enable_provider_endpoint(
 
 
 @router.put("/providers/{provider_id}/disable", response_model=ProviderConfigResponse)
+@log_operation(ResourceType.PROVIDER, OperationType.DISABLE, resource_id_param="provider_id")
 def disable_provider_endpoint(
     provider_id: int,
     db: Session = Depends(get_db)
@@ -557,6 +591,7 @@ def update_provider_models_endpoint(
 
 
 @router.put("/providers/models/{model_id}/enable", response_model=ProviderModelResponse)
+@log_operation(ResourceType.PROVIDER_MODEL, OperationType.ENABLE, resource_id_param="model_id")
 def enable_provider_model_endpoint(
     model_id: int,
     db: Session = Depends(get_db)
@@ -572,6 +607,7 @@ def enable_provider_model_endpoint(
 
 
 @router.put("/providers/models/{model_id}/disable", response_model=ProviderModelResponse)
+@log_operation(ResourceType.PROVIDER_MODEL, OperationType.DISABLE, resource_id_param="model_id")
 def disable_provider_model_endpoint(
     model_id: int,
     db: Session = Depends(get_db)
@@ -587,6 +623,7 @@ def disable_provider_model_endpoint(
 
 
 @router.post("/providers/{provider_id}/models", response_model=ProviderModelResponse, status_code=status.HTTP_201_CREATED)
+@log_operation(ResourceType.PROVIDER_MODEL, OperationType.CREATE, use_return_value=True)
 def create_provider_model_endpoint(
     provider_id: int,
     model_data: ProviderModelCreate,
@@ -616,6 +653,7 @@ def create_provider_model_endpoint(
 
 
 @router.put("/providers/models/{model_id}", response_model=ProviderModelResponse)
+@log_operation(ResourceType.PROVIDER_MODEL, OperationType.UPDATE, resource_id_param="model_id")
 def update_provider_model_endpoint(
     model_id: int,
     model_data: ProviderModelUpdate,
@@ -642,6 +680,7 @@ def update_provider_model_endpoint(
 
 
 @router.delete("/providers/models/{model_id}", status_code=status.HTTP_204_NO_CONTENT)
+@log_operation(ResourceType.PROVIDER_MODEL, OperationType.DELETE, resource_id_param="model_id")
 def delete_provider_model_endpoint(
     model_id: int,
     db: Session = Depends(get_db)
@@ -1091,3 +1130,92 @@ def get_api_key_limit_history_endpoint(
         "page": page,
         "page_size": page_size
     }
+
+
+# ==================== Operation Logs Routes ====================
+
+
+@router.get("/operation-logs", response_model=OperationLogDetailList)
+def get_operation_logs_endpoint(
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
+    user_id: Optional[int] = Query(default=None),
+    operation_type: Optional[str] = Query(default=None),
+    resource_type: Optional[str] = Query(default=None),
+    start_time: Optional[str] = Query(default=None),
+    end_time: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+) -> OperationLogDetailList:
+    """
+    Get operation logs with filtering and pagination (admin only)
+
+    Args:
+        offset: Number of logs to skip (for pagination)
+        limit: Maximum number of logs to return
+        user_id: Filter by user ID
+        operation_type: Filter by operation type
+        resource_type: Filter by resource type
+        start_time: Filter by start time (RFC3339 format)
+        end_time: Filter by end time (RFC3339 format)
+        db: Database session
+
+    Returns:
+        Paginated list of operation logs with user details
+    """
+    from datetime import datetime
+
+    # Parse time filters if provided
+    parsed_start_time = None
+    parsed_end_time = None
+
+    if start_time:
+        try:
+            parsed_start_time = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid start_time format. Use RFC3339 format."
+            )
+
+    if end_time:
+        try:
+            parsed_end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid end_time format. Use RFC3339 format."
+            )
+
+    # Convert string filters to enum types (or None for "all"/empty string)
+    from api.models.operation_log import OperationType, ResourceType
+
+    op_type_enum = None
+    if operation_type and operation_type != 'all' and operation_type != '':
+        try:
+            op_type_enum = OperationType(operation_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid operation_type: {operation_type}"
+            )
+
+    res_type_enum = None
+    if resource_type and resource_type != 'all' and resource_type != '':
+        try:
+            res_type_enum = ResourceType(resource_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid resource_type: {resource_type}"
+            )
+
+    return get_operation_logs_with_details(
+        db=db,
+        offset=offset,
+        limit=limit,
+        user_id=user_id,
+        operation_type=op_type_enum,
+        resource_type=res_type_enum,
+        start_time=parsed_start_time,
+        end_time=parsed_end_time
+    )
