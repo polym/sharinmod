@@ -772,6 +772,7 @@
       "type": "类型",
       "chatTool": "对话",
       "status": "状态",
+      "dailyLimit": "今日限额",
       "createdAt": "创建时间",
       "actions": "操作"
     },
