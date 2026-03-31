@@ -10,22 +10,32 @@ interface QuarterHourlyTokenData {
 interface UsageBarChartProps {
   quarterHourlyDistribution: QuarterHourlyTokenData[];
   days?: number;  // Number of days for trend data (default: 1)
+  selectedDate?: string;  // Selected date in YYYY-MM-DD format (user timezone)
 }
 
 // Tooltip padding constant for boundary detection
 const TOOLTIP_PADDING = 12;
 
 // Format time_slot to label based on days parameter
-const formatTimeSlot = (slot: number, totalDays: number): string => {
+const formatTimeSlot = (slot: number, totalDays: number, selectedDate?: string): string => {
   const totalMinutes = totalDays * 24 * 60;
   const minutesPerOneSlot = totalMinutes / 96;
   const slotMinutes = slot * minutesPerOneSlot;
 
-  // Calculate the datetime at this slot (relative to current time, going backwards)
-  const now = new Date();
-  const totalEndTime = now.getTime();
-  const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
-  const slotDate = new Date(slotTime);
+  let slotDate: Date;
+
+  if (selectedDate && totalDays === 1) {
+    // For single day with selectedDate: use natural day (00:00 to 23:45)
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    slotDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+    slotDate = new Date(slotDate.getTime() + slotMinutes * 60 * 1000);
+  } else {
+    // For multi-day trends: relative to current time (going backwards)
+    const now = new Date();
+    const totalEndTime = now.getTime();
+    const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
+    slotDate = new Date(slotTime);
+  }
 
   if (totalDays === 1) {
     // 1 day: show time (e.g., 00:00, 04:00, 08:00, ...)
@@ -41,16 +51,25 @@ const formatTimeSlot = (slot: number, totalDays: number): string => {
 };
 
 // Format time_slot for tooltip (full datetime)
-const formatTimeSlotTooltip = (slot: number, totalDays: number): string => {
+const formatTimeSlotTooltip = (slot: number, totalDays: number, selectedDate?: string): string => {
   const totalMinutes = totalDays * 24 * 60;
   const minutesPerOneSlot = totalMinutes / 96;
   const slotMinutes = slot * minutesPerOneSlot;
 
-  // Calculate the datetime at this slot
-  const now = new Date();
-  const totalEndTime = now.getTime();
-  const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
-  const slotDate = new Date(slotTime);
+  let slotDate: Date;
+
+  if (selectedDate && totalDays === 1) {
+    // For single day with selectedDate: use natural day (00:00 to 23:45)
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    slotDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+    slotDate = new Date(slotDate.getTime() + slotMinutes * 60 * 1000);
+  } else {
+    // For multi-day trends: relative to current time (going backwards)
+    const now = new Date();
+    const totalEndTime = now.getTime();
+    const slotTime = totalEndTime - (totalMinutes * 60 * 1000) + (slotMinutes * 60 * 1000);
+    slotDate = new Date(slotTime);
+  }
 
   const month = slotDate.getMonth() + 1;
   const day = slotDate.getDate();
@@ -60,7 +79,7 @@ const formatTimeSlotTooltip = (slot: number, totalDays: number): string => {
   return `${month}-${day} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
-export function UsageBarChart({ quarterHourlyDistribution, days = 1 }: UsageBarChartProps) {
+export function UsageBarChart({ quarterHourlyDistribution, days = 1, selectedDate }: UsageBarChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [tooltipFlip, setTooltipFlip] = useState<'left' | 'right' | 'top' | 'top-left' | 'top-right' | 'none'>('none');
@@ -187,7 +206,7 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1 }: UsageBarC
               setMousePosition(null);
             }}
             role="graphics-symbol"
-            aria-label={`${formatTimeSlot(sortedData[idx].quarter_hour, days)} - ${chartData[idx]} tokens`}
+            aria-label={`${formatTimeSlot(sortedData[idx].quarter_hour, days, selectedDate)} - ${chartData[idx]} tokens`}
           />
         ))}
         {/* Tooltip overlay */}
@@ -205,7 +224,7 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1 }: UsageBarC
               <span className="font-semibold text-sm">{chartData[hoverIndex]} tokens</span>
               <br />
               <span className="text-indigo-200 text-xs">
-                {formatTimeSlotTooltip(sortedData[hoverIndex].quarter_hour, days)}
+                {formatTimeSlotTooltip(sortedData[hoverIndex].quarter_hour, days, selectedDate)}
               </span>
             </div>
           </div>
@@ -224,7 +243,7 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1 }: UsageBarC
               className={`absolute transform ${isFirst ? '' : '-translate-x-1/2'}`}
               style={{ left: `${leftPercent}%` }}
             >
-              {formatTimeSlot(idx, days)}
+              {formatTimeSlot(idx, days, selectedDate)}
             </span>
           );
         })}
