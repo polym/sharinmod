@@ -666,11 +666,12 @@ async def update_unified_api_key_async(
     api_key_id: int,
     api_key_name: Optional[str] = None,
     description: Optional[str] = None,
-    status: Optional[UnifiedAPIKeyStatus] = None
+    status: Optional[UnifiedAPIKeyStatus] = None,
+    daily_token_limit: Optional[int] = None
 ) -> UnifiedAPIKey:
     """
     Update a unified API key's metadata and status
-    
+
     Args:
         session: Database session
         user: Current authenticated user
@@ -678,10 +679,11 @@ async def update_unified_api_key_async(
         api_key_name: New name (optional)
         description: New description (optional)
         status: New status (optional)
-        
+        daily_token_limit: New daily token limit (optional)
+
     Returns:
         Updated UnifiedAPIKey
-        
+
     Raises:
         HTTPException: If API key not found or not owned by user
     """
@@ -752,9 +754,35 @@ async def update_unified_api_key_async(
         else:
             # Simple status change without LiteLLM sync
             api_key.status = status
-    
+
+    # Update daily_token_limit if provided
+    if daily_token_limit is not None:
+        # F1, F2: Validate non-negative and integer range
+        if daily_token_limit < 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Daily token limit cannot be negative"
+            )
+        # Validate 0 value (unlimited) - only admin can set
+        if daily_token_limit == 0 and not user.is_admin:
+            raise HTTPException(
+                status_code=400,
+                detail="Only administrators can set limit to 0 (unlimited)"
+            )
+        # F3: Validate against system limit within transaction
+        system_limit = get_default_daily_token_limit(session)
+        if daily_token_limit > system_limit:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Limit cannot exceed system setting of {system_limit}"
+            )
+        # F10: Log limit change for audit
+        old_limit = api_key.daily_token_limit
+        api_key.daily_token_limit = daily_token_limit
+        # Note: Operation logging happens at router level via @log_operation decorator
+
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
-    
+
     return api_key

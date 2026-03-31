@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/lib/store';
+import { useAuthStore } from '@/lib/store';
 
 interface UnifiedAPIKey {
   id: number;
@@ -36,6 +37,7 @@ export function UnifiedAPIKeys() {
   const tToast = useTranslations('apiKeys.toast');
   const tCommon = useTranslations('common');
   const { locale } = useLocaleStore();
+  const { user } = useAuthStore();
 
   const [apiKeys, setAPIKeys] = useState<UnifiedAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +49,7 @@ export function UnifiedAPIKeys() {
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editEnabled, setEditEnabled] = useState(true);
+  const [editDailyLimit, setEditDailyLimit] = useState('');
   const [loadingKeys, setLoadingKeys] = useState<Set<number>>(new Set());
   const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -130,6 +133,7 @@ export function UnifiedAPIKeys() {
     setEditName(apiKey.api_key_name || '');
     setEditDescription(apiKey.description || '');
     setEditEnabled(apiKey.status === 'active');
+    setEditDailyLimit(apiKey.daily_token_limit?.toString() || '');
     setEditDialogOpen(true);
   };
 
@@ -151,11 +155,35 @@ export function UnifiedAPIKeys() {
       }
     }
 
+    // F6: Client-side validation for daily limit
+    let dailyLimit: number | null = null;
+    if (editDailyLimit !== '') {
+      const parsed = parseInt(editDailyLimit, 10);
+      if (isNaN(parsed)) {
+        toast({
+          title: tToast('error'),
+          description: tToast('dailyLimitInvalid') || 'Please enter a valid number for daily limit',
+          variant: 'destructive',
+        });
+        return;
+      }
+      if (parsed < 0) {
+        toast({
+          title: tToast('error'),
+          description: tToast('dailyLimitNegative') || 'Daily limit cannot be negative',
+          variant: 'destructive',
+        });
+        return;
+      }
+      dailyLimit = parsed;
+    }
+
     try {
       await apiKeyAPI.updateUnifiedAPIKey(editingKey.id, {
         api_key_name: editName,
         description: editDescription,
         status: editEnabled ? 'active' : 'revoked',
+        daily_token_limit: dailyLimit,
       });
 
       toast({
@@ -555,7 +583,17 @@ export function UnifiedAPIKeys() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        // F5: Reset edit state when dialog closes
+        if (!open) {
+          setEditingKey(null);
+          setEditName('');
+          setEditDescription('');
+          setEditEnabled(true);
+          setEditDailyLimit('');
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px] border-2 border-indigo-200/50 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-indigo-900">{t('edit')}</DialogTitle>
@@ -601,6 +639,23 @@ export function UnifiedAPIKeys() {
                 </span>
               </div>
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-daily-limit" className="text-right text-indigo-700 font-medium">
+                {t('dailyLimitLabel')}
+              </Label>
+              <Input
+                id="edit-daily-limit"
+                type="number"
+                min={user?.is_admin ? "0" : "1"}
+                max="999999999"
+                step="1"
+                value={editDailyLimit}
+                onChange={(e) => setEditDailyLimit(e.target.value)}
+                className="col-span-3 clay-input border-2 border-indigo-200/50"
+                placeholder={t('dailyLimitPlaceholder')}
+              />
+            </div>
+            <p className="text-xs text-indigo-500 col-span-4 col-start-2">{t('dailyLimitHint')}</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="clay-btn-secondary">

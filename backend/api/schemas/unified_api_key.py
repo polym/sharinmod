@@ -56,6 +56,7 @@ class UnifiedAPIKeyUpdate(BaseModel):
     api_key_name: Optional[str] = Field(None, max_length=100, description="Updated name for the API key")
     description: Optional[str] = Field(None, max_length=500, description="Updated description for the API key. Should not contain sensitive information.")
     status: Optional[UnifiedAPIKeyStatus] = Field(None, description="Updated status for the API key")
+    daily_token_limit: Optional[int] = Field(None, description="Daily token limit for this API key")
     
     @validator('description')
     def validate_description(cls, v):

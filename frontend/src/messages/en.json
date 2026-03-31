@@ -104,6 +104,14 @@
     "statusDisabled": "Disabled",
     "createdAt": "Created",
     "lastUsedAt": "Last Used",
+    "dailyUsage": "Daily Usage",
+    "dailyUsed": "Daily Used",
+    "dailyLimit": "Daily Limit",
+    "dailyLimitLabel": "Daily Limit",
+    "dailyLimitPlaceholder": "Leave empty for unlimited",
+    "dailyLimitHint": "Leave empty for unlimited, admins can set 0 for unlimited",
+    "dailyLimitExceededMessage": "Daily quota exhausted, will automatically restore at 00:00 tomorrow",
+    "noLimit": "Unlimited",
     "actions": "Actions",
     "noKeys": "You don't have any API Keys yet",
     "unnamed": "Unnamed",
@@ -131,7 +139,11 @@
       "unblockFailed": "Failed to enable",
       "deleteFailed": "Failed to delete",
       "regenerateFailed": "Failed to regenerate",
-      "copyFailed": "Copy failed, please copy manually"
+      "copyFailed": "Copy failed, please copy manually",
+      "limitExceedsSystem": "Limit cannot exceed system setting {maxLimit}",
+      "limitZeroNotAllowed": "Only admins can set limit to 0 (unlimited)",
+      "dailyLimitInvalid": "Please enter a valid number for daily limit",
+      "dailyLimitNegative": "Daily limit cannot be negative"
     }
   },
   "shared": {

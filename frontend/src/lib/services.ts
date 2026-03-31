@@ -62,7 +62,7 @@ export const apiKeyAPI = {
 
   getMyUnifiedAPIKeysIncludeAutoCreated: () => api.get('/api/api-keys/my-unified?include_auto_created=true'),
 
-  updateUnifiedAPIKey: (apiKeyId: number, data: { api_key_name?: string; description?: string; status?: string }) =>
+  updateUnifiedAPIKey: (apiKeyId: number, data: { api_key_name?: string; description?: string; status?: string; daily_token_limit?: number | null }) =>
     api.put(`/api/api-keys/unified/${apiKeyId}`, data),
 
   blockUnifiedAPIKey: (apiKeyId: number) =>
