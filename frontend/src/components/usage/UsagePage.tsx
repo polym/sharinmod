@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { usageAPI, apiKeyAPI } from '@/lib/services';
@@ -235,126 +235,105 @@ export function UsagePage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Filter Section */}
-      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
-        <CardHeader className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold text-indigo-900 leading-none tracking-tight">{t('title')}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              {/* Date Filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-indigo-700 whitespace-nowrap">
-                  {t('selectDate')}
-                </label>
-                <Select value={selectedDate} onValueChange={handleDateChange}>
-                  <SelectTrigger className="clay-input w-[140px] border-2 border-indigo-200/50">
-                    <SelectValue placeholder={t('selectDatePlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dateOptions.map((date) => (
-                      <SelectItem key={formatDateValue(date)} value={formatDateValue(date)}>
-                        {formatDateLabel(date)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* API Key Filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-indigo-700 whitespace-nowrap">
-                  {t('apiKey')}
-                </label>
-                <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading}>
-                  <SelectTrigger className="clay-input w-[200px] border-2 border-indigo-200/50">
-                    <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('all')}</SelectItem>
-                    {apiKeys.map((key) => (
-                      <SelectItem key={key.id} value={key.id.toString()}>
-                        {key.api_key_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Refresh Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                aria-label={t('refresh')}
-              >
-                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
+    <Card>
+      <CardHeader className="p-6">
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-1.5">
+            <CardTitle>{t('title')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
           </div>
-        </CardHeader>
-      </Card>
+          <div className="flex items-center space-x-2">
+            {/* Date Filter */}
+            <Select value={selectedDate} onValueChange={handleDateChange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder={t('selectDatePlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {dateOptions.map((date) => (
+                  <SelectItem key={formatDateValue(date)} value={formatDateValue(date)}>
+                    {formatDateLabel(date)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-      {/* Loading state */}
-      {overviewLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-indigo-600 font-medium">{tCommon('loading')}</div>
-        </div>
-      ) : overviewData === null ? (
-        /* No data state */
-        <div className="flex items-center justify-center py-12">
-          <div className="text-indigo-600 font-medium">{t('noData')}</div>
-        </div>
-      ) : (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <UsageStatsCard
-              title={t('totalTokens')}
-              value={overviewData.total_tokens.toLocaleString()}
-            />
-            <UsageStatsCard
-              title={t('inputTokens')}
-              value={overviewData.input_tokens.toLocaleString()}
-            />
-            <UsageStatsCard
-              title={t('outputTokens')}
-              value={overviewData.output_tokens.toLocaleString()}
-            />
-            <UsageStatsCard
-              title={t('totalRequests')}
-              value={`${overviewData.successful_requests + overviewData.failed_requests}`}
-              subtitle={`${overviewData.successful_requests} ${t('successfulRequests')} + ${overviewData.failed_requests} ${t('failedRequests')}`}
-            />
+            {/* API Key Filter */}
+            <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                {apiKeys.map((key) => (
+                  <SelectItem key={key.id} value={key.id.toString()}>
+                    {key.api_key_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Refresh Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              aria-label={t('refresh')}
+            >
+              <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* Loading state */}
+        {overviewLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-600 font-medium">{tCommon('loading')}</div>
+          </div>
+        ) : overviewData === null ? (
+          /* No data state */
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-600 font-medium">{t('noData')}</div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <UsageStatsCard
+                title={t('totalTokens')}
+                value={overviewData.total_tokens.toLocaleString()}
+              />
+              <UsageStatsCard
+                title={t('inputTokens')}
+                value={overviewData.input_tokens.toLocaleString()}
+              />
+              <UsageStatsCard
+                title={t('outputTokens')}
+                value={overviewData.output_tokens.toLocaleString()}
+              />
+              <UsageStatsCard
+                title={t('totalRequests')}
+                value={`${overviewData.successful_requests + overviewData.failed_requests}`}
+                subtitle={`${overviewData.successful_requests} ${t('successfulRequests')} + ${overviewData.failed_requests} ${t('failedRequests')}`}
+              />
+            </div>
 
-          {/* Hourly Distribution Chart */}
-          <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
-            <CardHeader className="p-6">
-              <h4 className="text-lg font-bold text-indigo-900">{t('tokenDistribution')}</h4>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-40 bg-white overflow-x-auto">
+            {/* Hourly Distribution Chart */}
+            <div className="space-y-2">
+              <h4 className="text-lg font-semibold">{t('tokenDistribution')}</h4>
+              <div className="border rounded-lg overflow-hidden h-40 bg-white overflow-x-auto">
                 <div className="p-2 pt-2 pb-5 h-full min-w-[850px]">
                   <UsageBarChart quarterHourlyDistribution={overviewData.quarter_hourly_distribution} />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Usage Logs Table */}
-          <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
-            <CardHeader className="p-6">
-              <h4 className="text-lg font-bold text-indigo-900">{t('detailedRecords')}</h4>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
+            {/* Usage Logs Table */}
+            <div className="space-y-2">
+              <h4 className="text-lg font-semibold">{t('detailedRecords')}</h4>
               {logsData.length === 0 && !logsLoading ? (
-                <div className="text-center py-8 text-indigo-600 font-medium">
+                <div className="text-center py-8 text-gray-600 font-medium">
                   {t('noRecords')}
                 </div>
               ) : (
@@ -366,10 +345,10 @@ export function UsagePage() {
                   userTimezone={userTimezone}
                 />
               )}
-            </CardContent>
-          </Card>
-        </>
-      )}
-    </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

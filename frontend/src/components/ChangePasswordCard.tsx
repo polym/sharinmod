@@ -106,8 +106,8 @@ export function ChangePasswordCard({ forceChange = false }: ChangePasswordCardPr
   };
 
   return (
-    <Card className={forceChange ? 'border-orange-500 border-2' : ''}>
-      <CardHeader>
+    <Card>
+      <CardHeader className="p-6">
         <CardTitle className="flex items-center gap-2">
           {tPassword('changePassword')}
           {forceChange && (

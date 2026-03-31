@@ -30,7 +30,7 @@ export function LanguageSettingsCard() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-6">
         <CardTitle>{t('languageSettings')}</CardTitle>
         <CardDescription>
           {t('languageSettings')}
@@ -141,7 +141,7 @@ export function ProfileSettings() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="p-6">
         <CardTitle>{t('profileSettings')}</CardTitle>
         <CardDescription>
           {t('profileDescription')}
