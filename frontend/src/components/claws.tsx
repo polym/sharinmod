@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
 import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown, Globe } from 'lucide-react';
-import { clawAPI, modelAPI } from '@/lib/services';
+import { clawAPI, modelAPI, apiKeyAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
 interface Claw {
@@ -225,6 +225,7 @@ export function ClawsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingClaw, setEditingClaw] = useState<Claw | null>(null);
   const [editName, setEditName] = useState('');
+  const [editDailyLimit, setEditDailyLimit] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Delete dialog
@@ -652,6 +653,7 @@ export function ClawsPage() {
   const openEdit = (claw: Claw) => {
     setEditingClaw(claw);
     setEditName(claw.name);
+    setEditDailyLimit(claw.daily_token_limit?.toString() || '');
     setEditOpen(true);
   };
 
@@ -660,10 +662,61 @@ export function ClawsPage() {
       toast({ title: '错误', description: '名称不能为空', variant: 'destructive' });
       return;
     }
+
+    // 验证每日限额
+    let dailyLimit: number | null = null;
+    const MAX_DAILY_LIMIT = 999999999;
+    const isAdmin = useAuthStore.getState().user?.is_admin;
+    const minValue = isAdmin ? 0 : 1;
+
+    if (editDailyLimit !== '') {
+      // 检查是否包含小数点或逗号
+      if (editDailyLimit.includes('.') || editDailyLimit.includes(',')) {
+        toast({ title: '错误', description: '每日限额必须为整数', variant: 'destructive' });
+        return;
+      }
+      // 检查科学计数法
+      if (editDailyLimit.toLowerCase().includes('e')) {
+        toast({ title: '错误', description: '请输入完整的数字，不要使用科学计数法', variant: 'destructive' });
+        return;
+      }
+
+      const parsed = parseInt(editDailyLimit, 10);
+      if (isNaN(parsed)) {
+        toast({ title: '错误', description: '请输入有效的每日限额数值', variant: 'destructive' });
+        return;
+      }
+      if (parsed < minValue) {
+        const msg = isAdmin ? '每日限额不能为负数' : `每日限额不能小于 ${minValue}`;
+        toast({ title: '错误', description: msg, variant: 'destructive' });
+        return;
+      }
+      if (parsed > MAX_DAILY_LIMIT) {
+        toast({ title: '错误', description: `每日限额不能超过 ${MAX_DAILY_LIMIT}`, variant: 'destructive' });
+        return;
+      }
+      dailyLimit = parsed;
+    }
+
     setSaving(true);
     try {
-      await clawAPI.updateClaw(editingClaw.id, { name: editName.trim() });
-      toast({ title: '成功', description: '名称已更新' });
+      // 并行执行两个 API 调用
+      const updates = [];
+      updates.push(clawAPI.updateClaw(editingClaw.id, { name: editName.trim() }));
+
+      // 如果有 unified_api_key_id，同时更新限额
+      if (editingClaw.unified_api_key_id) {
+        updates.push(apiKeyAPI.updateUnifiedAPIKey(editingClaw.unified_api_key_id, {
+          daily_token_limit: dailyLimit,
+        }));
+      }
+
+      await Promise.all(updates);
+      // 根据更新内容显示不同的成功提示
+      const message = editingClaw.unified_api_key_id
+        ? (editDailyLimit === '' ? '名称已更新，每日限额已清除' : '名称和每日限额已更新')
+        : '名称已更新';
+      toast({ title: '成功', description: message });
       setEditOpen(false);
       setEditingClaw(null);
       loadClaws();
@@ -1369,7 +1422,7 @@ export function ClawsPage() {
               </div>
               <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                 <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-700">
-                  {TYPE_DISPLAY_NAMES[newType] || newType}
+                  {getTypeLabel(newType, t)}
                 </span>
                 <span>•</span>
                 <span>{newBrainModel}</span>
@@ -1474,11 +1527,16 @@ export function ClawsPage() {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      <Dialog open={editOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditDailyLimit('');
+        }
+        setEditOpen(open);
+      }}>
         <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle>修改名称</DialogTitle>
-            <DialogDescription>修改龙虾「{editingClaw?.name}」的名称</DialogDescription>
+            <DialogTitle>编辑龙虾</DialogTitle>
+            <DialogDescription>修改龙虾「{editingClaw?.name}」的名称和每日限额</DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5 py-2">
             <Label htmlFor="edit-name">新名称</Label>
@@ -1488,6 +1546,21 @@ export function ClawsPage() {
               onChange={(e) => setEditName(e.target.value)}
               className="rounded-xl"
             />
+          </div>
+          <div className="space-y-1.5 py-2">
+            <Label htmlFor="edit-daily-limit">{t('dailyLimitLabel')}</Label>
+            <Input
+              id="edit-daily-limit"
+              type="number"
+              min={useAuthStore.getState().user?.is_admin ? "0" : "1"}
+              max="999999999"
+              step="1"
+              value={editDailyLimit}
+              onChange={(e) => setEditDailyLimit(e.target.value)}
+              className="rounded-xl"
+              placeholder={t('dailyLimitPlaceholder')}
+            />
+            <p className="text-xs text-indigo-500">{t('dailyLimitHint')}</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl">取消</Button>

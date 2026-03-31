@@ -1,0 +1,12 @@
+curl 'http://10.0.5.176:4000/credentials/by_name/volcengine/a%40x.com' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8' \
+  -H 'Authorization: Bearer sk-1234' \
+  -H 'Cache-Control: no-cache' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \
+  -H 'Origin: http://10.0.5.176:4000' \
+  -H 'Pragma: no-cache' \
+  -H 'Referer: http://10.0.5.176:4000/ui/?page=models' \
+  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36' \
+  --insecure

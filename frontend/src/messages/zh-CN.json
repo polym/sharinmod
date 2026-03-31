@@ -801,6 +801,9 @@
       "logs": "日志",
       "edit": "编辑",
       "delete": "删除"
-    }
+    },
+    "dailyLimitLabel": "每日限额",
+    "dailyLimitPlaceholder": "留空表示无限制",
+    "dailyLimitHint": "留空表示无限制，管理员可设 0 表示无限制"
   }
 }
