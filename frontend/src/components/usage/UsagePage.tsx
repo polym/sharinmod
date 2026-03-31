@@ -120,7 +120,7 @@ export function UsagePage() {
   const loadAPIKeys = useCallback(async () => {
     try {
       setApiKeysLoading(true);
-      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
+      const response = await apiKeyAPI.getMyUnifiedAPIKeysIncludeAutoCreated();
       setApiKeys(response.data.items);
     } catch (error) {
       console.error('Failed to load API keys:', error);

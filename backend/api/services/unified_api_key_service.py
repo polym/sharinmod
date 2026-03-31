@@ -309,22 +309,25 @@ async def create_unified_api_key_async(
     return unified_api_key
 
 
-def get_user_unified_api_keys(session: Session, user_id: int) -> List[Dict]:
+def get_user_unified_api_keys(session: Session, user_id: int, include_auto_created: bool = False) -> List[Dict]:
     """
     Get all unified API keys for a user
-    
+
     Args:
         session: Database session
         user_id: User ID
-        
+        include_auto_created: Whether to include auto-created keys (e.g., for claws)
+
     Returns:
         List of dicts compatible with UnifiedAPIKeyResponse
     """
+    conditions = [UnifiedAPIKey.user_id == user_id]
+    if not include_auto_created:
+        conditions.append(UnifiedAPIKey.is_auto_created == False)
     statement = select(UnifiedAPIKey).where(
-        UnifiedAPIKey.user_id == user_id,
-        UnifiedAPIKey.is_auto_created == False  # 过滤掉自动创建的 Key
+        *conditions
     ).order_by(UnifiedAPIKey.created_at.desc())
-    
+
     results = session.exec(statement).all()
     return [api_key.model_dump() for api_key in results]
 

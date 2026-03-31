@@ -70,36 +70,21 @@ async def create_unified_api_key_endpoint(
     return api_key
 
 
-@router.get("/my-generated", response_model=UnifiedAPIKeyList)
-def get_my_generated_api_keys(
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_db)
-):
-    """
-    Get list of my generated unified API keys
-    
-    - Returns all API keys (active and revoked)
-    - Ordered by creation date (newest first)
-    """
-    api_keys = get_user_unified_api_keys(session, current_user.id)
-    return UnifiedAPIKeyList(
-        total=len(api_keys),
-        items=api_keys
-    )
-
-
 @router.get("/my-unified", response_model=UnifiedAPIKeyList)
 def get_my_unified_api_keys(
+    include_auto_created: bool = False,
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
     """
     Get list of my unified API keys (frontend-compatible endpoint)
-    
+
     - Returns all API keys (active and revoked)
+    - Excludes auto-created keys (e.g., for claws) by default
+    - Use ?include_auto_created=true to include auto-created keys
     - Ordered by creation date (newest first)
     """
-    api_keys = get_user_unified_api_keys(session, current_user.id)
+    api_keys = get_user_unified_api_keys(session, current_user.id, include_auto_created=include_auto_created)
     return UnifiedAPIKeyList(
         total=len(api_keys),
         items=api_keys

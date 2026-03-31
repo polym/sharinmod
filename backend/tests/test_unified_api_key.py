@@ -206,14 +206,14 @@ def test_generate_api_key_after_revocation(
 
 # ==================== AC#3: API Key Listing ====================
 
-def test_get_my_generated_api_keys_empty(
+def test_get_my_unified_api_keys_empty(
     client: TestClient,
     session: Session,
     test_user: User,
     auth_headers: dict
 ):
     """Test listing API keys when user has none"""
-    response = client.get("/api/api-keys/my-generated", headers=auth_headers)
+    response = client.get("/api/api-keys/my-unified", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -221,7 +221,7 @@ def test_get_my_generated_api_keys_empty(
     assert data["items"] == []
 
 
-def test_get_my_generated_api_keys_with_data(
+def test_get_my_unified_api_keys_with_data(
     client: TestClient,
     session: Session,
     test_user: User,
@@ -241,7 +241,7 @@ def test_get_my_generated_api_keys_with_data(
     )
     
     # Get list
-    response = client.get("/api/api-keys/my-generated", headers=auth_headers)
+    response = client.get("/api/api-keys/my-unified", headers=auth_headers)
     
     assert response.status_code == 200
     data = response.json()
@@ -279,7 +279,7 @@ def test_revoke_api_key_success(
     assert response.status_code == 204
     
     # Verify status changed
-    list_response = client.get("/api/api-keys/my-generated", headers=auth_headers)
+    list_response = client.get("/api/api-keys/my-unified", headers=auth_headers)
     api_keys = list_response.json()["items"]
     revoked_api_key = next(t for t in api_keys if t["id"] == api_key_id)
     assert revoked_api_key["status"] == "revoked"
@@ -371,9 +371,9 @@ def test_generate_api_key_without_auth(client: TestClient, session: Session):
     assert response.status_code in [401, 403]  # Either is valid for auth failure
 
 
-def test_get_my_generated_api_keys_without_auth(client: TestClient, session: Session):
+def test_get_my_unified_api_keys_without_auth(client: TestClient, session: Session):
     """Test that API key listing requires authentication"""
-    response = client.get("/api/api-keys/my-generated")
+    response = client.get("/api/api-keys/my-unified")
     
     assert response.status_code in [401, 403]  # Either is valid for auth failure
 
