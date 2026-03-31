@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
 import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown, Globe } from 'lucide-react';
-import { clawAPI, modelAPI, apiKeyAPI } from '@/lib/services';
+import { clawAPI, modelAPI, apiKeyAPI, adminAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
 interface Claw {
@@ -267,6 +267,9 @@ export function ClawsPage() {
   const [archivePage, setArchivePage] = useState(1);
   const ARCHIVES_PER_PAGE = 5;
 
+  // System config for claw daily limit max value
+  const [clawApikeyDailyLimit, setClawApikeyDailyLimit] = useState<number | null>(null);
+
   const { toast } = useToast();
 
   const openFilebrowser = (clawId: number) => {
@@ -386,6 +389,20 @@ export function ClawsPage() {
       }
     };
     loadArchiveFlags();
+  }, []);
+
+  // Load system settings config for claw daily limit max value
+  useEffect(() => {
+    const loadSystemSettings = async () => {
+      try {
+        const configRes = await adminAPI.getSystemSettingsConfig();
+        setClawApikeyDailyLimit(configRes.data.claw_apikey_daily_token_limit);
+      } catch {
+        // 静默失败，使用 null 表示无限制
+        setClawApikeyDailyLimit(null);
+      }
+    };
+    loadSystemSettings();
   }, []);
 
   const resetCreateForm = () => {
@@ -665,9 +682,10 @@ export function ClawsPage() {
 
     // 验证每日限额
     let dailyLimit: number | null = null;
-    const MAX_DAILY_LIMIT = 999999999;
     const isAdmin = useAuthStore.getState().user?.is_admin;
     const minValue = isAdmin ? 0 : 1;
+    // 使用系统配置的龙虾 APIKey 每日限额作为最大值，如果没有配置则使用默认值
+    const maxLimit = clawApikeyDailyLimit ?? 999999999;
 
     if (editDailyLimit !== '') {
       // 检查是否包含小数点或逗号
@@ -691,8 +709,11 @@ export function ClawsPage() {
         toast({ title: '错误', description: msg, variant: 'destructive' });
         return;
       }
-      if (parsed > MAX_DAILY_LIMIT) {
-        toast({ title: '错误', description: `每日限额不能超过 ${MAX_DAILY_LIMIT}`, variant: 'destructive' });
+      if (parsed > maxLimit) {
+        const msg = clawApikeyDailyLimit
+          ? `每日限额不能超过系统设定值 ${maxLimit}`
+          : `每日限额不能超过 ${maxLimit}`;
+        toast({ title: '错误', description: msg, variant: 'destructive' });
         return;
       }
       dailyLimit = parsed;
@@ -1553,7 +1574,7 @@ export function ClawsPage() {
               id="edit-daily-limit"
               type="number"
               min={useAuthStore.getState().user?.is_admin ? "0" : "1"}
-              max="999999999"
+              max={clawApikeyDailyLimit?.toString() || "999999999"}
               step="1"
               value={editDailyLimit}
               onChange={(e) => setEditDailyLimit(e.target.value)}
