@@ -35,7 +35,7 @@ interface OperationLogListResponse {
   page_size: number;
 }
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 // 操作类型颜色映射
 const getOperationTypeStyle = (type: string): string => {
@@ -68,7 +68,6 @@ export default function AdminLogsPage() {
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [jumpToPage, setJumpToPage] = useState<number | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter states
@@ -221,7 +220,6 @@ export default function AdminLogsPage() {
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages && !loading) {
-      setJumpToPage('');
       loadLogs(newPage);
     }
   };
@@ -452,7 +450,7 @@ export default function AdminLogsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+            <div className="flex items-center justify-between gap-4 mt-6">
               <div className="text-sm text-muted-foreground">
                 {t('showing', {
                   start: (currentPage - 1) * PAGE_SIZE + 1,
@@ -461,14 +459,6 @@ export default function AdminLogsPage() {
                 })}
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(1)}
-                  disabled={currentPage === 1 || loading}
-                >
-                  {tCommon('firstPage')}
-                </Button>
                 <Button
                   variant="outline"
                   size="icon"
@@ -487,38 +477,6 @@ export default function AdminLogsPage() {
                   disabled={currentPage === totalPages || loading}
                 >
                   <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(totalPages)}
-                  disabled={currentPage === totalPages || loading}
-                >
-                  {tCommon('lastPage')}
-                </Button>
-              </div>
-              {/* Page jump */}
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  placeholder={t('goToPage')}
-                  value={jumpToPage}
-                  onChange={(e) => setJumpToPage(e.target.value === '' ? '' : Math.min(Math.max(1, parseInt(e.target.value)), totalPages))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && jumpToPage) {
-                      handlePageChange(jumpToPage);
-                    }
-                  }}
-                  className="w-24 h-9"
-                />
-                <Button
-                  size="sm"
-                  onClick={() => jumpToPage && handlePageChange(jumpToPage)}
-                  disabled={!jumpToPage || loading}
-                >
-                  {t('go')}
                 </Button>
               </div>
             </div>

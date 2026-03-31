@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Shield, ShieldOff, KeyRound, Plus, Copy, Check, Ban, Power, Trash2 } from 'lucide-react';
+import { Shield, ShieldOff, KeyRound, Plus, Copy, Check, Ban, Power, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,6 +47,9 @@ export default function AdminUsersPage() {
   const pageParam = searchParams.get('page');
   const initialPage = pageParam ? parseInt(pageParam, 10) : 1;
 
+  // 更新 URL search params 以持久化页码（只在外部页码变化时，不是 loadUsers 内部更新时）
+  const isInternalPageUpdateRef = useRef(initialPage > 1); // 初始页码 > 1 时标记为内部更新
+
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -81,6 +84,8 @@ export default function AdminUsersPage() {
   const requestIdRef = useRef(0);
   // Keep latest currentPage ref for auto-refresh
   const currentPageRef = useRef(1);
+  // Track if initial load has been done
+  const hasLoadedRef = useRef(false);
 
   // Update currentPageRef when currentPage changes
   useEffect(() => {
@@ -88,8 +93,6 @@ export default function AdminUsersPage() {
   }, [currentPage]);
 
   // 更新 URL search params 以持久化页码（只在外部页码变化时，不是 loadUsers 内部更新时）
-  const isInternalPageUpdateRef = useRef(false);
-
   useEffect(() => {
     if (isInternalPageUpdateRef.current) {
       isInternalPageUpdateRef.current = false;
@@ -155,7 +158,6 @@ export default function AdminUsersPage() {
   }, [roleFilter, toast, tCommon]);
 
   // 初始加载和角色过滤变化时加载用户
-  const initialLoadRef = useRef(true);
   useEffect(() => {
     if (!isAuthenticated) {
       setShowLoginDialog(true);
@@ -163,18 +165,26 @@ export default function AdminUsersPage() {
     }
 
     if (currentUser?.is_admin) {
-      if (initialLoadRef.current) {
+      if (!hasLoadedRef.current) {
         // 首次加载，使用从 URL 恢复的页码
         loadUsers(initialPage);
-        initialLoadRef.current = false;
-      } else {
-        // 角色过滤变化，重置到第一页
-        loadUsers(1);
+        hasLoadedRef.current = true;
       }
     } else {
       router.push('/marketplace');
     }
-  }, [currentUser, isAuthenticated, roleFilter, loadUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, isAuthenticated]);
+
+  // 角色过滤变化时加载用户
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.is_admin || !hasLoadedRef.current) {
+      return;
+    }
+    // 角色过滤变化，重置到第一页
+    loadUsers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleFilter]);
 
   // Auto-refresh user list every 30 seconds when page is visible, keeping current page
   useIntervalOnVisible(() => {
@@ -668,30 +678,33 @@ export default function AdminUsersPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <Button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    variant="outline"
-                    disabled={currentPage === 1 || loading}
-                  >
-                    {tCommon('previous')}
-                  </Button>
-                  <span className="text-sm text-gray-600">
-                    {tCommon('page')} {currentPage} {tCommon('pageOf')} {totalPages}
-                  </span>
-                  <Button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    variant="outline"
-                    disabled={currentPage === totalPages || loading}
-                  >
-                    {tCommon('next')}
-                  </Button>
+                <div className="flex items-center justify-between gap-4 mt-6">
+                  <div className="text-sm text-muted-foreground">
+                    显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, total)} 条，共 {total} 条
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1 || loading}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm whitespace-nowrap px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages || loading}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
-
-              <div className="text-sm text-gray-500 text-center pt-2">
-                {tCommon('loading') !== 'Loading...' && `共 ${total} 位用户`}
-              </div>
             </div>
           )}
         </CardContent>

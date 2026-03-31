@@ -371,38 +371,41 @@ export function UnifiedAPIKeys() {
                   {t('create')}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] border-2 border-indigo-200/50 rounded-2xl">
-                <DialogHeader>
+              <DialogContent className="sm:max-w-[560px] border-2 border-indigo-200/50 rounded-2xl">
+                <DialogHeader className="pb-2">
                   <DialogTitle className="text-xl font-bold text-indigo-900">{t('create')}</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right text-indigo-700 font-medium">
+                <div className="grid gap-5 py-5 px-1">
+                  {/* Name Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-indigo-700 font-medium text-sm">
                       {t('name')}
                     </Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="col-span-3 clay-input border-2 border-indigo-200/50"
+                      className="clay-input border-2 border-indigo-200/50 h-10"
                       placeholder={t('namePlaceholder')}
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right text-indigo-700 font-medium">
+
+                  {/* Description Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-indigo-700 font-medium text-sm">
                       {t('description')}
                     </Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="col-span-3 clay-input border-2 border-indigo-200/50"
+                      className="clay-input border-2 border-indigo-200/50 resize-none"
                       placeholder={t('descriptionPlaceholder')}
                       rows={3}
                     />
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="pt-2">
                   <Button onClick={handleCreateUnifiedAPIKey} className="clay-btn-primary">
                     {tButtons('create')}
                   </Button>
@@ -594,41 +597,46 @@ export function UnifiedAPIKeys() {
           setEditDailyLimit('');
         }
       }}>
-        <DialogContent className="sm:max-w-[500px] border-2 border-indigo-200/50 rounded-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[560px] border-2 border-indigo-200/50 rounded-2xl">
+          <DialogHeader className="pb-2">
             <DialogTitle className="text-xl font-bold text-indigo-900">{t('edit')}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right text-indigo-700 font-medium">
+          <div className="grid gap-5 py-5 px-1">
+            {/* Name Field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name" className="text-indigo-700 font-medium text-sm">
                 {t('name')}
               </Label>
               <Input
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="col-span-3 clay-input border-2 border-indigo-200/50"
+                className="clay-input border-2 border-indigo-200/50 h-10"
                 placeholder={t('namePlaceholder')}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-description" className="text-right text-indigo-700 font-medium">
+
+            {/* Description Field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-description" className="text-indigo-700 font-medium text-sm">
                 {t('description')}
               </Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                className="col-span-3 clay-input border-2 border-indigo-200/50"
+                className="clay-input border-2 border-indigo-200/50 resize-none"
                 placeholder={t('optionalDescription')}
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-enabled" className="text-right text-indigo-700 font-medium">
+
+            {/* Status Field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-enabled" className="text-indigo-700 font-medium text-sm">
                 {t('status')}
               </Label>
-              <div className="col-span-3 flex items-center gap-2">
+              <div className="flex items-center gap-3 h-10">
                 <Switch
                   id="edit-enabled"
                   checked={editEnabled}
@@ -639,8 +647,10 @@ export function UnifiedAPIKeys() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-daily-limit" className="text-right text-indigo-700 font-medium">
+
+            {/* Daily Limit Field */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-daily-limit" className="text-indigo-700 font-medium text-sm">
                 {t('dailyLimitLabel')}
               </Label>
               <Input
@@ -651,13 +661,13 @@ export function UnifiedAPIKeys() {
                 step="1"
                 value={editDailyLimit}
                 onChange={(e) => setEditDailyLimit(e.target.value)}
-                className="col-span-3 clay-input border-2 border-indigo-200/50"
+                className="clay-input border-2 border-indigo-200/50 h-10"
                 placeholder={t('dailyLimitPlaceholder')}
               />
+              <p className="text-xs text-indigo-500">{t('dailyLimitHint')}</p>
             </div>
-            <p className="text-xs text-indigo-500 col-span-4 col-start-2">{t('dailyLimitHint')}</p>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="clay-btn-secondary">
               {tButtons('cancel')}
             </Button>

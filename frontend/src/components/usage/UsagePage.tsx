@@ -89,7 +89,7 @@ export function UsagePage() {
   const [hasMoreLogs, setHasMoreLogs] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 10;
 
   // Generate last 7 days options
   const dateOptions = useMemo(() => {

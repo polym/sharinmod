@@ -15,7 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Image from 'next/image';
-import { Edit, Trash2, Type, Image as ImageIcon, Video, Mic, File, Upload, Plus } from 'lucide-react';
+import { Edit, Trash2, Type, Image as ImageIcon, Video, Mic, File, Upload, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { modelConfigAPI, globalModelAPI, adminAPI } from '@/lib/services';
 import { getProviderLogo, getModelLogo } from '@/lib/providers';
 import { useTranslations } from 'next-intl';
@@ -150,6 +150,10 @@ function ProviderModelTab() {
     outputTypes: [] as string[],
   });
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
   // Derived: filtered model list — fuzzy search on provider_key or model_key, sorted by provider then model
   const filteredModels = useMemo(() => {
     const sorted = [...models].sort((a, b) => a.provider_key.localeCompare(b.provider_key) || a.model_key.localeCompare(b.model_key));
@@ -178,6 +182,26 @@ function ProviderModelTab() {
     });
     return Array.from(providerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [models]);
+
+  // 分页后的模型列表
+  const paginatedModels = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    return filteredModels.slice(start, end);
+  }, [filteredModels, currentPage]);
+
+  const totalPages = Math.ceil(filteredModels.length / PAGE_SIZE);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  // 当筛选条件变化时重置到第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [providerFilterValue, filterQuery]);
 
   const loadModels = async () => {
     setLoading(true);
@@ -482,38 +506,39 @@ function ProviderModelTab() {
         {loading ? (
           <div className="text-center py-8 text-gray-500">{t('loading')}</div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={
-                      filteredModels.length === 0
-                        ? false
-                        : filteredModels.every((m) => selectedKeys.has(`${m.provider_key}/${m.model_key}`))
-                          ? true
-                          : filteredModels.some((m) => selectedKeys.has(`${m.provider_key}/${m.model_key}`))
-                            ? 'indeterminate'
-                            : false
-                    }
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedKeys(new Set(filteredModels.map((m) => `${m.provider_key}/${m.model_key}`)));
-                      } else {
-                        setSelectedKeys(new Set());
+          <div className="space-y-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={
+                        filteredModels.length === 0
+                          ? false
+                          : filteredModels.every((m) => selectedKeys.has(`${m.provider_key}/${m.model_key}`))
+                            ? true
+                            : filteredModels.some((m) => selectedKeys.has(`${m.provider_key}/${m.model_key}`))
+                              ? 'indeterminate'
+                              : false
                       }
-                    }}
-                  />
-                </TableHead>
-                <TableHead>{t('columns.model')}</TableHead>
-                <TableHead>{t('columns.contextMaxOutput')}</TableHead>
-                <TableHead>{t('columns.source')}</TableHead>
-                <TableHead>{t('columns.status')}</TableHead>
-                <TableHead>{t('columns.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredModels.map((model) => {
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedKeys(new Set(filteredModels.map((m) => `${m.provider_key}/${m.model_key}`)));
+                        } else {
+                          setSelectedKeys(new Set());
+                        }
+                      }}
+                    />
+                  </TableHead>
+                  <TableHead>{t('columns.model')}</TableHead>
+                  <TableHead>{t('columns.contextMaxOutput')}</TableHead>
+                  <TableHead>{t('columns.source')}</TableHead>
+                  <TableHead>{t('columns.status')}</TableHead>
+                  <TableHead>{t('columns.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedModels.map((model) => {
                 const rowKey = `${model.provider_key}/${model.model_key}`;
                 const logoPath = getProviderLogo(model.provider_key);
                 return (
@@ -571,7 +596,7 @@ function ProviderModelTab() {
                   </TableRow>
                 );
               })}
-              {filteredModels.length === 0 && (
+              {paginatedModels.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-gray-500 py-8">
                     —
@@ -580,6 +605,37 @@ function ProviderModelTab() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm text-muted-foreground">
+                显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredModels.length)} 条，共 {filteredModels.length} 条
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm whitespace-nowrap px-2">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
         )}
 
       {/* Edit Dialog */}
@@ -956,6 +1012,10 @@ function GlobalModelTab() {
     loadModels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const openAddDialog = () => {
     setEditTarget(null);
