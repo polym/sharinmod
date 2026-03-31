@@ -770,7 +770,14 @@ async def update_unified_api_key_async(
                 detail="Only administrators can set limit to 0 (unlimited)"
             )
         # F3: Validate against system limit within transaction
-        system_limit = get_default_daily_token_limit(session)
+        # For auto-created keys (claws), use claw-specific limit if set, otherwise use default
+        if api_key.is_auto_created:
+            system_limit = get_claw_apikey_daily_token_limit(session)
+            if system_limit is None:
+                system_limit = get_default_daily_token_limit(session)
+        else:
+            system_limit = get_default_daily_token_limit(session)
+
         if daily_token_limit > system_limit:
             raise HTTPException(
                 status_code=400,
