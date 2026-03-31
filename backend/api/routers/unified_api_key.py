@@ -205,17 +205,18 @@ async def update_api_key(
 ):
     """
     Update a unified API key's metadata and status
-    
-    - Updates name, description, and/or status
+
+    - Updates name, description, status, and/or daily_token_limit
     - If status changed to REVOKED, blocks LiteLLM key
     - Returns updated API key
     """
     api_key = await update_unified_api_key_async(
-        session, 
-        current_user, 
+        session,
+        current_user,
         api_key_id,
         api_key_name=request.api_key_name,
         description=request.description,
-        status=request.status
+        status=request.status,
+        daily_token_limit=request.daily_token_limit
     )
     return api_key

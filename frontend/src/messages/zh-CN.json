@@ -45,6 +45,9 @@
     "dailyUsage": "今日限额",
     "dailyUsed": "今日已用",
     "dailyLimit": "每日上限",
+    "dailyLimitLabel": "每日限额",
+    "dailyLimitPlaceholder": "留空表示无限制",
+    "dailyLimitHint": "留空表示无限制，管理员可设 0 表示无限制",
     "dailyLimitExceededMessage": "今日额度已用完，将在明日 00:00 自动恢复",
     "noLimit": "无限制",
     "actions": "操作",
@@ -75,7 +78,11 @@
       "unblockFailed": "启用失败",
       "deleteFailed": "删除失败",
       "regenerateFailed": "重新生成失败",
-      "copyFailed": "复制失败，请手动复制"
+      "copyFailed": "复制失败，请手动复制",
+      "limitExceedsSystem": "限额不能超过系统设定值 {maxLimit}",
+      "limitZeroNotAllowed": "只有管理员可以设置限额为 0（无限制）",
+      "dailyLimitInvalid": "请输入有效的每日限额数值",
+      "dailyLimitNegative": "每日限额不能为负数"
     }
   },
   "shared": {
