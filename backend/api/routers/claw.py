@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSo
 from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlmodel import Session
 from typing import List
+from datetime import datetime
 import re
 import httpx
 import asyncio
@@ -14,7 +15,7 @@ from api.database import get_db
 from api.dependencies.auth import get_current_user
 from api.models.user import User
 from api.models.claw import ClawStatus
-from api.schemas.claw import ClawCreate, ClawResponse, ClawUpdate, ClawList, ArchiveList, ArchiveItem, ArchiveCreateResponse
+from api.schemas.claw import ClawCreate, ClawResponse, ClawUpdate, ClawList, ArchiveList, ArchiveItem, ArchiveCreateResponse, ClawChatToolUpdate
 from api.config import settings
 from api.services import k8s_service
 from api.services.claw_service import (
@@ -299,6 +300,69 @@ def weixin_login(
             for line in text.splitlines():
                 if line:
                     yield f"data: {line}\n\n"
+
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/{claw_id}/chat-tool")
+@log_operation(ResourceType.CLAW, OperationType.UPDATE, resource_id_param="claw_id")
+def set_chat_tool(
+    claw_id: int,
+    request: ClawChatToolUpdate,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    设置龙虾对话工具
+    仅支持 OPENCLAW 类型且状态为 RUNNING 的龙虾。
+    以 SSE 格式流式返回命令执行输出。
+    """
+    from api.models.claw import ClawType, ClawStatus
+    claw = get_user_claw_by_id(session, current_user.id, claw_id)
+
+    if claw.type != ClawType.OPENCLAW:
+        raise HTTPException(status_code=400, detail="仅 OpenClaw 类型支持设置对话工具")
+    if claw.status != ClawStatus.RUNNING:
+        raise HTTPException(status_code=400, detail="龙虾未在运行状态")
+    if not claw.k8s_deployment_name:
+        raise HTTPException(status_code=400, detail="Claw has no K8s resource")
+
+    # 根据对话工具类型选择命令
+    if request.chat_tool == 'WEIXIN':
+        command = ["sh", "-c", "COLUMNS=80 LINES=24 openclaw channels login --channel openclaw-weixin"]
+    elif request.chat_tool == 'LARK':
+        command = ["sh", "-c", "COLUMNS=80 LINES=24 npx -y @larksuite/openclaw-lark@2026.3.17 install"]
+    else:
+        raise HTTPException(status_code=400, detail=f"暂不支持对话工具: {request.chat_tool}")
+
+    def sse_generator():
+        for chunk in k8s_service.exec_pod_command_stream(
+            claw.k8s_deployment_name,
+            command=command,
+            namespace=claw.k8s_namespace or "default",
+            container="claw",
+        ):
+            if isinstance(chunk, bytes):
+                text = chunk.decode("utf-8", errors="replace")
+            else:
+                text = str(chunk)
+            for line in text.splitlines():
+                if line:
+                    yield f"data: {line}\n\n"
+
+        # 命令执行完成后更新数据库
+        claw.chat_tool = request.chat_tool
+        claw.updated_at = datetime.utcnow()
+        session.add(claw)
+        session.commit()
+        yield f"data: [对话工具已设置为: {request.chat_tool}]\n\n"
 
     return StreamingResponse(
         sse_generator(),

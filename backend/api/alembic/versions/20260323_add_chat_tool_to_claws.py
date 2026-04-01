@@ -18,7 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column(
         'claws',
-        sa.Column('chat_tool', sa.String(50), nullable=True, server_default='QQ'),
+        sa.Column('chat_tool', sa.String(50), nullable=True, server_default='WEIXIN'),
     )
 
 

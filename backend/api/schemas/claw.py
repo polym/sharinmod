@@ -14,7 +14,7 @@ class ClawCreate(BaseModel):
     qq_bot_id: str = Field(default="", max_length=255, description="QQ Bot ID (required for QQ)")
     qq_bot_secret: str = Field(default="", max_length=255, description="QQ Bot Secret (required for QQ)")
     brain_model: Optional[str] = Field(default=None, max_length=100, description="龙虾使用的模型 ID，如 'glm-4.7'")
-    chat_tool: str = Field(default='QQ', max_length=50, description="对话工具 (QQ 或 FEISHU)")
+    chat_tool: str = Field(default='WEIXIN', max_length=50, description="对话工具 (WEIXIN, LARK, QQ)")
 
     @validator('name')
     def validate_name(cls, v):
@@ -42,6 +42,18 @@ class ClawUpdate(BaseModel):
             raise ValueError('Name cannot be empty')
         if '<' in v or '>' in v or 'script' in v.lower():
             raise ValueError('Name contains potentially unsafe characters')
+        return v
+
+
+class ClawChatToolUpdate(BaseModel):
+    """Request schema for updating claw chat tool"""
+    chat_tool: str = Field(..., description="对话工具 (WEIXIN, LARK)")
+
+    @validator('chat_tool')
+    def validate_chat_tool(cls, v):
+        valid_tools = ['WEIXIN', 'LARK']
+        if v not in valid_tools:
+            raise ValueError(f'chat_tool must be one of {valid_tools}')
         return v
 
 

@@ -441,6 +441,16 @@ export const clawAPI = {
       headers: { Authorization: `Bearer ${token}` },
     }),
 
+  setChatTool: (id: number, data: { chat_tool: string }, token: string): Promise<Response> =>
+    fetch(`/api/claws/${id}/chat-tool`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    }),
+
   getArchives: (id: number) =>
     api.get(`/api/claws/${id}/archives`),
 

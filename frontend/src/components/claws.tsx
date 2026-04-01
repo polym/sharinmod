@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown, Globe } from 'lucide-react';
+import { Plus, Edit, Trash2, ScrollText, FolderOpen, RotateCcw, MoreVertical, Check, CheckCircle2, X, Undo, ChevronsDown, Globe, MessageCircle } from 'lucide-react';
 import { clawAPI, modelAPI, apiKeyAPI, adminAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 
@@ -66,7 +66,7 @@ function getTypeLabel(type: string, t: (key: string) => string): string {
 
 const CHAT_TOOLS = [
   { value: 'WEIXIN', label: '微信', icon: '💬', supportedTypes: ['OPENCLAW'] },
-  { value: 'FEISHU', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] },
+  { value: 'LARK', label: '飞书', icon: '💬', supportedTypes: ['OPENCLAW'] },
   { value: 'QQ', label: 'QQ', icon: '📱', supportedTypes: ['NANOBOT', 'OPENCLAW'] }
 ];
 
@@ -133,7 +133,7 @@ function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config
   const steps = [
     { key: 'config', label: '基础配置', icon: '1' },
     { key: 'starting', label: '启动中', icon: '2' },
-    ...(chatTool === 'FEISHU' ? [{ key: 'feishu', label: '飞书授权', icon: '3' }] : []),
+    ...(chatTool === 'LARK' ? [{ key: 'feishu', label: '飞书授权', icon: '3' }] : []),
     ...(chatTool === 'WEIXIN' ? [{ key: 'weixin', label: '微信授权', icon: '3' }] : []),
   ];
 
@@ -258,6 +258,15 @@ export function ClawsPage() {
   const [archiveToDelete, setArchiveToDelete] = useState<string | null>(null);
   const [deleteArchiveOpen, setDeleteArchiveOpen] = useState(false);
 
+  // Chat Tool 设置对话框状态
+  const [chatToolOpen, setChatToolOpen] = useState(false);
+  const [chatToolClaw, setChatToolClaw] = useState<Claw | null>(null);
+  const [selectedChatTool, setSelectedChatTool] = useState<string | null>(null);
+  const [chatToolOutput, setChatToolOutput] = useState<string[]>([]);
+  const [chatToolSetting, setChatToolSetting] = useState(false);
+  const chatToolAbortRef = useRef<AbortController | null>(null);
+  const chatToolScrollRef = useRef<HTMLDivElement | null>(null);
+
   // Archive feature flags
   const [pruncEnabled, setPruncEnabled] = useState(false);
   const [clawsArchiveEnabled, setClawsArchiveEnabled] = useState(false);
@@ -308,6 +317,13 @@ export function ClawsPage() {
       weixinScrollRef.current.scrollTop = weixinScrollRef.current.scrollHeight;
     }
   }, [weixinOutput]);
+
+  // Auto-scroll chat tool output to bottom
+  useEffect(() => {
+    if (chatToolScrollRef.current) {
+      chatToolScrollRef.current.scrollTop = chatToolScrollRef.current.scrollHeight;
+    }
+  }, [chatToolOutput]);
 
   const loadClaws = async () => {
     try {
@@ -484,8 +500,8 @@ export function ClawsPage() {
             setPollingClawId(null);
             setCreating(false);
 
-            // OPENCLAW + FEISHU: enter Lark QR scan phase
-            if (newType === 'OPENCLAW' && newChatTool === 'FEISHU') {
+            // OPENCLAW + LARK: enter Lark QR scan phase
+            if (newType === 'OPENCLAW' && newChatTool === 'LARK') {
               setCreatePhase('feishu');
               setLarkPhase('installing');
               setLarkOutput([]);
@@ -664,6 +680,61 @@ export function ClawsPage() {
         setWeixinOutput(prev => [...prev, '[连接中断]']);
         setWeixinPhase('done');
       }
+    }
+  };
+
+  const openChatToolDialog = (claw: Claw) => {
+    setChatToolClaw(claw);
+    setSelectedChatTool('WEIXIN');
+    setChatToolOutput([]);
+    setChatToolSetting(false);
+    setChatToolOpen(true);
+  };
+
+  const startSetChatTool = async () => {
+    if (!chatToolClaw || !selectedChatTool) return;
+    if (chatToolAbortRef.current) {
+      chatToolAbortRef.current.abort();
+    }
+    const abort = new AbortController();
+    chatToolAbortRef.current = abort;
+    const token = useAuthStore.getState().token || '';
+
+    setChatToolSetting(true);
+    setChatToolOutput([]);
+
+    try {
+      const resp = await clawAPI.setChatTool(chatToolClaw.id, { chat_tool: selectedChatTool! }, token);
+      if (!resp.ok || !resp.body) {
+        setChatToolOutput(prev => [...prev, `[错误] HTTP ${resp.status}`]);
+        setChatToolSetting(false);
+        return;
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() ?? '';
+        for (const part of parts) {
+          if (part.startsWith('data: ')) {
+            const line = part.slice(6);
+            setChatToolOutput(prev => [...prev.slice(-300), line]);
+          }
+        }
+      }
+      // 完成后刷新列表
+      loadClaws();
+      setChatToolSetting(false);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        setChatToolOutput(prev => [...prev, '[连接中断]']);
+      }
+      setChatToolSetting(false);
     }
   };
 
@@ -1050,7 +1121,7 @@ export function ClawsPage() {
                     <TableCell>
                       {claw.chat_tool === 'QQ' ? (
                         <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
-                      ) : claw.chat_tool === 'FEISHU' ? (
+                      ) : claw.chat_tool === 'LARK' ? (
                         <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
                       ) : claw.chat_tool === 'WEIXIN' ? (
                         <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
@@ -1155,6 +1226,13 @@ export function ClawsPage() {
                             <DropdownMenuItem onClick={() => openEdit(claw)}>
                               <Edit className="w-4 h-4 mr-2" />
                               {t('tooltip.edit')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => openChatToolDialog(claw)}
+                              disabled={claw.type !== 'OPENCLAW' || claw.status !== 'RUNNING'}
+                            >
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              重连
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => openDelete(claw)} className="text-red-600">
@@ -1279,7 +1357,7 @@ export function ClawsPage() {
                   >
                     {tool.value === 'QQ' ? (
                       <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5" />
-                    ) : tool.value === 'FEISHU' ? (
+                    ) : tool.value === 'LARK' ? (
                       <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
                     ) : tool.value === 'WEIXIN' ? (
                       <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
@@ -1858,6 +1936,103 @@ export function ClawsPage() {
               className="rounded-xl"
             >
               {deletingArchive ? '删除中...' : '确认删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ChatTool Dialog */}
+      <Dialog open={chatToolOpen} onOpenChange={(open) => {
+        if (!open) {
+          chatToolAbortRef.current?.abort();
+          setChatToolOutput([]);
+        }
+        setChatToolOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>重连对话工具</DialogTitle>
+            <DialogDescription>
+              为龙虾「{chatToolClaw?.name}」重新连接对话工具
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* 对话工具选择按钮 */}
+            <div className="grid grid-cols-3 gap-2">
+              {CHAT_TOOLS.filter(t => t.supportedTypes.includes('OPENCLAW') && t.value !== 'QQ').map((tool) => (
+                <button
+                  key={tool.value}
+                  type="button"
+                  disabled={chatToolSetting}
+                  onClick={() => setSelectedChatTool(tool.value)}
+                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                    selectedChatTool === tool.value
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-300'
+                  } ${chatToolSetting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {tool.value === 'LARK' ? (
+                    <img src="/icons/feishu.png" alt="飞书" className="w-5 h-5" />
+                  ) : tool.value === 'WEIXIN' ? (
+                    <img src="/icons/weixin.png" alt="微信" className="w-5 h-5" />
+                  ) : null}
+                  <span className="text-sm font-medium">{tool.label}</span>
+                </button>
+              ))}
+              {/* QQ - 灰掉 */}
+              <button
+                disabled
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                title="暂不支持"
+              >
+                <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5 grayscale" />
+                <span className="text-sm font-medium text-gray-400">QQ</span>
+              </button>
+            </div>
+
+            {/* 确认按钮 */}
+            {selectedChatTool && !chatToolSetting && (
+              <Button
+                onClick={startSetChatTool}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer"
+              >
+                确认切换到 {CHAT_TOOLS.find(t => t.value === selectedChatTool)?.label}
+              </Button>
+            )}
+
+            {/* 命令输出区域 */}
+            {(chatToolOutput.length > 0 || chatToolSetting) && (
+              <div
+                ref={chatToolScrollRef}
+                className="max-h-96 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
+              >
+                {chatToolSetting && chatToolOutput.length === 0 && (
+                  <div className="text-xs text-gray-400">正在重连对话工具...</div>
+                )}
+                <div className="font-mono text-xs leading-tight text-gray-100 whitespace-pre-wrap break-all">
+                  {chatToolOutput.map((line, i) => (
+                    <div
+                      key={i}
+                      dangerouslySetInnerHTML={{ __html: anser.toHtml(line) }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                chatToolAbortRef.current?.abort();
+                setChatToolOpen(false);
+              }}
+              disabled={chatToolSetting}
+              className="rounded-xl"
+            >
+              关闭
             </Button>
           </DialogFooter>
         </DialogContent>
