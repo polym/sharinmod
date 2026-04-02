@@ -52,7 +52,7 @@ export function Header() {
 
   return (
     <header
-      className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-4"
+      className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-3"
       style={{
         boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
       }}
