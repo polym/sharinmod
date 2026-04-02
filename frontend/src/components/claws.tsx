@@ -279,6 +279,9 @@ export function ClawsPage() {
   // System config for claw daily limit max value
   const [clawApikeyDailyLimit, setClawApikeyDailyLimit] = useState<number | null>(null);
 
+  // System config for max claws per user
+  const [maxClawsPerUser, setMaxClawsPerUser] = useState(10);
+
   const { toast } = useToast();
 
   const openFilebrowser = (clawId: number) => {
@@ -407,15 +410,17 @@ export function ClawsPage() {
     loadArchiveFlags();
   }, []);
 
-  // Load system settings config for claw daily limit max value
+  // Load system settings config for claw daily limit max value and max claws per user
   useEffect(() => {
     const loadSystemSettings = async () => {
       try {
         const configRes = await adminAPI.getSystemSettingsConfig();
         setClawApikeyDailyLimit(configRes.data.claw_apikey_daily_token_limit);
+        setMaxClawsPerUser(configRes.data.max_claws_per_user);
       } catch {
-        // 静默失败，使用 null 表示无限制
+        // 静默失败，使用 null 表示无限制，使用默认值 10
         setClawApikeyDailyLimit(null);
+        setMaxClawsPerUser(10);
       }
     };
     loadSystemSettings();
@@ -1070,7 +1075,7 @@ export function ClawsPage() {
           <div>
             <CardTitle className="text-xl font-bold text-gray-900">{t('title')}</CardTitle>
             <CardDescription className="text-gray-500 mt-1">
-              {t('description')}
+              {t('description', { max: maxClawsPerUser })}
             </CardDescription>
           </div>
           {!clawCreationDisabled && (

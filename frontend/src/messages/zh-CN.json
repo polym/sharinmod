@@ -767,7 +767,7 @@
   },
   "claws": {
     "title": "领养龙虾",
-    "description": "管理您的龙虾家族（最多 10 只）",
+    "description": "管理您的龙虾家族（最多 {max} 只）",
     "createButton": "创建龙虾",
     "disabledMessage": "龙虾创建功能已禁用",
     "loading": "加载中...",

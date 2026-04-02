@@ -765,7 +765,7 @@
   },
   "claws": {
     "title": "My Claws",
-    "description": "Manage your claw family (max 10 claws)",
+    "description": "Manage your claw family (up to {max})",
     "createButton": "Create Claw",
     "disabledMessage": "Claw creation is disabled",
     "loading": "Loading...",
