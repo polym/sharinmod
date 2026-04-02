@@ -109,7 +109,8 @@
     "dailyLimit": "Daily Limit",
     "dailyLimitLabel": "Daily Limit",
     "dailyLimitPlaceholder": "Leave empty for unlimited",
-    "dailyLimitHint": "Leave empty for unlimited, admins can set 0 for unlimited",
+    "dailyLimitHint": "Maximum is {{max}}",
+    "unlimited": "Unlimited",
     "dailyLimitExceededMessage": "Daily quota exhausted, will automatically restore at 00:00 tomorrow",
     "noLimit": "Unlimited",
     "actions": "Actions",
@@ -846,6 +847,7 @@
     },
     "dailyLimitLabel": "Daily Limit",
     "dailyLimitPlaceholder": "Leave empty for unlimited",
-    "dailyLimitHint": "Leave empty for unlimited, admins can set 0 for unlimited"
+    "dailyLimitHint": "Maximum is {{max}}",
+    "unlimited": "Unlimited"
   }
 }
