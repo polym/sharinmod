@@ -754,6 +754,29 @@
       "dailyLimit": "龙虾 APIKey 每日限额",
       "placeholder": "留空使用默认限额"
     },
+    "archiveConfig": {
+      "title": "备份配置",
+      "description": "配置龙虾自动备份策略",
+      "enabled": "启用备份",
+      "autoEnabled": "启用自动备份",
+      "scheduleDaily": "每日备份时间",
+      "scheduleDailyPlaceholder": "0 6 * * *",
+      "scheduleDailyHint": "Cron 表达式，例如：0 6 * * * 表示每天 6:00",
+      "scheduleInterval": "间隔备份",
+      "scheduleIntervalPlaceholder": "分钟数",
+      "scheduleIntervalHint": "每隔多少分钟备份一次",
+      "retentionDaily": "每日备份保留",
+      "retentionDailyPlaceholder": "保留数量",
+      "retentionDailyHint": "每日定时备份保留的数量",
+      "retentionInterval": "间隔备份保留",
+      "retentionIntervalPlaceholder": "保留数量",
+      "retentionIntervalHint": "间隔备份保留的数量",
+      "maxManual": "手动备份最大数",
+      "maxManualPlaceholder": "最大数量",
+      "maxManualHint": "手动创建备份的最大数量",
+      "save": "保存配置",
+      "saving": "保存中..."
+    },
     "toast": {
       "loadError": "加载配置失败",
       "loadErrorDetail": "无法加载系统设置，请刷新页面重试",
@@ -762,7 +785,12 @@
       "saveError": "保存失败",
       "saveErrorDetail": "保存系统设置时出错，请重试",
       "invalidValue": "无效的值",
-      "invalidValueDetail": "请输入有效的正整数"
+      "invalidValueDetail": "请输入有效的正整数",
+      "archiveLoadError": "加载备份配置失败",
+      "archiveSaveSuccess": "备份配置已保存",
+      "archiveSaveError": "保存备份配置失败",
+      "invalidCron": "无效的 Cron 表达式",
+      "invalidNumber": "请输入有效的正整数"
     }
   },
   "claws": {

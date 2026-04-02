@@ -1,10 +1,13 @@
 """
 Admin router for administrative operations
 """
+import logging
 from fastapi import APIRouter, Depends, status, HTTPException, UploadFile, File, Form, Query
 from sqlmodel import Session
 from sqlalchemy.exc import IntegrityError
 from typing import Annotated, Optional, List
+
+logger = logging.getLogger(__name__)
 from api.database import get_db
 from api.dependencies.auth import require_admin
 from api.services.user_service import get_all_users, grant_admin_privilege, revoke_admin_privilege, disable_user, enable_user, soft_delete_user
@@ -78,6 +81,7 @@ from api.schemas.operation_log import (
 from api.services.operation_log_service import (
     get_operation_logs_with_details,
 )
+from api.services import archive_config_service
 from api.models.operation_log import OperationType, ResourceType
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -1044,13 +1048,27 @@ def get_system_settings_config_endpoint(
     Get all system settings config (admin only)
 
     Returns:
-        System settings config with default_daily_token_limit, max_claws_per_user, claw_apikey_daily_token_limit
+        System settings config with default_daily_token_limit, max_claws_per_user, claw_apikey_daily_token_limit, and archive config
     """
     config = get_system_settings_config(db)
-    return SystemSettingsConfigResponse(**config)
+    # Get archive config
+    archive_config = archive_config_service.get_archive_config()
+    return SystemSettingsConfigResponse(
+        default_daily_token_limit=config["default_daily_token_limit"],
+        max_claws_per_user=config["max_claws_per_user"],
+        claw_apikey_daily_token_limit=config.get("claw_apikey_daily_token_limit"),
+        claws_archive_enabled=archive_config["claws_archive_enabled"],
+        claws_archive_auto_enabled=archive_config["claws_archive_auto_enabled"],
+        claws_archive_schedule_daily=archive_config["claws_archive_schedule_daily"],
+        claws_archive_schedule_interval=archive_config["claws_archive_schedule_interval"],
+        claws_archive_retention_daily=archive_config["claws_archive_retention_daily"],
+        claws_archive_retention_interval=archive_config["claws_archive_retention_interval"],
+        claws_archive_max_manual=archive_config["claws_archive_max_manual"]
+    )
 
 
 @router.put("/system-settings-config", response_model=SystemSettingsConfigResponse)
+@log_operation(ResourceType.SYSTEM_SETTING, OperationType.UPDATE)
 def update_system_settings_config_endpoint(
     update_data: SystemSettingsConfigRequest,
     db: Session = Depends(get_db),
@@ -1059,20 +1077,84 @@ def update_system_settings_config_endpoint(
     Update system settings config (admin only)
 
     Args:
-        update_data: System settings config with default_daily_token_limit, max_claws_per_user, claw_apikey_daily_token_limit
+        update_data: System settings config including database settings and optional archive config
         db: Database session
 
     Returns:
         Updated system settings config
     """
+    # Update database settings
     update_system_settings_config(
         db,
         default_daily_token_limit=update_data.default_daily_token_limit,
         max_claws_per_user=update_data.max_claws_per_user,
         claw_apikey_daily_token_limit=update_data.claw_apikey_daily_token_limit
     )
+
+    # Update archive config if any archive fields are provided
+    archive_fields_provided = (
+        update_data.claws_archive_enabled is not None or
+        update_data.claws_archive_auto_enabled is not None or
+        update_data.claws_archive_schedule_daily is not None or
+        update_data.claws_archive_schedule_interval is not None or
+        update_data.claws_archive_retention_daily is not None or
+        update_data.claws_archive_retention_interval is not None or
+        update_data.claws_archive_max_manual is not None
+    )
+
+    if archive_fields_provided:
+        # Get current archive config for fields not being updated
+        current_archive_config = archive_config_service.get_archive_config()
+
+        try:
+            archive_config_service.update_archive_config(
+                claws_archive_enabled=update_data.claws_archive_enabled if update_data.claws_archive_enabled is not None else current_archive_config["claws_archive_enabled"],
+                claws_archive_auto_enabled=update_data.claws_archive_auto_enabled if update_data.claws_archive_auto_enabled is not None else current_archive_config["claws_archive_auto_enabled"],
+                claws_archive_schedule_daily=update_data.claws_archive_schedule_daily if update_data.claws_archive_schedule_daily is not None else current_archive_config["claws_archive_schedule_daily"],
+                claws_archive_schedule_interval=update_data.claws_archive_schedule_interval if update_data.claws_archive_schedule_interval is not None else current_archive_config["claws_archive_schedule_interval"],
+                claws_archive_retention_daily=update_data.claws_archive_retention_daily if update_data.claws_archive_retention_daily is not None else current_archive_config["claws_archive_retention_daily"],
+                claws_archive_retention_interval=update_data.claws_archive_retention_interval if update_data.claws_archive_retention_interval is not None else current_archive_config["claws_archive_retention_interval"],
+                claws_archive_max_manual=update_data.claws_archive_max_manual if update_data.claws_archive_max_manual is not None else current_archive_config["claws_archive_max_manual"]
+            )
+
+            # Reload scheduler to apply new configuration with error handling
+            from api.services.archive_scheduler import archive_scheduler
+            try:
+                archive_scheduler.shutdown()
+                archive_scheduler.start()
+                # Verify scheduler started successfully
+                current_enabled = update_data.claws_archive_enabled if update_data.claws_archive_enabled is not None else current_archive_config["claws_archive_enabled"]
+                current_auto = update_data.claws_archive_auto_enabled if update_data.claws_archive_auto_enabled is not None else current_archive_config["claws_archive_auto_enabled"]
+                if current_enabled and current_auto:
+                    if not archive_scheduler.enabled:
+                        raise RuntimeError("Scheduler failed to start after config update")
+            except Exception as scheduler_error:
+                logger.error(f"[Admin] Failed to reload archive scheduler: {scheduler_error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Config saved but scheduler reload failed: {str(scheduler_error)}"
+                )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+
+    # Get updated config
     config = get_system_settings_config(db)
-    return SystemSettingsConfigResponse(**config)
+    archive_config = archive_config_service.get_archive_config()
+    return SystemSettingsConfigResponse(
+        default_daily_token_limit=config["default_daily_token_limit"],
+        max_claws_per_user=config["max_claws_per_user"],
+        claw_apikey_daily_token_limit=config.get("claw_apikey_daily_token_limit"),
+        claws_archive_enabled=archive_config["claws_archive_enabled"],
+        claws_archive_auto_enabled=archive_config["claws_archive_auto_enabled"],
+        claws_archive_schedule_daily=archive_config["claws_archive_schedule_daily"],
+        claws_archive_schedule_interval=archive_config["claws_archive_schedule_interval"],
+        claws_archive_retention_daily=archive_config["claws_archive_retention_daily"],
+        claws_archive_retention_interval=archive_config["claws_archive_retention_interval"],
+        claws_archive_max_manual=archive_config["claws_archive_max_manual"]
+    )
 
 
 # ==================== API Key Limit History Routes ====================

@@ -195,12 +195,17 @@ class ArchiveScheduler:
         logger.info("[ArchiveScheduler][IntervalBackup] ===== INTERVAL BACKUP JOB COMPLETED =====")
 
     def start(self):
-        """Start the archive scheduler."""
+        """Start the archive scheduler.
+
+        Raises:
+            RuntimeError: If scheduler fails to start
+        """
         logger.info("[ArchiveScheduler] ===== STARTING SCHEDULER =====")
         self.config = self.load_config()
 
         if not self.config.get("enabled"):
             logger.warning("[ArchiveScheduler] Archive auto-backup is disabled, scheduler not started")
+            self.enabled = False
             return
 
         if self.scheduler and self.scheduler.running:
@@ -249,6 +254,7 @@ class ArchiveScheduler:
                 self.scheduler.shutdown()
             self.scheduler = None
             self.enabled = False
+            raise RuntimeError(f"Failed to start archive scheduler: {e}") from e
 
     def shutdown(self):
         """Shutdown the archive scheduler."""

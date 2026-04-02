@@ -286,6 +286,14 @@ export const adminAPI = {
     default_daily_token_limit: number;
     max_claws_per_user: number;
     claw_apikey_daily_token_limit: number | null;
+    // Archive config fields (optional)
+    claws_archive_enabled?: boolean;
+    claws_archive_auto_enabled?: boolean;
+    claws_archive_schedule_daily?: string;
+    claws_archive_schedule_interval?: number;
+    claws_archive_retention_daily?: number;
+    claws_archive_retention_interval?: number;
+    claws_archive_max_manual?: number;
   }) => api.put('/api/admin/system-settings-config', data),
 
   // API Key Limit History API
