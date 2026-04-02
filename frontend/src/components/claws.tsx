@@ -1659,7 +1659,11 @@ export function ClawsPage() {
               className="rounded-xl"
               placeholder={t('dailyLimitPlaceholder')}
             />
-            <p className="text-xs text-indigo-500">{t('dailyLimitHint')}</p>
+            <p className="text-xs text-indigo-500">
+              {clawApikeyDailyLimit
+                ? t('dailyLimitHint', { max: clawApikeyDailyLimit })
+                : t('unlimited')}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl">取消</Button>

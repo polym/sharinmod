@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { Copy, Edit, Trash2, Check } from 'lucide-react';
-import { apiKeyAPI } from '@/lib/services';
+import { apiKeyAPI, adminAPI } from '@/lib/services';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
@@ -50,6 +50,7 @@ export function UnifiedAPIKeys() {
   const [editDescription, setEditDescription] = useState('');
   const [editEnabled, setEditEnabled] = useState(true);
   const [editDailyLimit, setEditDailyLimit] = useState('');
+  const [defaultDailyTokenLimit, setDefaultDailyTokenLimit] = useState<number | null>(null);
   const [loadingKeys, setLoadingKeys] = useState<Set<number>>(new Set());
   const [copiedKeyId, setCopiedKeyId] = useState<number | null>(null);
   const { toast } = useToast();
@@ -67,6 +68,18 @@ export function UnifiedAPIKeys() {
 
   useEffect(() => {
     loadAPIKeys();
+  }, []);
+
+  useEffect(() => {
+    const loadSystemSettings = async () => {
+      try {
+        const configRes = await adminAPI.getSystemSettingsConfig();
+        setDefaultDailyTokenLimit(configRes.data.default_daily_token_limit);
+      } catch {
+        setDefaultDailyTokenLimit(null);
+      }
+    };
+    loadSystemSettings();
   }, []);
 
   const handleCreateUnifiedAPIKey = async () => {
@@ -657,14 +670,18 @@ export function UnifiedAPIKeys() {
                 id="edit-daily-limit"
                 type="number"
                 min={user?.is_admin ? "0" : "1"}
-                max="999999999"
+                max={defaultDailyTokenLimit?.toString() || "999999999"}
                 step="1"
                 value={editDailyLimit}
                 onChange={(e) => setEditDailyLimit(e.target.value)}
                 className="clay-input border-2 border-indigo-200/50 h-10"
                 placeholder={t('dailyLimitPlaceholder')}
               />
-              <p className="text-xs text-indigo-500">{t('dailyLimitHint')}</p>
+              <p className="text-xs text-indigo-500">
+                {defaultDailyTokenLimit
+                  ? t('dailyLimitHint', { max: defaultDailyTokenLimit })
+                  : t('unlimited')}
+              </p>
             </div>
           </div>
           <DialogFooter className="pt-2">
