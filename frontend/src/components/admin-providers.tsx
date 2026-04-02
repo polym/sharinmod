@@ -389,7 +389,7 @@ export function AdminProviders() {
                     <TableHead className="w-40">{t('provider')}</TableHead>
                     <TableHead>{t('name')}</TableHead>
                     <TableHead>{t('website')}</TableHead>
-                    <TableHead>{t('models')}</TableHead>
+                    <TableHead className="w-32">{t('models')}</TableHead>
                     <TableHead>{t('status')}</TableHead>
                     <TableHead>{t('actions')}</TableHead>
                   </TableRow>
