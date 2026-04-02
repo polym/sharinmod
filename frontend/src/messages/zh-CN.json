@@ -742,40 +742,60 @@
   },
   "adminSettings": {
     "title": "系统设置",
+    "description": "管理系统全局配置和用户限制",
     "save": "保存",
     "saving": "保存中...",
-    "apikeyLimit": {
-      "dailyLimit": "APIKey 每日限额"
+    "tabs": {
+      "global": "全局配置",
+      "claw": "龙虾配置"
     },
-    "clawLimit": {
-      "maxClaws": "最大龙虾数量"
+    "global": {
+      "dailyTokenLimit": "最大 Token 数",
+      "dailyTokenLimitDescription": "每个 APIKey 最大可使用 Token 数量"
     },
-    "clawApikeyLimit": {
-      "dailyLimit": "龙虾 APIKey 每日限额",
-      "placeholder": "留空使用默认限额"
-    },
-    "archiveConfig": {
-      "title": "备份配置",
-      "description": "配置龙虾自动备份策略",
-      "enabled": "启用备份",
-      "autoEnabled": "启用自动备份",
-      "scheduleDaily": "每日备份时间",
-      "scheduleDailyPlaceholder": "0 6 * * *",
-      "scheduleDailyHint": "Cron 表达式，例如：0 6 * * * 表示每天 6:00",
-      "scheduleInterval": "间隔备份",
-      "scheduleIntervalPlaceholder": "分钟数",
-      "scheduleIntervalHint": "每隔多少分钟备份一次",
-      "retentionDaily": "每日备份保留",
-      "retentionDailyPlaceholder": "保留数量",
-      "retentionDailyHint": "每日定时备份保留的数量",
-      "retentionInterval": "间隔备份保留",
-      "retentionIntervalPlaceholder": "保留数量",
-      "retentionIntervalHint": "间隔备份保留的数量",
-      "maxManual": "手动备份最大数",
-      "maxManualPlaceholder": "最大数量",
-      "maxManualHint": "手动创建备份的最大数量",
-      "save": "保存配置",
-      "saving": "保存中..."
+    "claw": {
+      "maxCount": "最大数量",
+      "maxCountDescription": "每人领养龙虾数量上限",
+      "dailyTokenLimit": "最大 Token 数",
+      "dailyTokenLimitDescription": "每只龙虾每天最大可使用 Token 数量",
+      "placeholder": "留空使用全局限额",
+      "archive": {
+        "enabled": "启用备份",
+        "description": "配置龙虾自动备份策略",
+        "autoEnabled": "启用自动备份",
+        "scheduleDaily": "每日备份时间",
+        "scheduleDailyPlaceholder": "选择小时",
+        "retentionDaily": "每日备份保留",
+        "scheduleInterval": "间隔备份（分钟）",
+        "retentionInterval": "间隔备份保留",
+        "maxManual": "手动备份最大数",
+        "hours": {
+          "0": "00:00",
+          "1": "01:00",
+          "2": "02:00",
+          "3": "03:00",
+          "4": "04:00",
+          "5": "05:00",
+          "6": "06:00",
+          "7": "07:00",
+          "8": "08:00",
+          "9": "09:00",
+          "10": "10:00",
+          "11": "11:00",
+          "12": "12:00",
+          "13": "13:00",
+          "14": "14:00",
+          "15": "15:00",
+          "16": "16:00",
+          "17": "17:00",
+          "18": "18:00",
+          "19": "19:00",
+          "20": "20:00",
+          "21": "21:00",
+          "22": "22:00",
+          "23": "23:00"
+        }
+      }
     },
     "toast": {
       "loadError": "加载配置失败",
@@ -786,9 +806,6 @@
       "saveErrorDetail": "保存系统设置时出错，请重试",
       "invalidValue": "无效的值",
       "invalidValueDetail": "请输入有效的正整数",
-      "archiveLoadError": "加载备份配置失败",
-      "archiveSaveSuccess": "备份配置已保存",
-      "archiveSaveError": "保存备份配置失败",
       "invalidCron": "无效的 Cron 表达式",
       "invalidNumber": "请输入有效的正整数"
     }

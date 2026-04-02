@@ -740,17 +740,60 @@
   },
   "adminSettings": {
     "title": "System Settings",
+    "description": "Manage system global configuration and user limits",
     "save": "Save",
     "saving": "Saving...",
-    "apikeyLimit": {
-      "dailyLimit": "APIKey Daily Limit"
+    "tabs": {
+      "global": "Global",
+      "claw": "Claw"
     },
-    "clawLimit": {
-      "maxClaws": "Max Claws Per User"
+    "global": {
+      "dailyTokenLimit": "Max Tokens",
+      "dailyTokenLimitDescription": "Maximum tokens each APIKey can use"
     },
-    "clawApikeyLimit": {
-      "dailyLimit": "Claw APIKey Daily Limit",
-      "placeholder": "Leave empty to use default limit"
+    "claw": {
+      "maxCount": "Max Count",
+      "maxCountDescription": "Maximum number of claws per user",
+      "dailyTokenLimit": "Max Tokens",
+      "dailyTokenLimitDescription": "Maximum tokens each claw can use per day",
+      "placeholder": "Leave empty to use global limit",
+      "archive": {
+        "enabled": "Enable Backup",
+        "description": "Configure claw automatic backup strategy",
+        "autoEnabled": "Enable Auto Backup",
+        "scheduleDaily": "Daily Backup Time",
+        "scheduleDailyPlaceholder": "Select hour",
+        "retentionDaily": "Daily Backup Retention",
+        "scheduleInterval": "Interval Backup (minutes)",
+        "retentionInterval": "Interval Backup Retention",
+        "maxManual": "Max Manual Backups",
+        "hours": {
+          "0": "00:00",
+          "1": "01:00",
+          "2": "02:00",
+          "3": "03:00",
+          "4": "04:00",
+          "5": "05:00",
+          "6": "06:00",
+          "7": "07:00",
+          "8": "08:00",
+          "9": "09:00",
+          "10": "10:00",
+          "11": "11:00",
+          "12": "12:00",
+          "13": "13:00",
+          "14": "14:00",
+          "15": "15:00",
+          "16": "16:00",
+          "17": "17:00",
+          "18": "18:00",
+          "19": "19:00",
+          "20": "20:00",
+          "21": "21:00",
+          "22": "22:00",
+          "23": "23:00"
+        }
+      }
     },
     "toast": {
       "loadError": "Failed to load settings",
@@ -760,7 +803,9 @@
       "saveError": "Save failed",
       "saveErrorDetail": "An error occurred while saving settings, please try again",
       "invalidValue": "Invalid value",
-      "invalidValueDetail": "Please enter a valid positive integer"
+      "invalidValueDetail": "Please enter a valid positive integer",
+      "invalidCron": "Invalid Cron expression",
+      "invalidNumber": "Please enter a valid positive integer"
     }
   },
   "claws": {
