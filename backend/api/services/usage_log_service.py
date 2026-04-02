@@ -3,9 +3,8 @@ Service layer for usage log tracking and querying
 """
 import json
 import logging
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select, func, desc
 from sqlalchemy import text
@@ -27,14 +26,13 @@ from api.schemas.usage_log import (
     SystemOverviewResponse
 )
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
+from api.utils.datetime import (
+    get_timezone_offset,
+    get_today_in_timezone,
+    DEFAULT_TIMEZONE
+)
 
 logger = logging.getLogger(__name__)
-
-# Default timezone
-DEFAULT_TIMEZONE = "Asia/Shanghai"
-
-# Legacy UTC+8 offset (kept for compatibility with existing logs)
-UTC8_OFFSET = timedelta(hours=8)
 
 
 def _extract_model_short_name(model: Optional[str]) -> str:
@@ -56,50 +54,6 @@ def _extract_model_short_name(model: Optional[str]) -> str:
     if not model:
         return "unknown"
     return model.split("/")[-1] if "/" in model else model
-
-
-def _get_timezone_offset(tz_str: Optional[str]) -> timedelta:
-    """
-    Get timezone offset for a given timezone string
-
-    Args:
-        tz_str: Timezone string (e.g., "Asia/Shanghai", "UTC")
-
-    Returns:
-        Timedelta offset from UTC
-    """
-    if not tz_str:
-        tz_str = DEFAULT_TIMEZONE
-
-    try:
-        tz = ZoneInfo(tz_str)
-        # Get current offset for this timezone
-        now = datetime.now(tz)
-        return now.utcoffset() or timedelta(hours=8)  # Default to UTC+8 if no offset
-    except Exception as e:
-        logger.warning(f"Failed to get timezone for {tz_str}, using UTC+8: {e}")
-        return UTC8_OFFSET
-
-
-def _get_now_in_timezone(tz_str: Optional[str]) -> date:
-    """
-    Get current date in the specified timezone
-
-    Args:
-        tz_str: Timezone string (e.g., "Asia/Shanghai", "UTC")
-
-    Returns:
-        Current date in the specified timezone
-    """
-    if not tz_str:
-        tz_str = DEFAULT_TIMEZONE
-
-    try:
-        tz = ZoneInfo(tz_str)
-        return datetime.now(tz).date()
-    except Exception as e:
-        logger.warning(f"Failed to get current date for {tz_str}, using UTC+8: {e}")
-        return (datetime.now(timezone.utc) + UTC8_OFFSET).date()
 
 
 def create_usage_log(
@@ -528,7 +482,7 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
         Query with filters applied
     """
     # Get timezone offset
-    tz_offset = _get_timezone_offset(timezone_str)
+    tz_offset = get_timezone_offset(timezone_str)
 
     # Apply date filters if provided (convert user timezone date to UTC range)
     if start_date:
@@ -578,10 +532,10 @@ def get_user_usage_overview(
 
     # Default to today in the specified timezone
     if target_date is None:
-        target_date = _get_now_in_timezone(tz_str)
+        target_date = get_today_in_timezone(tz_str)
 
     # Get timezone offset
-    tz_offset = _get_timezone_offset(tz_str)
+    tz_offset = get_timezone_offset(tz_str)
 
     # Convert target_date (user timezone) to UTC range
     utc_start = datetime.combine(target_date, datetime.min.time()) - tz_offset

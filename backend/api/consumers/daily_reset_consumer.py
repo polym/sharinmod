@@ -28,6 +28,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 from api.database import Session as DBSession, engine
 from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.services.api_key_limit_history_service import create_limit_history_entry
+from api.utils.datetime import get_today_in_timezone
 
 # Configure logging
 logging.basicConfig(
@@ -114,9 +115,7 @@ def reset_api_key(session: Session, api_key: UnifiedAPIKey) -> bool:
     Returns:
         True if reset was performed, False otherwise
     """
-    from datetime import date
-
-    today = date.today()
+    today = get_today_in_timezone()
 
     # Check if already reset today
     if api_key.last_reset_date == today and api_key.daily_tokens_used == 0:

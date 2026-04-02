@@ -11,7 +11,7 @@ import logging
 import redis
 import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 from sqlalchemy import text
@@ -22,6 +22,7 @@ from api.models.subscription import Subscription
 from api.models.usage_log import UsageLogKind
 from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.schemas.litellm_callback import LiteLLMSpendlogCallbackRequest
+from api.utils.datetime import get_today_in_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +347,7 @@ def update_token_statistics(
             unified_key = session.exec(key_statement).first()
 
             if unified_key and unified_key.daily_token_limit is not None:
-                today = date.today()
+                today = get_today_in_timezone()
 
                 # Reset if date changed
                 if unified_key.last_reset_date != today:
@@ -387,9 +388,10 @@ def update_token_statistics(
                     )
             elif unified_key:
                 # No limit set, just update last_reset_date and usage
+                today = get_today_in_timezone()
                 session.execute(
                     text("UPDATE unified_api_keys SET last_reset_date = :today, daily_tokens_used = daily_tokens_used + :tokens WHERE id = :id"),
-                    {"today": date.today(), "tokens": total_tokens, "id": unified_api_key_id}
+                    {"today": today, "tokens": total_tokens, "id": unified_api_key_id}
                 )
 
         session.commit()

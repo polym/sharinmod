@@ -3,7 +3,7 @@ Service layer for unified API key management
 """
 from sqlmodel import Session, select
 from typing import List, Dict, Optional
-from datetime import datetime, date
+from datetime import datetime
 from fastapi import HTTPException
 import httpx
 
@@ -14,6 +14,7 @@ from api.utils.token_generator import generate_unified_token, is_token_unique
 from api.services.api_key_usage_service import log_api_key_usage
 from api.services.system_setting_service import get_default_daily_token_limit, get_claw_apikey_daily_token_limit
 from api.config import settings
+from api.utils.datetime import get_today_in_timezone
 
 
 MAX_API_KEYS_PER_USER = 5
@@ -290,7 +291,7 @@ async def create_unified_api_key_async(
         is_auto_created=is_auto_created,
         daily_token_limit=daily_limit,
         daily_tokens_used=0,
-        last_reset_date=date.today()
+        last_reset_date=get_today_in_timezone()
     )
     
     session.add(unified_api_key)
