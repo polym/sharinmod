@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiKeyAPI } from '@/lib/services';
 
 interface UsageRecord {
@@ -19,23 +22,19 @@ interface UsageRecord {
 export function APIKeyUsage() {
   const [usage, setUsage] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 10;
 
-  const loadUsage = async (pageNum = 1) => {
+  const loadUsage = async (page = 1) => {
     try {
       const response = await apiKeyAPI.getUsageHistory({
-        page: pageNum,
-        limit: 20,
+        page: page,
+        limit: PAGE_SIZE,
       });
 
-      if (pageNum === 1) {
-        setUsage(response.data.items);
-      } else {
-        setUsage(prev => [...prev, ...response.data.items]);
-      }
-
-      setHasMore(response.data.items.length === 20);
+      setUsage(response.data.items || []);
+      setTotal(response.data.total || 0);
     } catch (error) {
       console.error('Failed to load usage:', error);
     } finally {
@@ -47,10 +46,35 @@ export function APIKeyUsage() {
     loadUsage();
   }, []);
 
-  const handleLoadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    loadUsage(nextPage);
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && !loading) {
+      setCurrentPage(newPage);
+      loadUsage(newPage);
+    }
+  };
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  const formatTime = (dateString: string): string => {
+    return new Date(dateString).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
+
+  const getStatusBadgeClass = (statusCode: number): string => {
+    if (statusCode >= 200 && statusCode < 300) {
+      return 'bg-green-100 text-green-800';
+    } else if (statusCode >= 400) {
+      return 'bg-red-100 text-red-800';
+    } else {
+      return 'bg-yellow-100 text-yellow-800';
+    }
   };
 
   return (
@@ -62,7 +86,7 @@ export function APIKeyUsage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {loading && usage.length === 0 ? (
+        {loading ? (
           <div className="text-center py-8">加载中...</div>
         ) : usage.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -70,45 +94,82 @@ export function APIKeyUsage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {usage.map((record) => (
-              <div key={record.id} className="flex items-center justify-between p-4 border rounded">
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {record.method} {record.endpoint}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {record.vendor && `供应商: ${record.vendor}`}
-                    {record.unified_api_key_id && ` | 统一API Key ID: ${record.unified_api_key_id}`}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    时间: {new Date(record.created_at).toLocaleString()}
-                  </div>
-                  {record.response_time_ms && (
-                    <div className="text-sm text-gray-500">
-                      响应时间: {record.response_time_ms}ms
-                    </div>
-                  )}
-                </div>
-                <div className={`px-2 py-1 rounded text-sm ${
-                  record.status_code >= 200 && record.status_code < 300
-                    ? 'bg-green-100 text-green-800'
-                    : record.status_code >= 400
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {record.status_code}
-                </div>
-              </div>
-            ))}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>请求</TableHead>
+                    <TableHead>供应商</TableHead>
+                    <TableHead>统一API Key ID</TableHead>
+                    <TableHead>时间</TableHead>
+                    <TableHead>响应时间</TableHead>
+                    <TableHead>状态码</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usage.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <div>
+                          <span className="font-medium">{record.method}</span>
+                          <span className="text-gray-500 mx-1">→</span>
+                          <span className="font-mono text-sm">{record.endpoint}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {record.vendor || <span className="text-gray-400">-</span>}
+                      </TableCell>
+                      <TableCell>
+                        {record.unified_api_key_id || <span className="text-gray-400">-</span>}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-500">{formatTime(record.created_at)}</span>
+                      </TableCell>
+                      <TableCell>
+                        {record.response_time_ms ? (
+                          <span className="text-sm text-gray-500">{record.response_time_ms}ms</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-sm ${getStatusBadgeClass(record.status_code)}`}>
+                          {record.status_code}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-            {hasMore && (
-              <div className="text-center pt-4">
-                <button
-                  onClick={handleLoadMore}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  加载更多
-                </button>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between gap-4 mt-6">
+                <div className="text-sm text-muted-foreground">
+                  显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, total)} 条，共 {total} 条
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm whitespace-nowrap px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </div>
