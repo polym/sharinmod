@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "ink": {
+      "source": "vercel-labs/json-render",
+      "sourceType": "github",
+      "computedHash": "7430a524eed5637b6510c6854008116a796ee33666cfa3699d8ce8b8e11ef7f7"
+    },
     "pptx": {
       "source": "anthropics/skills",
       "sourceType": "github",

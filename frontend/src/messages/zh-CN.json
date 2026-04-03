@@ -47,7 +47,7 @@
     "dailyLimit": "每日上限",
     "dailyLimitLabel": "每日限额",
     "dailyLimitPlaceholder": "留空表示无限制",
-    "dailyLimitHint": "最大可设置 {{max}}",
+    "dailyLimitHint": "最大可设置 {max}",
     "unlimited": "无限制",
     "dailyLimitExceededMessage": "今日额度已用完，将在明日 00:00 自动恢复",
     "noLimit": "无限制",
@@ -850,7 +850,7 @@
     },
     "dailyLimitLabel": "每日限额",
     "dailyLimitPlaceholder": "留空表示无限制",
-    "dailyLimitHint": "最大可设置 {{max}}",
+    "dailyLimitHint": "最大可设置 {max}",
     "unlimited": "无限制"
   }
 }
