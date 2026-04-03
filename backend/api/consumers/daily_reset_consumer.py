@@ -113,7 +113,7 @@ def reset_api_key(session: Session, api_key: UnifiedAPIKey) -> bool:
         api_key: UnifiedAPIKey record to reset
 
     Returns:
-        True if reset was performed, False otherwise
+        True if key was recovered from DAILY_LIMIT_EXCEEDED, False otherwise
     """
     today = get_today_in_timezone()
 
@@ -124,7 +124,7 @@ def reset_api_key(session: Session, api_key: UnifiedAPIKey) -> bool:
     # Check if key needs recovery (was DAILY_LIMIT_EXCEEDED)
     needs_recovery = api_key.status == UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED
 
-    # Reset usage and date
+    # Reset usage and date for all keys
     api_key.daily_tokens_used = 0
     api_key.last_reset_date = today
 
@@ -159,29 +159,34 @@ def run_daily_reset(session: Session) -> int:
         session: Database session
 
     Returns:
-        Number of keys that were recovered
+        Number of keys that were recovered from DAILY_LIMIT_EXCEEDED
     """
-    # Get all keys with DAILY_LIMIT_EXCEEDED status
+    # Get all active API keys (excluding REVOKED keys)
     statement = select(UnifiedAPIKey).where(
-        UnifiedAPIKey.status == UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED
+        UnifiedAPIKey.status != UnifiedAPIKeyStatus.REVOKED
     )
-    exceeded_keys = session.exec(statement).all()
+    all_keys = session.exec(statement).all()
 
-    if not exceeded_keys:
-        logger.debug("No DAILY_LIMIT_EXCEEDED keys to recover")
+    if not all_keys:
+        logger.debug("No API keys to reset")
         return 0
 
+    reset_count = 0
     recovered_count = 0
-    for api_key in exceeded_keys:
+    for api_key in all_keys:
         try:
             if reset_api_key(session, api_key):
                 recovered_count += 1
+            reset_count += 1
         except Exception as e:
             logger.error(f"Error resetting API key {api_key.id}: {e}", exc_info=True)
 
-    if recovered_count > 0:
+    if reset_count > 0:
         session.commit()
-        logger.info(f"Daily reset complete: recovered {recovered_count} API key(s)")
+        if recovered_count > 0:
+            logger.info(f"Daily reset complete: reset {reset_count} API key(s), recovered {recovered_count} from DAILY_LIMIT_EXCEEDED")
+        else:
+            logger.info(f"Daily reset complete: reset {reset_count} API key(s)")
 
     return recovered_count
 
