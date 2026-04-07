@@ -10,6 +10,8 @@ import httpx
 from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
 from api.models.user import User
 from api.models.api_key_usage import APIKeyAction
+from api.models.organization import Organization
+from api.models.organization_member import OrganizationMember
 from api.utils.token_generator import generate_unified_token, is_token_unique
 from api.services.api_key_usage_service import log_api_key_usage
 from api.services.system_setting_service import get_default_daily_token_limit, get_claw_apikey_daily_token_limit
@@ -20,10 +22,26 @@ from api.utils.datetime import get_today_in_timezone
 MAX_API_KEYS_PER_USER = 5
 
 
+def _validate_org_membership(session: Session, user_id: int, organization_id: int) -> None:
+    """Raise 403 if user is not a member/owner of the given organization."""
+    membership = session.exec(
+        select(OrganizationMember).where(
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.organization_id == organization_id,
+        )
+    ).first()
+    if not membership:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not a member of this organization"
+        )
+
+
 async def generate_litellm_key(
     user: User,
     api_key_name: Optional[str] = None,
-    api_key_ids: Optional[List[int]] = None
+    api_key_ids: Optional[List[int]] = None,
+    organization_id: Optional[int] = None,
 ) -> Dict[str, str]:
     """
     Generate a new LiteLLM API key for unified API key
@@ -55,9 +73,11 @@ async def generate_litellm_key(
     # Format: {user_email}/{key_name} to avoid naming conflicts across users
     email_prefix = user.email.lower()
     async with httpx.AsyncClient(timeout=10.0) as client:
+        base_alias = f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.utcnow().isoformat()}'}"
+        key_alias = f"{base_alias}/org-{organization_id}" if organization_id else base_alias
         payload = {
             "user_id": user.litellm_user_id,
-            "key_alias": f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.utcnow().isoformat()}'}",
+            "key_alias": key_alias,
         }
 
         # Add models if api_key_ids provided (would need to map api_key_ids to model names)
@@ -168,7 +188,8 @@ async def delete_litellm_key(key: str) -> None:
 async def regenerate_litellm_key(
     user: User,
     old_key: str,
-    api_key_name: Optional[str] = None
+    api_key_name: Optional[str] = None,
+    organization_id: Optional[int] = None,
 ) -> Dict[str, str]:
     """
     Regenerate a LiteLLM API key (delete old, create new)
@@ -177,6 +198,7 @@ async def regenerate_litellm_key(
         user: User object with litellm_user_id
         old_key: Old LiteLLM API key to delete
         api_key_name: Optional name for the new key
+        organization_id: Optional organization ID for private server isolation
 
     Returns:
         Dict with "key" and optionally "token_id" from LiteLLM response
@@ -188,28 +210,33 @@ async def regenerate_litellm_key(
     await delete_litellm_key(old_key)
 
     # Generate new key
-    new_key = await generate_litellm_key(user, api_key_name)
+    new_key = await generate_litellm_key(user, api_key_name, organization_id=organization_id)
 
     return new_key
 
 
-def count_active_user_api_keys(session: Session, user_id: int) -> int:
+def count_active_user_api_keys(session: Session, user_id: int, organization_id: Optional[int] = None) -> int:
     """
     Count active unified API keys for a user (excluding auto-created keys)
 
     Args:
         session: Database session
         user_id: User ID
+        organization_id: If provided, count only within this org; if None, count public-area keys only.
 
     Returns:
         Count of ACTIVE API keys (excluding auto-created ones)
     """
-    statement = select(UnifiedAPIKey).where(
+    conditions = [
         UnifiedAPIKey.user_id == user_id,
         UnifiedAPIKey.status == UnifiedAPIKeyStatus.ACTIVE,
         UnifiedAPIKey.is_auto_created == False  # 只统计手动创建的
-    )
-    api_keys = session.exec(statement).all()
+    ]
+    if organization_id is not None:
+        conditions.append(UnifiedAPIKey.organization_id == organization_id)
+    else:
+        conditions.append(UnifiedAPIKey.organization_id.is_(None))
+    api_keys = session.exec(select(UnifiedAPIKey).where(*conditions)).all()
     return len(api_keys)
 
 
@@ -218,7 +245,8 @@ async def create_unified_api_key_async(
     user: User,
     api_key_name: Optional[str] = None,
     description: Optional[str] = None,
-    is_auto_created: bool = False
+    is_auto_created: bool = False,
+    organization_id: Optional[int] = None,
 ) -> UnifiedAPIKey:
     """
     Generate a new unified API key for user with LiteLLM integration
@@ -236,9 +264,19 @@ async def create_unified_api_key_async(
     Raises:
         HTTPException: If user has reached 5-key limit (only for manual keys), or LiteLLM sync fails
     """
-    # 只有手动创建的 Key 才检查配额
+    # F1: 验证 org 成员资格（仅手动创建的 Key 需要；auto_created 为系统内部调用）
+    if organization_id is not None and not is_auto_created:
+        _validate_org_membership(session, user.id, organization_id)
+
+    # F4: 验证 org 是否存在，避免 LiteLLM 调用成功但 DB 插入 FK 失败导致 Key 孤儿
+    if organization_id is not None:
+        org = session.get(Organization, organization_id)
+        if not org:
+            raise HTTPException(status_code=404, detail="Organization not found")
+
+    # 只有手动创建的 Key 才检查配额（F3：按 org 维度计算配额）
     if not is_auto_created:
-        active_count = count_active_user_api_keys(session, user.id)
+        active_count = count_active_user_api_keys(session, user.id, organization_id=organization_id)
         if active_count >= MAX_API_KEYS_PER_USER:
             raise HTTPException(
                 status_code=400,
@@ -262,7 +300,7 @@ async def create_unified_api_key_async(
     
     # Generate LiteLLM key
     try:
-        litellm_result = await generate_litellm_key(user, api_key_name)
+        litellm_result = await generate_litellm_key(user, api_key_name, organization_id=organization_id)
     except HTTPException as e:
         # LiteLLM key generation failed, abort API key creation
         raise e
@@ -289,6 +327,7 @@ async def create_unified_api_key_async(
         litellm_key=litellm_key,
         api_key_hash=api_key_hash,  # Store token_id for callback matching
         is_auto_created=is_auto_created,
+        organization_id=organization_id,
         daily_token_limit=daily_limit,
         daily_tokens_used=0,
         last_reset_date=get_today_in_timezone()
@@ -310,7 +349,13 @@ async def create_unified_api_key_async(
     return unified_api_key
 
 
-def get_user_unified_api_keys(session: Session, user_id: int, include_auto_created: bool = False) -> List[Dict]:
+def get_user_unified_api_keys(
+    session: Session,
+    user_id: int,
+    include_auto_created: bool = False,
+    organization_id: Optional[int] = None,
+    skip_org_filter: bool = False,
+) -> List[Dict]:
     """
     Get all unified API keys for a user
 
@@ -318,6 +363,8 @@ def get_user_unified_api_keys(session: Session, user_id: int, include_auto_creat
         session: Database session
         user_id: User ID
         include_auto_created: Whether to include auto-created keys (e.g., for claws)
+        organization_id: If provided, return keys for this org only; if None, return public area keys (organization_id IS NULL)
+        skip_org_filter: If True, skip org isolation entirely (for admin/background use cases)
 
     Returns:
         List of dicts compatible with UnifiedAPIKeyResponse
@@ -325,6 +372,13 @@ def get_user_unified_api_keys(session: Session, user_id: int, include_auto_creat
     conditions = [UnifiedAPIKey.user_id == user_id]
     if not include_auto_created:
         conditions.append(UnifiedAPIKey.is_auto_created == False)
+    # 组织隔离：私服传 org_id 则过滤该 org；公区则只返回 organization_id IS NULL 的
+    # skip_org_filter=True 时跳过隔离，供内部/管理员调用
+    if not skip_org_filter:
+        if organization_id is not None:
+            conditions.append(UnifiedAPIKey.organization_id == organization_id)
+        else:
+            conditions.append(UnifiedAPIKey.organization_id.is_(None))
     statement = select(UnifiedAPIKey).where(
         *conditions
     ).order_by(UnifiedAPIKey.created_at.desc())
@@ -628,13 +682,13 @@ async def regenerate_unified_api_key_async(
     old_key = api_key.litellm_key
     if old_key:
         try:
-            litellm_result = await regenerate_litellm_key(user, old_key, api_key.api_key_name)
+            litellm_result = await regenerate_litellm_key(user, old_key, api_key.api_key_name, organization_id=api_key.organization_id)
         except HTTPException as e:
             raise e
     else:
         # If no existing key, generate new one
         try:
-            litellm_result = await generate_litellm_key(user, api_key.api_key_name)
+            litellm_result = await generate_litellm_key(user, api_key.api_key_name, organization_id=api_key.organization_id)
         except HTTPException as e:
             raise e
 

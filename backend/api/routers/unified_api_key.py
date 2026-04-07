@@ -1,8 +1,9 @@
 """
 REST API endpoints for unified API key management
 """
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
+from typing import Optional
 
 from api.database import get_db
 from api.dependencies.auth import get_current_user
@@ -21,7 +22,8 @@ from api.services.unified_api_key_service import (
     unblock_unified_api_key_async,
     delete_unified_api_key_async,
     regenerate_unified_api_key_async,
-    update_unified_api_key_async
+    update_unified_api_key_async,
+    _validate_org_membership,
 )
 from api.models.operation_log import OperationType, ResourceType
 from api.utils.operation_log import log_operation
@@ -33,6 +35,7 @@ router = APIRouter(prefix="/api/api-keys", tags=["unified-api-keys"])
 @router.post("/generate", status_code=status.HTTP_201_CREATED, response_model=UnifiedAPIKeyResponse)
 async def generate_api_key(
     request: UnifiedAPIKeyGenerate,
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -45,7 +48,8 @@ async def generate_api_key(
     - Creates LiteLLM API key for the unified API key
     """
     api_key = await create_unified_api_key_async(
-        session, current_user, request.api_key_name, request.description
+        session, current_user, request.api_key_name, request.description,
+        organization_id=org_id
     )
     return api_key
 
@@ -54,6 +58,7 @@ async def generate_api_key(
 @log_operation(ResourceType.UNIFIED_API_KEY, OperationType.CREATE, use_return_value=True)
 async def create_unified_api_key_endpoint(
     request: UnifiedAPIKeyGenerate,
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -65,7 +70,8 @@ async def create_unified_api_key_endpoint(
     - Creates LiteLLM API key for the unified API key
     """
     api_key = await create_unified_api_key_async(
-        session, current_user, request.api_key_name, request.description
+        session, current_user, request.api_key_name, request.description,
+        organization_id=org_id
     )
     return api_key
 
@@ -73,6 +79,7 @@ async def create_unified_api_key_endpoint(
 @router.get("/my-unified", response_model=UnifiedAPIKeyList)
 def get_my_unified_api_keys(
     include_auto_created: bool = False,
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -83,8 +90,15 @@ def get_my_unified_api_keys(
     - Excludes auto-created keys (e.g., for claws) by default
     - Use ?include_auto_created=true to include auto-created keys
     - Ordered by creation date (newest first)
+    - Use ?org_id=N to filter by organization (private server scenario)
     """
-    api_keys = get_user_unified_api_keys(session, current_user.id, include_auto_created=include_auto_created)
+    if org_id is not None:
+        _validate_org_membership(session, current_user.id, org_id)
+    api_keys = get_user_unified_api_keys(
+        session, current_user.id,
+        include_auto_created=include_auto_created,
+        organization_id=org_id
+    )
     return UnifiedAPIKeyList(
         total=len(api_keys),
         items=api_keys

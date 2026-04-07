@@ -37,6 +37,7 @@ class UnifiedAPIKey(SQLModel, table=True):
     revoked_at: Optional[datetime] = Field(default=None)
     last_used_at: Optional[datetime] = Field(default=None)
     is_auto_created: bool = Field(default=False, description="Auto-created for claw, not counted in user quota")
+    organization_id: Optional[int] = Field(default=None, index=True, foreign_key="organizations.id", description="Organization ID for private server isolation. None = public area.")
 
     # Daily token limit fields
     daily_token_limit: Optional[int] = Field(default=None, description="Daily token limit for this API key")

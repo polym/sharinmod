@@ -56,10 +56,11 @@ export const apiKeyAPI = {
     api.put(`/api/api-keys/shared/${apiKeyId}`, data, { params: orgId ? { org_id: orgId } : undefined }),
 
   // Unified API Keys
-  createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }) =>
-    api.post('/api/api-keys/unified', data),
+  createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }, orgId?: number) =>
+    api.post('/api/api-keys/unified', data, { params: orgId !== undefined ? { org_id: orgId } : undefined }),
 
-  getMyUnifiedAPIKeys: () => api.get('/api/api-keys/my-unified'),
+  getMyUnifiedAPIKeys: (orgId?: number) =>
+    api.get('/api/api-keys/my-unified', { params: orgId !== undefined ? { org_id: orgId } : undefined }),
 
   getMyUnifiedAPIKeysIncludeAutoCreated: () => api.get('/api/api-keys/my-unified?include_auto_created=true'),
 

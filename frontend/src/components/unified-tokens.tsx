@@ -37,7 +37,8 @@ export function UnifiedAPIKeys() {
   const tToast = useTranslations('apiKeys.toast');
   const tCommon = useTranslations('common');
   const { locale } = useLocaleStore();
-  const { user } = useAuthStore();
+  const { user, currentOrganization } = useAuthStore();
+  const orgId = currentOrganization?.id;
 
   const [apiKeys, setAPIKeys] = useState<UnifiedAPIKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ export function UnifiedAPIKeys() {
 
   const loadAPIKeys = async () => {
     try {
-      const response = await apiKeyAPI.getMyUnifiedAPIKeys();
+      const response = await apiKeyAPI.getMyUnifiedAPIKeys(orgId);
       setAPIKeys(response.data.items);
     } catch (error) {
       console.error('Failed to load API keys:', error);
@@ -68,7 +69,7 @@ export function UnifiedAPIKeys() {
 
   useEffect(() => {
     loadAPIKeys();
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     const loadSystemSettings = async () => {
@@ -97,7 +98,7 @@ export function UnifiedAPIKeys() {
         api_key_name: name,
         description,
         api_key_ids: [],
-      });
+      }, orgId);
 
       toast({
         title: tToast('success'),
