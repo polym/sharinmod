@@ -52,6 +52,12 @@ class UsageLog(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", index=True)
     unified_api_key_id: Optional[int] = Field(default=None, foreign_key="unified_api_keys.id")
     unified_api_key_name: Optional[str] = Field(default=None, max_length=255)
+    organization_id: Optional[int] = Field(
+        default=None,
+        index=True,
+        foreign_key="organizations.id",
+        description="Organization ID for private server isolation. None = public area."
+    )
     model_id: Optional[str] = Field(default=None, max_length=255)
     model_name: str = Field(max_length=255)
     provider: Optional[str] = Field(default=None, max_length=50)

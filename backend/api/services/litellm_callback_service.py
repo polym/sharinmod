@@ -451,6 +451,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
         consumer = None
         unified_api_key_id = None
         unified_api_key_name = None
+        organization_id = None
 
         if api_key_hash:
             consumer = find_user_by_api_key_hash(session, api_key_hash)
@@ -466,6 +467,7 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                 if unified_key:
                     unified_api_key_id = unified_key.id
                     unified_api_key_name = unified_key.api_key_name
+                    organization_id = unified_key.organization_id
 
         if not consumer:
             logger.warning(f"No consumer found for api_key_hash: {api_key_hash}")
@@ -595,7 +597,8 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
                         kind=kind,
                         trace_id=trace_id,
                         error_details=error_details_json,
-                        provider=provider
+                        provider=provider,
+                        organization_id=organization_id
                     )
                     logger.info(f"Created failure usage log for user {consumer.id}, kind={kind}")
                 except Exception as e:

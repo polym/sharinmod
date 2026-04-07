@@ -101,6 +101,7 @@ def create_usage_log(
         # Get unified_api_key_name from api_key_hash
         unified_api_key_id = None
         unified_api_key_name = None
+        organization_id = None
         if callback_data.metadata and callback_data.metadata.user_api_key_hash:
             api_key_hash = callback_data.metadata.user_api_key_hash
             key_statement = select(UnifiedAPIKey).where(
@@ -110,6 +111,7 @@ def create_usage_log(
             if unified_key:
                 unified_api_key_id = unified_key.id
                 unified_api_key_name = unified_key.api_key_name
+                organization_id = unified_key.organization_id
 
         # Determine kind: own (contributor), shared (consumer), or direct (no subscription)
         kind = UsageLogKind.DIRECT
@@ -137,7 +139,8 @@ def create_usage_log(
             total_tokens=callback_data.total_tokens,
             request_time=datetime.fromtimestamp(callback_data.end_time, tz=timezone.utc),
             trace_id=trace_id,
-            num_fails=0
+            num_fails=0,
+            organization_id=organization_id
         )
 
         db.add(usage_log)
@@ -172,7 +175,8 @@ def create_failure_usage_log(
     kind: UsageLogKind = UsageLogKind.DIRECT,
     trace_id: Optional[str] = None,
     error_details: Optional[str] = None,
-    provider: Optional[str] = None
+    provider: Optional[str] = None,
+    organization_id: Optional[int] = None
 ) -> Optional[UsageLog]:
     """
     Create a failure usage log entry
@@ -210,7 +214,8 @@ def create_failure_usage_log(
             request_time=datetime.now(timezone.utc),
             trace_id=trace_id,
             num_fails=1,
-            error_details=error_details
+            error_details=error_details,
+            organization_id=organization_id
         )
 
         db.add(usage_log)
@@ -413,7 +418,8 @@ def get_user_usage_logs(
     end_date: Optional[date] = None,
     status: Optional[UsageLogStatus] = None,
     timezone_str: Optional[str] = None,
-    unified_api_key_id: Optional[int] = None
+    unified_api_key_id: Optional[int] = None,
+    organization_id: Optional[int] = None
 ) -> UsageLogList:
     """
     Get paginated usage logs for a user
@@ -428,6 +434,7 @@ def get_user_usage_logs(
         status: Optional status filter (success/failure)
         timezone_str: Optional timezone string (e.g., "Asia/Shanghai", "UTC")
         unified_api_key_id: Optional filter by unified API key ID
+        organization_id: Optional filter by organization ID (private server isolation)
 
     Returns:
         UsageLogList with paginated results
@@ -442,11 +449,11 @@ def get_user_usage_logs(
     query = select(UsageLog).where(UsageLog.user_id == user_id)
 
     # Apply filters using helper function to avoid duplication
-    query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str, unified_api_key_id)
+    query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str, unified_api_key_id, organization_id)
 
     # Get total count using the same filters
     count_query = select(func.count()).select_from(UsageLog).where(UsageLog.user_id == user_id)
-    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str, unified_api_key_id)
+    count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str, unified_api_key_id, organization_id)
     total = db.exec(count_query).one()
 
     # Order by most recent first and paginate
@@ -466,7 +473,7 @@ def get_user_usage_logs(
     )
 
 
-def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus], timezone_str: Optional[str] = None, unified_api_key_id: Optional[int] = None):
+def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: Optional[date], status: Optional[UsageLogStatus], timezone_str: Optional[str] = None, unified_api_key_id: Optional[int] = None, organization_id: Optional[int] = None):
     """
     Apply date and status filters to a query (shared between count and main query)
 
@@ -504,6 +511,10 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
         logger.info(f"Applying unified_api_key_id filter: {unified_api_key_id}")
         query = query.where(UsageLog.unified_api_key_id == unified_api_key_id)
 
+    # Apply organization filter
+    if organization_id is not None:
+        query = query.where(UsageLog.organization_id == organization_id)
+
     return query
 
 
@@ -512,7 +523,8 @@ def get_user_usage_overview(
     user_id: int,
     target_date: Optional[date] = None,
     timezone_str: Optional[str] = None,
-    unified_api_key_id: Optional[int] = None
+    unified_api_key_id: Optional[int] = None,
+    organization_id: Optional[int] = None
 ) -> UsageOverviewResponse:
     """
     Get usage overview for a user on a specific date (user timezone)
@@ -523,6 +535,7 @@ def get_user_usage_overview(
         target_date: Date to query (user timezone), defaults to today
         timezone_str: Optional timezone string for date conversion
         unified_api_key_id: Optional filter by unified API key ID
+        organization_id: Optional filter by organization ID (private server isolation)
 
     Returns:
         UsageOverviewResponse with aggregated data
@@ -552,6 +565,10 @@ def get_user_usage_overview(
     if unified_api_key_id is not None:
         base_filters.append(UsageLog.unified_api_key_id == unified_api_key_id)
 
+    # Add organization filter if provided
+    if organization_id is not None:
+        base_filters.append(UsageLog.organization_id == organization_id)
+
     # Get total requests
     total_query = select(func.count()).select_from(UsageLog).where(*base_filters)
     total_requests = db.exec(total_query).one()
@@ -579,8 +596,9 @@ def get_user_usage_overview(
     # Calculate timezone offset in hours for PostgreSQL date conversion
     tz_offset_hours = int(tz_offset.total_seconds() / 3600)
 
-    # Build WHERE clause for unified_api_key_id filter
+    # Build WHERE clause for unified_api_key_id and organization_id filters
     key_filter = "AND unified_api_key_id = :key_id" if unified_api_key_id is not None else ""
+    org_filter = "AND organization_id = :org_id" if organization_id is not None else ""
 
     # Check database type to use appropriate SQL syntax
     # PostgreSQL uses EXTRACT(EPOCH FROM ...), SQLite uses strftime
@@ -599,6 +617,7 @@ def get_user_usage_overview(
               AND request_time >= :utc_start
               AND request_time <= :utc_end
               {key_filter}
+              {org_filter}
             GROUP BY quarter_hour
             ORDER BY quarter_hour
         """)
@@ -612,6 +631,7 @@ def get_user_usage_overview(
               AND request_time >= :utc_start
               AND request_time <= :utc_end
               {key_filter}
+              {org_filter}
             GROUP BY quarter_hour
             ORDER BY quarter_hour
         """)
@@ -628,6 +648,8 @@ def get_user_usage_overview(
     }
     if unified_api_key_id is not None:
         query_params["key_id"] = unified_api_key_id
+    if organization_id is not None:
+        query_params["org_id"] = organization_id
 
     try:
         results = db.execute(quarter_hourly_query, query_params).fetchall()

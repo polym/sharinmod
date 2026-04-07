@@ -62,7 +62,8 @@ export const apiKeyAPI = {
   getMyUnifiedAPIKeys: (orgId?: number) =>
     api.get('/api/api-keys/my-unified', { params: orgId !== undefined ? { org_id: orgId } : undefined }),
 
-  getMyUnifiedAPIKeysIncludeAutoCreated: () => api.get('/api/api-keys/my-unified?include_auto_created=true'),
+  getMyUnifiedAPIKeysIncludeAutoCreated: (orgId?: number) =>
+    api.get('/api/api-keys/my-unified', { params: { include_auto_created: true, ...(orgId !== undefined && { org_id: orgId }) } }),
 
   updateUnifiedAPIKey: (apiKeyId: number, data: { api_key_name?: string; description?: string; status?: string; daily_token_limit?: number | null }) =>
     api.put(`/api/api-keys/unified/${apiKeyId}`, data),
@@ -104,7 +105,7 @@ export const apiKeyAPI = {
 
 // Usage API
 export const usageAPI = {
-  getOverview: (params?: { target_date?: string; timezone?: string; unified_api_key_id?: number }) => {
+  getOverview: (params?: { target_date?: string; timezone?: string; unified_api_key_id?: number; org_id?: number }) => {
     const paramsWithTimezone = {
       ...params,
       timezone: params?.timezone || getUserTimezone(),
@@ -120,6 +121,7 @@ export const usageAPI = {
     status?: string;
     timezone?: string;
     unified_api_key_id?: number;
+    org_id?: number;
   }) => {
     const paramsWithTimezone = {
       ...params,

@@ -29,6 +29,7 @@ def get_my_usage_logs(
     status: Optional[UsageLogStatus] = Query(None, description="Filter by status (success/failure)"),
     timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     unified_api_key_id: Optional[int] = Query(None, description="Filter by unified API key ID"),
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -50,7 +51,8 @@ def get_my_usage_logs(
         end_date=end_date,
         status=status,
         timezone_str=timezone,
-        unified_api_key_id=unified_api_key_id
+        unified_api_key_id=unified_api_key_id,
+        organization_id=org_id
     )
 
 
@@ -59,6 +61,7 @@ def get_my_usage_overview(
     target_date: Optional[date] = Query(None, description="Target date (user timezone), defaults to today"),
     timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     unified_api_key_id: Optional[int] = Query(None, description="Filter by unified API key ID"),
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -80,7 +83,8 @@ def get_my_usage_overview(
         user_id=current_user.id,
         target_date=target_date,
         timezone_str=timezone,
-        unified_api_key_id=unified_api_key_id
+        unified_api_key_id=unified_api_key_id,
+        organization_id=org_id
     )
 
 

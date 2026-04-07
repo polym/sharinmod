@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { usageAPI, apiKeyAPI } from '@/lib/services';
+import { useAuthStore } from '@/lib/store';
 import { UsageStatsCard } from './UsageStatsCard';
 import { UsageBarChart } from './UsageBarChart';
 import { UsageLogsTable } from './UsageLogsTable';
@@ -56,6 +57,7 @@ export function UsagePage() {
   const t = useTranslations('usage');
   const tCommon = useTranslations('common');
   const { toast } = useToast();
+  const { currentOrganization } = useAuthStore();
 
   // Get user timezone
   const [userTimezone] = useState<string>(() =>
@@ -120,14 +122,14 @@ export function UsagePage() {
   const loadAPIKeys = useCallback(async () => {
     try {
       setApiKeysLoading(true);
-      const response = await apiKeyAPI.getMyUnifiedAPIKeysIncludeAutoCreated();
+      const response = await apiKeyAPI.getMyUnifiedAPIKeysIncludeAutoCreated(currentOrganization?.id);
       setApiKeys(response.data.items);
     } catch (error) {
       console.error('Failed to load API keys:', error);
     } finally {
       setApiKeysLoading(false);
     }
-  }, []);
+  }, [currentOrganization]);
 
   // Load overview data
   const loadOverviewData = useCallback(async () => {
@@ -135,7 +137,8 @@ export function UsagePage() {
       setOverviewLoading(true);
       const response = await usageAPI.getOverview({
         target_date: selectedDate,
-        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) })
+        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) }),
+        ...(currentOrganization && { org_id: currentOrganization.id })
       });
       setOverviewData(response.data);
     } catch (error) {
@@ -144,7 +147,7 @@ export function UsagePage() {
     } finally {
       setOverviewLoading(false);
     }
-  }, [selectedDate, selectedApiKey]);
+  }, [selectedDate, selectedApiKey, currentOrganization]);
 
   // Load logs data
   const loadLogsData = useCallback(async (page: number, reset: boolean = false) => {
@@ -155,7 +158,8 @@ export function UsagePage() {
         page_size: PAGE_SIZE,
         start_date: selectedDate,
         end_date: selectedDate,
-        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) })
+        ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) }),
+        ...(currentOrganization && { org_id: currentOrganization.id })
       });
 
       const data = response.data as UsageLogsResponse;
@@ -178,7 +182,7 @@ export function UsagePage() {
     } finally {
       setLogsLoading(false);
     }
-  }, [selectedDate, selectedApiKey]);
+  }, [selectedDate, selectedApiKey, currentOrganization]);
 
   // Load API Keys on mount
   useEffect(() => {
