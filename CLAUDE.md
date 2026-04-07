@@ -153,8 +153,11 @@ def downgrade() -> None:
 ### 查找最新迁移 revision
 
 ```bash
-# 查看最新迁移文件的 down_revision
+# 在宿主机查看最新迁移文件的 down_revision
 ls -lt backend/api/alembic/versions/ | head -5
+
+# 在容器内查看（工作目录为 /app）
+ls -lt /app/api/alembic/versions/ | head -5
 ```
 
 ## 代码结构
@@ -344,7 +347,8 @@ docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "UPDATE alembic_
 3. **修复迁移链**：
 ```bash
 # 修复已存在的迁移文件，添加 IF NOT EXISTS
-# 编辑 backend/api/alembic/versions/20260208_moonshot_fix.py
+# 宿主机: 编辑 backend/api/alembic/versions/20260208_moonshot_fix.py
+# 容器内: 编辑 /app/api/alembic/versions/20260208_moonshot_fix.py
 # 将 "ALTER TYPE ... ADD VALUE 'MOONSHOT'" 改为 "ALTER TYPE ... ADD VALUE IF NOT EXISTS 'MOONSHOT'"
 ```
 
