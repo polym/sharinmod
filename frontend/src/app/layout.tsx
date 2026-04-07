@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toast'
 import { LoginDialog } from '@/components/LoginDialog'
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
 import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
+import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog'
 import { I18nProvider } from '@/lib/i18n-provider'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -29,6 +30,7 @@ export default function RootLayout({
           <LoginDialog />
           <ChangePasswordDialog />
           <ResetPasswordDialog />
+          <CreateOrganizationDialog />
           <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50">
             {/* Fixed Header at top */}
             <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-purple-100">

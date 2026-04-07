@@ -2,6 +2,7 @@
 
 import { Store, Key, BarChart3, Share } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/lib/store';
 
 export type PageType = 'overview' | 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users';
 
@@ -19,6 +20,9 @@ const menuItems = [
 ];
 
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
+  const { user, currentOrganization } = useAuthStore();
+  // Hide regular menu items when in private workspace
+  const showRegularMenu = !currentOrganization;
   return (
     <aside
       className="w-60 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border-r-2 border-indigo-100 flex flex-col h-full"
@@ -44,7 +48,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-2">
-          {menuItems.map((item) => {
+          {showRegularMenu ? menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             return (
@@ -66,7 +70,13 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                 </button>
               </li>
             );
-          })}
+          }) : (
+            <li>
+              <div className="text-sm text-gray-500 px-4 py-3 italic">
+                私服模式 - 功能开发中
+              </div>
+            </li>
+          )}
         </ul>
       </nav>
 

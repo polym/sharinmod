@@ -15,6 +15,7 @@ import { useAuthStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { authAPI } from '@/lib/services';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
+import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import type { PageType } from './Sidebar';
 
 interface TopBarProps {
@@ -57,8 +58,8 @@ export function TopBar({ onPageChange }: TopBarProps) {
         boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
       }}
     >
-      {/* Left side - can add page title or breadcrumb */}
-      <div />
+      {/* Left side - Organization switcher */}
+      <OrganizationSwitcher />
 
       {/* Right side - User menu */}
       <div className="flex items-center gap-4">

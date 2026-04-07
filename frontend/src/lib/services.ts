@@ -480,3 +480,12 @@ export const passwordResetAPI = {
   setPassword: (token: string, new_password: string) =>
     api.post('/api/password-reset/set-password', { token, new_password }),
 };
+
+// Organization API
+export const organizationAPI = {
+  createOrganization: (data: { name: string }) =>
+    api.post('/api/organizations', data),
+
+  getMyOrganizations: () =>
+    api.get('/api/organizations/my'),
+};

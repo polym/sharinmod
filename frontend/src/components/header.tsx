@@ -10,6 +10,7 @@ import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,7 +58,7 @@ export function Header() {
         boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
       }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-8">
         {/* Logo - Claymorphism Style */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回首页">
           <div
@@ -70,6 +71,9 @@ export function Header() {
           </div>
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
         </Link>
+
+        {/* Organization Switcher */}
+        <OrganizationSwitcher />
 
         {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">

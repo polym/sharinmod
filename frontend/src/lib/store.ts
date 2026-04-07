@@ -20,6 +20,14 @@ export interface User {
   created_at?: string;
 }
 
+export interface Organization {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
@@ -30,6 +38,9 @@ interface AuthState {
   resetPasswordToken: string | null;
   redirectAfterLogin: string | null;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
+  // Organization state
+  currentOrganization: Organization | null; // null = 公区
+  showCreateOrganizationDialog: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -37,6 +48,8 @@ interface AuthState {
   setShowChangePasswordDialog: (show: boolean) => void;
   setShowResetPasswordDialog: (show: boolean, token?: string) => void;
   setRedirectAfterLogin: (path: string | null) => void;
+  setCurrentOrganization: (org: Organization | null) => void;
+  setShowCreateOrganizationDialog: (show: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -51,11 +64,13 @@ export const useAuthStore = create<AuthState>()(
       resetPasswordToken: null,
       redirectAfterLogin: null,
       _isLoggingOut: false,
+      currentOrganization: null,
+      showCreateOrganizationDialog: false,
       login: (user: User, token: string) => {
         set({ isAuthenticated: true, user, token, _isLoggingOut: false });
       },
       logout: () => {
-        set({ isAuthenticated: false, user: null, token: null, _isLoggingOut: true });
+        set({ isAuthenticated: false, user: null, token: null, _isLoggingOut: true, currentOrganization: null });
       },
       updateUser: (user: User) => {
         set({ user });
@@ -81,6 +96,12 @@ export const useAuthStore = create<AuthState>()(
       setRedirectAfterLogin: (path: string | null) => {
         set({ redirectAfterLogin: path });
       },
+      setCurrentOrganization: (org: Organization | null) => {
+        set({ currentOrganization: org });
+      },
+      setShowCreateOrganizationDialog: (show: boolean) => {
+        set({ showCreateOrganizationDialog: show });
+      },
     }),
     {
       name: 'auth-storage',
@@ -88,7 +109,8 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         token: state.token,
-        // showLoginDialog, redirectAfterLogin and _isLoggingOut are NOT persisted
+        currentOrganization: state.currentOrganization,
+        // showLoginDialog, redirectAfterLogin, _isLoggingOut and showCreateOrganizationDialog are NOT persisted
       }),
     }
   )
