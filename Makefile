@@ -1,4 +1,4 @@
-.PHONY: up down restart logs push build-push
+.PHONY: up down restart logs push build-push up-claw down-claw logs-claw
 
 # 从 .env 文件加载配置
 include .env
@@ -8,25 +8,42 @@ export VERSION
 IMAGE_BACKEND = sharinmod-backend:$(VERSION)
 IMAGE_FRONTEND = sharinmod-frontend:$(VERSION)
 
+COMPOSE_FILES = -f docker-compose.yml
+COMPOSE_CMD = docker compose
+
 all: build
 
 # 默认目标
 build:
-	docker-compose up -d --build
+	$(COMPOSE_CMD) $(COMPOSE_FILES) up -d --build
 
 up:
-	docker-compose up -d
+	$(COMPOSE_CMD) $(COMPOSE_FILES) up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 3
+
+# 启动包含 claw-status-consumer 的服务
+up-claw:
+	$(COMPOSE_CMD) $(COMPOSE_FILES) -f docker-compose.claw.yml up -d
 	@echo "Waiting for services to be ready..."
 	@sleep 3
 
 down:
-	docker-compose down
+	$(COMPOSE_CMD) $(COMPOSE_FILES) down
+
+# 停止包含 claw-status-consumer 的服务
+down-claw:
+	$(COMPOSE_CMD) $(COMPOSE_FILES) -f docker-compose.claw.yml down
 
 restart:
-	docker-compose restart
+	$(COMPOSE_CMD) $(COMPOSE_FILES) restart
 
 logs:
-	docker-compose logs -f
+	$(COMPOSE_CMD) $(COMPOSE_FILES) logs -f
+
+# 查看 claw-status-consumer 日志
+logs-claw:
+	$(COMPOSE_CMD) $(COMPOSE_FILES) -f docker-compose.claw.yml logs -f claw-status-consumer
 
 # 标记并推送镜像到自定义仓库（需在 .env 中配置 IMAGE_REGISTRY）
 push:
