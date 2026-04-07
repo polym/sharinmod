@@ -28,19 +28,20 @@ export const userAPI = {
 // API Key API
 export const apiKeyAPI = {
   // Shared API Keys
-  shareAPIKey: (data: { provider: string; api_key: string; api_key_metadata?: string; selected_models?: string[] }) =>
-    api.post('/api/api-keys/share', data),
+  shareAPIKey: (data: { provider: string; api_key: string; api_key_metadata?: string; selected_models?: string[] }, orgId?: number) =>
+    api.post('/api/api-keys/share', data, { params: orgId ? { org_id: orgId } : undefined }),
 
-  getMySharedAPIKeys: () => api.get('/api/api-keys/my-shared'),
+  getMySharedAPIKeys: (orgId?: number) =>
+    api.get('/api/api-keys/my-shared', { params: orgId ? { org_id: orgId } : undefined }),
 
-  disableSharedAPIKey: (apiKeyId: number) =>
-    api.put(`/api/api-keys/disable/${apiKeyId}`),
+  disableSharedAPIKey: (apiKeyId: number, orgId?: number) =>
+    api.put(`/api/api-keys/disable/${apiKeyId}`, undefined, { params: orgId ? { org_id: orgId } : undefined }),
 
-  enableSharedAPIKey: (apiKeyId: number) =>
-    api.put(`/api/api-keys/enable/${apiKeyId}`),
+  enableSharedAPIKey: (apiKeyId: number, orgId?: number) =>
+    api.put(`/api/api-keys/enable/${apiKeyId}`, undefined, { params: orgId ? { org_id: orgId } : undefined }),
 
-  deleteSharedAPIKey: (apiKeyId: number) =>
-    api.delete(`/api/api-keys/${apiKeyId}`),
+  deleteSharedAPIKey: (apiKeyId: number, orgId?: number) =>
+    api.delete(`/api/api-keys/${apiKeyId}`, { params: orgId ? { org_id: orgId } : undefined }),
 
   getSharedAPIKeyMetrics: (apiKeyId: number) =>
     api.get(`/api/api-keys/shared/${apiKeyId}/metrics`),
@@ -51,8 +52,8 @@ export const apiKeyAPI = {
   getProviders: () =>
     api.get('/api/api-keys/providers'),
 
-  updateSharedAPIKey: (apiKeyId: number, data: { api_key?: string; selected_models: string[] }) =>
-    api.put(`/api/api-keys/shared/${apiKeyId}`, data),
+  updateSharedAPIKey: (apiKeyId: number, data: { api_key?: string; selected_models: string[] }, orgId?: number) =>
+    api.put(`/api/api-keys/shared/${apiKeyId}`, data, { params: orgId ? { org_id: orgId } : undefined }),
 
   // Unified API Keys
   createUnifiedAPIKey: (data: { api_key_name: string; description?: string; api_key_ids: number[] }) =>

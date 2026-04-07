@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
+import { useAuthStore } from '@/lib/store';
 
 // Token formatting helper - formats raw token value for display
 function formatTokens(totalTokens: number, unitMillion: string, unitTenThousand: string): { value: number; unit: string } {
@@ -29,6 +30,11 @@ function formatTokens(totalTokens: number, unitMillion: string, unitTenThousand:
 
 // Tooltip padding constant for boundary detection
 const TOOLTIP_PADDING = 12;
+
+// Helper function to remove organization suffix from model name
+function getModelDisplayName(modelName: string): string {
+  return modelName.replace(/@org-\d+$/, '');
+}
 
 // 48-hour bar chart component with hour axis
 function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
@@ -219,6 +225,7 @@ export function MySharedPage() {
   const t = useTranslations('shared');
   const tCommon = useTranslations('common');
   const tStats = useTranslations('shared.stats');
+  const { currentOrganization } = useAuthStore();
 
   const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
   const [metricsMap, setMetricsMap] = useState<{[key: number]: SharedAPIKeyMetrics}>({});
@@ -227,11 +234,11 @@ export function MySharedPage() {
 
   useEffect(() => {
     loadSharedAPIKeys();
-  }, []);
+  }, [currentOrganization]);
 
   const loadSharedAPIKeys = async () => {
     try {
-      const response = await apiKeyAPI.getMySharedAPIKeys();
+      const response = await apiKeyAPI.getMySharedAPIKeys(currentOrganization?.id);
       const keys = response.data.items;
       setSharedAPIKeys(keys);
 
@@ -274,7 +281,7 @@ export function MySharedPage() {
 
   const handleDisableAPIKey = async (apiKeyId: number) => {
     try {
-      await apiKeyAPI.disableSharedAPIKey(apiKeyId);
+      await apiKeyAPI.disableSharedAPIKey(apiKeyId, currentOrganization?.id);
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to disable API key:', error);
@@ -284,7 +291,7 @@ export function MySharedPage() {
 
   const handleEnableAPIKey = async (apiKeyId: number) => {
     try {
-      await apiKeyAPI.enableSharedAPIKey(apiKeyId);
+      await apiKeyAPI.enableSharedAPIKey(apiKeyId, currentOrganization?.id);
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to enable API key:', error);
@@ -297,7 +304,7 @@ export function MySharedPage() {
       return;
     }
     try {
-      await apiKeyAPI.deleteSharedAPIKey(apiKeyId);
+      await apiKeyAPI.deleteSharedAPIKey(apiKeyId, currentOrganization?.id);
       await loadSharedAPIKeys();
     } catch (error) {
       console.error('Failed to delete API key:', error);
@@ -387,7 +394,7 @@ export function MySharedPage() {
                                 key={model}
                                 className="clay-badge clay-badge-secondary px-3 py-1 text-xs font-medium"
                               >
-                                {model}
+                                {getModelDisplayName(model)}
                               </span>
                             ))}
                           </div>

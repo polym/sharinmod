@@ -33,6 +33,7 @@ class SharedAPIKey(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
     provider: str = Field(index=True, max_length=100)  # Changed from enum to str to support dynamic providers
+    organization_id: Optional[int] = Field(default=None, index=True, foreign_key="organizations.id")
     encrypted_api_key: str = Field(max_length=500)  # Encrypted value
     status: APIKeyStatus = Field(default=APIKeyStatus.ACTIVE, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -48,8 +49,8 @@ class SharedAPIKey(SQLModel, table=True):
     api_key_hash: Optional[str] = Field(default=None, max_length=255)  # LiteLLM token_id for identifying user API key in callbacks
     total_requests: int = Field(default=0)  # Total number of requests made using this shared API key
     total_tokens: int = Field(default=0)  # Total tokens consumed through this shared API key
-    
-    # Unique constraint: one API key per provider per user
+
+    # Unique constraint: one API key per provider per user per organization
     __table_args__ = (
-        Index("idx_user_provider_unique", "user_id", "provider", unique=True),
+        Index("idx_user_provider_unique", "user_id", "provider", "organization_id", unique=True),
     )

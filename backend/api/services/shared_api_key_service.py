@@ -22,6 +22,21 @@ import urllib.parse
 logger = logging.getLogger(__name__)
 
 
+def _get_base_model_name(model_name: str) -> str:
+    """
+    Remove @org-{id} suffix from model name if present
+
+    Args:
+        model_name: Model name that may contain @org-{id} suffix
+
+    Returns:
+        Base model name without the organization suffix
+    """
+    if '@org-' in model_name:
+        return model_name.rsplit('@org-', 1)[0]
+    return model_name
+
+
 def _handle_litellm_response(response, operation_name: str) -> bool:
     """
     Handle LiteLLM API response with unified error handling
@@ -89,27 +104,38 @@ def _handle_litellm_delete_response(response, operation_name: str) -> bool:
 
 
 
-def check_provider_api_key_exists(session: Session, user_id: int, provider: str) -> bool:
+def check_provider_api_key_exists(session: Session, user_id: int, provider: str, organization_id: Optional[int] = None) -> bool:
     """
     Check if user already has an API key for this provider
-    
+
     Args:
         session: Database session
         user_id: User ID
         provider: API key provider
-        
+        organization_id: Optional organization ID for isolation
+            - None: check in public workspace only
+            - int: check in specific organization only
+
     Returns:
-        True if API key exists for this provider, False otherwise
+        True if API key exists for this provider in this scope, False otherwise
     """
-    statement = select(SharedAPIKey).where(
+    conditions = [
         SharedAPIKey.user_id == user_id,
         SharedAPIKey.provider == provider
-    )
+    ]
+    if organization_id is not None:
+        # Filter by specific organization
+        conditions.append(SharedAPIKey.organization_id == organization_id)
+    else:
+        # Public workspace only: organization_id IS NULL
+        conditions.append(SharedAPIKey.organization_id.is_(None))
+
+    statement = select(SharedAPIKey).where(*conditions)
     result = session.exec(statement).first()
     return result is not None
 
 
-async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_models: Optional[List[str]] = None) -> Dict[str, str]:
+async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_models: Optional[List[str]] = None, organization_id: Optional[int] = None) -> Dict[str, str]:
     """
     Sync shared API key to LiteLLM by creating credential and all supported models
 
@@ -118,6 +144,7 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
         provider: API key provider
         api_key: Plain text API key
         selected_models: Optional list of models to create. If None, create all supported models.
+        organization_id: Optional organization ID for namespace isolation
 
     Returns:
         Dict mapping model_name to litellm_model_id
@@ -125,8 +152,11 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
     Raises:
         Exception: If LiteLLM API calls fail
     """
-    # Prepare credential and model data
-    credential_name = f"{provider}/{user.email}"
+    # Prepare credential and model data with organization suffix
+    if organization_id:
+        credential_name = f"{provider}/{user.email}/org-{organization_id}"
+    else:
+        credential_name = f"{provider}/{user.email}"
 
     # Look up provider configuration from database (dynamic providers only)
     from api.services.provider_config_service import get_provider_by_key
@@ -229,8 +259,10 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
             # 如果没有 real_model，使用 model_name
             actual_real_model = real_model_val if real_model_val else model_name
             litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
+            # Add organization suffix to model_name for private server scenarios
+            model_name_with_org = f"{model_name}@org-{organization_id}" if organization_id else model_name
             model_payload = {
-                "model_name": model_name,
+                "model_name": model_name_with_org,
                 "litellm_params": {
                     "custom_llm_provider": custom_provider,
                     "litellm_credential_name": credential_name,
@@ -239,6 +271,8 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
                 "provider": custom_provider,
                 "litellm_model_name": litellm_model,
             }
+
+            print(f"[MODEL_CREATE] Creating model '{model_name_with_org}' with litellm_model '{litellm_model}'", json.dumps(model_payload, indent=2))
 
             print(f"[MODEL_CREATE] Creating model '{model_name}' with litellm_model '{litellm_model}'", json.dumps(model_payload, indent=2))
 
@@ -250,8 +284,8 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
             _handle_litellm_response(model_response, f"MODEL_CREATE_{model_name}")
 
             response_data = model_response.json()
-            model_ids[model_name] = response_data["model_id"]
-            print(f"[MODEL_CREATE] Model '{model_name}' created with ID: {model_ids[model_name]}")
+            model_ids[model_name_with_org] = response_data["model_id"]
+            print(f"[MODEL_CREATE] Model '{model_name_with_org}' created with ID: {model_ids[model_name_with_org]}")
 
         return model_ids
 
@@ -339,7 +373,8 @@ async def create_shared_api_key(
     provider: str,
     api_key: str,
     api_key_metadata: Optional[str] = None,
-    selected_models: Optional[List[str]] = None
+    selected_models: Optional[List[str]] = None,
+    organization_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Create a new shared API key with validation
@@ -351,6 +386,7 @@ async def create_shared_api_key(
         api_key: Plain text API key to share
         api_key_metadata: Optional metadata JSON string
         selected_models: Optional list of models to bind. If None, bind all supported models.
+        organization_id: Optional organization ID for isolation
 
     Returns:
         Dict with created API key info and validation result
@@ -358,11 +394,11 @@ async def create_shared_api_key(
     Raises:
         HTTPException: If duplicate provider or validation fails
     """
-    # Check if user already has an API key for this provider
-    if check_provider_api_key_exists(session, user.id, provider):
+    # Check if user already has an API key for this provider in this organization
+    if check_provider_api_key_exists(session, user.id, provider, organization_id):
         raise HTTPException(
             status_code=400,
-            detail=f"You already have an API key for {provider}. Each account can only add one API key per provider."
+            detail=f"You already have an API key for {provider}. Each account can only add one API key per provider per organization."
         )
 
     # Validate API key with provider API
@@ -381,6 +417,7 @@ async def create_shared_api_key(
     shared_api_key = SharedAPIKey(
         user_id=user.id,
         provider=provider,
+        organization_id=organization_id,
         encrypted_api_key=encrypted,
         status=APIKeyStatus.ACTIVE,
         api_key_metadata=api_key_metadata
@@ -393,9 +430,16 @@ async def create_shared_api_key(
     # Sync with LiteLLM (create credential and models) - skip in testing
     if not settings.TESTING:
         try:
-            logger.info(f"[CREATE] Syncing to LiteLLM: provider={provider}, user={user.email}, models={selected_models}")
-            model_ids = await _sync_to_litellm(user, provider, api_key, selected_models)
+            logger.info(f"[CREATE] Syncing to LiteLLM: provider={provider}, user={user.email}, models={selected_models}, org_id={organization_id}")
+            model_ids = await _sync_to_litellm(user, provider, api_key, selected_models, organization_id)
             logger.info(f"[CREATE] LiteLLM sync result: {list(model_ids.keys()) if model_ids else 'skipped (dynamic provider without base_url)'}")
+
+            # Helper function to remove organization suffix from model name
+            def get_base_model_name(model_name: str) -> str:
+                """Remove @org-{id} suffix from model name if present"""
+                if '@org-' in model_name:
+                    return model_name.rsplit('@org-', 1)[0]
+                return model_name
 
             # model_ids == {} means dynamic provider that skips LiteLLM sync
             if not model_ids:
@@ -422,7 +466,8 @@ async def create_shared_api_key(
                         subscription = Subscription(
                             model_id=model_key,  # Use model_key directly for dynamic providers
                             shared_api_key_id=shared_api_key.id,
-                            user_id=user.id
+                            user_id=user.id,
+                            organization_id=organization_id
                         )
                         session.add(subscription)
                     session.commit()
@@ -432,6 +477,7 @@ async def create_shared_api_key(
                     if db_models:
                         shared_api_key.litellm_model_id = db_models[0]
                     # Persist user's model selection (survives disable/enable cycles)
+                    # Store base model names (without @org-{id} suffix)
                     shared_api_key.user_selected_models = json.dumps(list(db_models))
                     logger.info(f"[CREATE] Saved user_selected_models (dynamic): {list(db_models)}")
                     session.add(shared_api_key)
@@ -445,8 +491,10 @@ async def create_shared_api_key(
                 first_model = list(model_ids.keys())[0]
                 shared_api_key.litellm_model_id = model_ids[first_model]
                 # Persist user's model selection (survives disable/enable cycles)
-                shared_api_key.user_selected_models = json.dumps(list(model_ids.keys()))
-                logger.info(f"[CREATE] Saved user_selected_models (static): {list(model_ids.keys())}")
+                # Store base model names (without @org-{id} suffix)
+                base_model_names = [_get_base_model_name(m) for m in model_ids.keys()]
+                shared_api_key.user_selected_models = json.dumps(base_model_names)
+                logger.info(f"[CREATE] Saved user_selected_models (static): {base_model_names}")
                 session.add(shared_api_key)
                 session.commit()
                 session.refresh(shared_api_key)
@@ -456,7 +504,8 @@ async def create_shared_api_key(
                     subscription = Subscription(
                         model_id=model_id,
                         shared_api_key_id=shared_api_key.id,
-                        user_id=user.id
+                        user_id=user.id,
+                        organization_id=organization_id
                     )
                     session.add(subscription)
                 session.commit()
@@ -499,20 +548,31 @@ async def create_shared_api_key(
     }
 
 
-def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
+def get_user_shared_api_keys(session: Session, user_id: int, organization_id: Optional[int] = None) -> List[Dict]:
     """
     Get all shared API keys for a user with provider info
 
     Args:
         session: Database session
         user_id: User ID
+        organization_id: Optional organization ID for filtering
+            - None: only return public workspace (organization_id IS NULL)
+            - int: only return subscriptions for that organization
 
     Returns:
         List of dicts compatible with SharedAPIKeyResponse (with provider info)
     """
-    statement = select(SharedAPIKey).where(
-        SharedAPIKey.user_id == user_id
-    ).order_by(SharedAPIKey.created_at.desc())
+    conditions = [SharedAPIKey.user_id == user_id]
+    if organization_id is not None:
+        # Filter by specific organization
+        conditions.append(SharedAPIKey.organization_id == organization_id)
+    else:
+        # Public workspace only: organization_id IS NULL
+        conditions.append(SharedAPIKey.organization_id.is_(None))
+
+    statement = select(SharedAPIKey).where(*conditions).order_by(
+        SharedAPIKey.created_at.desc()
+    )
 
     results = session.exec(statement).all()
 
@@ -538,11 +598,12 @@ def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
         if api_key.litellm_model_ids:
             try:
                 model_ids = json.loads(api_key.litellm_model_ids)
-                bound_models = list(model_ids.keys())
+                # Return base model names (without @org-{id} suffix) for display
+                bound_models = [_get_base_model_name(m) for m in model_ids.keys()]
             except json.JSONDecodeError:
                 pass
 
-        api_key_dict['supported_models'] = bound_models  # Actual bound models
+        api_key_dict['supported_models'] = bound_models  # Actual bound models (base names)
         api_key_dict['provider_website'] = provider_info.get('website')
         api_key_dict['provider_display_name'] = provider_info.get('name')
         api_key_dict['provider_logo_path'] = provider_info.get('logo_path')
@@ -551,18 +612,19 @@ def get_user_shared_api_keys(session: Session, user_id: int) -> List[Dict]:
     return api_keys
 
 
-async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int) -> SharedAPIKey:
+async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int, organization_id: Optional[int] = None) -> SharedAPIKey:
     """
     Disable a shared API key and remove it from LiteLLM
-    
+
     Args:
         session: Database session
         api_key_id: API key ID to disable
         user_id: User ID (for authorization check)
-        
+        organization_id: Optional organization ID for credential name
+
     Returns:
         Updated SharedAPIKey
-        
+
     Raises:
         HTTPException: If API key not found, not owned by user, or LiteLLM sync fails
     """
@@ -572,21 +634,21 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
         SharedAPIKey.user_id == user_id
     )
     api_key = session.exec(statement).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=404,
             detail="API key not found or you don't have permission to modify it"
         )
-    
+
     # Check if already inactive
     if api_key.status == APIKeyStatus.INACTIVE:
         return api_key
-    
+
     # Get user info for LiteLLM sync
     user_statement = select(User).where(User.id == user_id)
     user = session.exec(user_statement).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -678,18 +740,19 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
     return api_key
 
 
-async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int) -> SharedAPIKey:
+async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int, organization_id: Optional[int] = None) -> SharedAPIKey:
     """
     Enable a shared API key and add it back to LiteLLM
-    
+
     Args:
         session: Database session
         api_key_id: API key ID to enable
         user_id: User ID (for authorization check)
-        
+        organization_id: Optional organization ID for credential name
+
     Returns:
         Updated SharedAPIKey
-        
+
     Raises:
         HTTPException: If API key not found, not owned by user, or LiteLLM sync fails
     """
@@ -699,28 +762,28 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
         SharedAPIKey.user_id == user_id
     )
     api_key = session.exec(statement).first()
-    
+
     if not api_key:
         raise HTTPException(
             status_code=404,
             detail="API key not found or you don't have permission to modify it"
         )
-    
+
     # Check if already active
     if api_key.status == APIKeyStatus.ACTIVE:
         return api_key
-    
+
     # Cannot enable revoked API keys
     if api_key.status == APIKeyStatus.REVOKED:
         raise HTTPException(
             status_code=400,
             detail="Cannot enable a revoked API key"
         )
-    
+
     # Get user info for LiteLLM sync
     user_statement = select(User).where(User.id == user_id)
     user = session.exec(user_statement).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
@@ -748,8 +811,8 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
 
             # Decrypt key and re-sync to LiteLLM (handles both static and dynamic providers)
             plain_api_key = decrypt_token(api_key.encrypted_api_key)
-            logger.info(f"[ENABLE] Syncing to LiteLLM: provider={api_key.provider}, user={user.email}, models={saved_models}")
-            model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key, saved_models)
+            logger.info(f"[ENABLE] Syncing to LiteLLM: provider={api_key.provider}, user={user.email}, models={saved_models}, org_id={api_key.organization_id}")
+            model_ids = await _sync_to_litellm(user, api_key.provider, plain_api_key, saved_models, api_key.organization_id)
             logger.info(f"[ENABLE] LiteLLM sync result: {list(model_ids.keys()) if model_ids else 'skipped (dynamic provider without base_url)'}")
 
             if not model_ids:
@@ -769,7 +832,8 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
                         subscription = Subscription(
                             model_id=model_key,
                             shared_api_key_id=api_key.id,
-                            user_id=user.id
+                            user_id=user.id,
+                            organization_id=api_key.organization_id
                         )
                         session.add(subscription)
                     session.commit()
@@ -795,7 +859,8 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
                     subscription = Subscription(
                         model_id=model_id,
                         shared_api_key_id=api_key.id,
-                        user_id=user.id
+                        user_id=user.id,
+                        organization_id=api_key.organization_id
                     )
                     session.add(subscription)
                 session.commit()
@@ -825,19 +890,20 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int)
     return api_key
 
 
-async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int) -> None:
+async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int, organization_id: Optional[int] = None) -> None:
     """
     Delete a shared API key and remove it from LiteLLM
-    
+
     This operation is idempotent for repeated deletion of the same API key,
     but will return 404 if trying to delete an API key that doesn't exist
     or belongs to another user (for security).
-    
+
     Args:
         session: Database session
         api_key_id: API key ID to delete
         user_id: User ID (for authorization check)
-        
+        organization_id: Optional organization ID for credential name
+
     Raises:
         HTTPException: If API key not found/not owned by user, or LiteLLM sync fails
     """
@@ -847,7 +913,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
         SharedAPIKey.user_id == user_id
     )
     api_key = session.exec(statement).first()
-    
+
     # Return 404 for non-existent or unauthorized access
     # This is important for security - don't reveal if an api_key_id exists
     if not api_key:
@@ -855,19 +921,22 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int)
             status_code=404,
             detail="API key not found or you don't have permission to delete it"
         )
-    
+
     # Get user info for LiteLLM sync
     user_statement = select(User).where(User.id == user_id)
     user = session.exec(user_statement).first()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Sync with LiteLLM - delete models first, then credential (skip in testing)
     # NOTE: Delete models FIRST, then credential to avoid orphaned models
     if not settings.TESTING:
         try:
-            credential_name = f"{api_key.provider}/{user.email}"
+            if api_key.organization_id:
+                credential_name = f"{api_key.provider}/{user.email}/org-{api_key.organization_id}"
+            else:
+                credential_name = f"{api_key.provider}/{user.email}"
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Step 1: Delete all models FIRST
@@ -1067,7 +1136,8 @@ async def update_shared_api_key(
     api_key_id: int,
     user_id: int,
     new_api_key: Optional[str] = None,
-    selected_models: Optional[List[str]] = None
+    selected_models: Optional[List[str]] = None,
+    organization_id: Optional[int] = None
 ) -> SharedAPIKey:
     """
     Update a shared API key (API Key and/or models)
@@ -1076,8 +1146,9 @@ async def update_shared_api_key(
         session: Database session
         api_key_id: API key ID to update
         user_id: User ID for authorization check
-        new_api_key: New API key to replace the existing one (optional)
+        new_api_key: New API key to replace existing one (optional)
         selected_models: List of models to bind (required, at least one model)
+        organization_id: Optional organization ID for credential name
 
     Returns:
         Updated SharedAPIKey
@@ -1168,14 +1239,20 @@ async def update_shared_api_key(
             except json.JSONDecodeError:
                 current_model_ids = {}
 
-        # Models to remove (in current but not in selected)
-        models_to_remove = [m for m in current_model_ids.keys() if m not in selected_models]
+        # Get base model names for comparison (without @org-{id} suffix)
+        current_base_models = {_get_base_model_name(m): m for m in current_model_ids.keys()}
+
+        # Models to remove (base model name in current but not in selected)
+        models_to_remove = [current_base_models[base] for base in current_base_models if base not in selected_models]
         # Models to add (in selected but not in current)
-        models_to_add = [m for m in selected_models if m not in current_model_ids.keys()]
+        models_to_add = [m for m in selected_models if m not in current_base_models]
 
         # Step 3: Sync with LiteLLM (skip in testing)
         if not settings.TESTING:
-            credential_name = f"{api_key_obj.provider}/{user.email}"
+            if api_key_obj.organization_id:
+                credential_name = f"{api_key_obj.provider}/{user.email}/org-{api_key_obj.organization_id}"
+            else:
+                credential_name = f"{api_key_obj.provider}/{user.email}"
             # URL encode the credential name to handle special characters like @
             encoded_credential_name = urllib.parse.quote(credential_name, safe="/")
 
@@ -1246,14 +1323,19 @@ async def update_shared_api_key(
                 custom_provider = (_pc2.custom_llm_provider or "openai") if _pc2 else "openai"
 
                 async with httpx.AsyncClient(timeout=10.0) as client:
-                    credential_name = f"{api_key_obj.provider}/{user.email}"
+                    if api_key_obj.organization_id:
+                        credential_name = f"{api_key_obj.provider}/{user.email}/org-{api_key_obj.organization_id}"
+                    else:
+                        credential_name = f"{api_key_obj.provider}/{user.email}"
                     for model_name in models_to_add:
                         # 获取 real_model，如果没有则使用 model_name
                         real_model_val = real_model_map.get(model_name) or model_name
                         # OpenRouter 特殊处理：添加 openrouter/openrouter/ 前缀
                         litellm_model = f"openrouter/openrouter/{real_model_val}" if api_key_obj.provider == "openrouter" else real_model_val
+                        # Add organization suffix to model_name for private server scenarios
+                        model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else model_name
                         model_payload = {
-                            "model_name": model_name,
+                            "model_name": model_name_with_org,
                             "litellm_params": {
                                 "custom_llm_provider": custom_provider,
                                 "litellm_credential_name": credential_name,
@@ -1262,7 +1344,7 @@ async def update_shared_api_key(
                             "provider": custom_provider,
                             "litellm_model_name": litellm_model,
                         }
-                        print(f"[UPDATE] Creating model '{model_name}' with litellm_model '{litellm_model}'")
+                        print(f"[UPDATE] Creating model '{model_name_with_org}' with litellm_model '{litellm_model}'")
                         model_response = await client.post(
                             f"{settings.LITELLM_BASE_URL}/model/new",
                             json=model_payload,
@@ -1270,7 +1352,7 @@ async def update_shared_api_key(
                         )
                         _handle_litellm_response(model_response, f"UPDATE_MODEL_CREATE_{model_name}")
                         response_data = model_response.json()
-                        new_model_ids[model_name] = response_data["model_id"]
+                        new_model_ids[model_name_with_org] = response_data["model_id"]
 
             # Update litellm_model_ids
             api_key_obj.litellm_model_ids = json.dumps(new_model_ids)
@@ -1297,11 +1379,13 @@ async def update_shared_api_key(
         if models_to_add and api_key_obj.litellm_model_ids:
             updated_model_ids = json.loads(api_key_obj.litellm_model_ids)
             for model_name in models_to_add:
-                if model_name in updated_model_ids:
+                model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else model_name
+                if model_name_with_org in updated_model_ids:
                     subscription = Subscription(
-                        model_id=updated_model_ids[model_name],
+                        model_id=updated_model_ids[model_name_with_org],
                         shared_api_key_id=api_key_id,
-                        user_id=user_id
+                        user_id=user_id,
+                        organization_id=api_key_obj.organization_id
                     )
                     session.add(subscription)
 

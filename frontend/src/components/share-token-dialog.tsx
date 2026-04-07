@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
 import { getProviderLogo, getProviderBrandName } from '@/lib/providers';
+import { useAuthStore } from '@/lib/store';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -30,6 +31,7 @@ interface Provider {
 export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialogProps) {
   const t = useTranslations('shareDialog');
   const tToast = useTranslations('shareDialog.toast');
+  const { currentOrganization } = useAuthStore();
 
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState('');
@@ -113,7 +115,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
         api_key: apiKey,
         api_key_metadata: JSON.stringify({ source: 'user_input' }),
         selected_models: selectedModels,
-      });
+      }, currentOrganization?.id);
 
       toast({
         title: tToast('success'),

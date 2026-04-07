@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session
+from typing import Optional
 from api.database import get_db
 from api.models.provider_config import ProviderModel
 from api.models.user import User
@@ -59,6 +60,7 @@ async def get_providers(
 @log_operation(ResourceType.SHARED_API_KEY, OperationType.CREATE, use_return_value=True)
 async def share_api_key(
     api_key_data: SharedAPIKeyCreate,
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -66,7 +68,7 @@ async def share_api_key(
     Share an existing provider API key
 
     Validates API key with provider API and stores encrypted
-    Each user can only share one API key per provider
+    Each user can only share one API key per provider per organization
     """
     result = await create_shared_api_key(
         session=session,
@@ -74,7 +76,8 @@ async def share_api_key(
         provider=api_key_data.provider,
         api_key=api_key_data.api_key,
         api_key_metadata=api_key_data.api_key_metadata,
-        selected_models=api_key_data.selected_models
+        selected_models=api_key_data.selected_models,
+        organization_id=org_id
     )
 
     return result["api_key"]
@@ -82,14 +85,15 @@ async def share_api_key(
 
 @router.get("/my-shared", response_model=SharedAPIKeyList)
 async def get_my_shared_api_keys(
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
     """
     Get list of API keys I've shared
     """
-    api_keys = get_user_shared_api_keys(session, current_user.id)
-    
+    api_keys = get_user_shared_api_keys(session, current_user.id, organization_id=org_id)
+
     return SharedAPIKeyList(
         total=len(api_keys),
         items=api_keys
@@ -100,15 +104,16 @@ async def get_my_shared_api_keys(
 @log_operation(ResourceType.SHARED_API_KEY, OperationType.DISABLE, resource_id_param="api_key_id")
 async def disable_api_key(
     api_key_id: int,
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
     """
     Disable a shared API key
-    
+
     Sets status to INACTIVE and removes model from LiteLLM
     """
-    api_key = await disable_shared_api_key(session, api_key_id, current_user.id)
+    api_key = await disable_shared_api_key(session, api_key_id, current_user.id, organization_id=org_id)
     return api_key
 
 
@@ -116,15 +121,16 @@ async def disable_api_key(
 @log_operation(ResourceType.SHARED_API_KEY, OperationType.ENABLE, resource_id_param="api_key_id")
 async def enable_api_key(
     api_key_id: int,
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
     """
     Enable a shared API key
-    
+
     Sets status to ACTIVE and recreates model in LiteLLM
     """
-    api_key = await enable_shared_api_key(session, api_key_id, current_user.id)
+    api_key = await enable_shared_api_key(session, api_key_id, current_user.id, organization_id=org_id)
     return api_key
 
 
@@ -132,6 +138,7 @@ async def enable_api_key(
 @log_operation(ResourceType.SHARED_API_KEY, OperationType.DELETE, resource_id_param="api_key_id")
 async def delete_api_key(
     api_key_id: int,
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -140,7 +147,7 @@ async def delete_api_key(
 
     Removes from database and deletes model and credential from LiteLLM
     """
-    await delete_shared_api_key(session, api_key_id, current_user.id)
+    await delete_shared_api_key(session, api_key_id, current_user.id, organization_id=org_id)
     return None
 
 
@@ -149,6 +156,7 @@ async def delete_api_key(
 async def update_api_key(
     api_key_id: int,
     update_data: SharedAPIKeyUpdate,
+    org_id: Optional[int] = Query(None, description="组织 ID"),
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_db)
 ):
@@ -162,7 +170,8 @@ async def update_api_key(
         api_key_id=api_key_id,
         user_id=current_user.id,
         new_api_key=update_data.api_key,
-        selected_models=update_data.selected_models
+        selected_models=update_data.selected_models,
+        organization_id=org_id
     )
     response_data = api_key.model_dump()
     if auto_removed:

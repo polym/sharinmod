@@ -26,6 +26,7 @@ class Subscription(SQLModel, table=True):
     model_id: str = Field(unique=True, max_length=100, index=True)
     shared_api_key_id: int = Field(index=True)
     user_id: int = Field(index=True)
+    organization_id: Optional[int] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Unique constraint on model_id and foreign keys with CASCADE delete
@@ -38,6 +39,11 @@ class Subscription(SQLModel, table=True):
         sa.ForeignKeyConstraint(
             ['user_id'], ['users.id'],
             name='fk_subscriptions_user_id_users'
+        ),
+        sa.ForeignKeyConstraint(
+            ['organization_id'], ['organizations.id'],
+            name='fk_subscriptions_organization_id_organizations',
+            ondelete='CASCADE'
         ),
         Index("idx_model_id_unique", "model_id", unique=True),
     )

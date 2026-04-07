@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { ModelSelector } from '@/components/ModelSelector';
 import { apiKeyAPI } from '@/lib/services';
 import { getProviderBrandName } from '@/lib/providers';
+import { useAuthStore } from '@/lib/store';
 import { SharedAPIKey } from '@/types/apiKey';
 import { useTranslations } from 'next-intl';
 
@@ -22,6 +23,7 @@ interface EditSubscriptionDialogProps {
 export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }: EditSubscriptionDialogProps) {
   const t = useTranslations('editSubscriptionDialog');
   const tToast = useTranslations('editSubscriptionDialog.toast');
+  const { currentOrganization } = useAuthStore();
 
   const [newApiKey, setNewApiKey] = useState('');
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
@@ -63,7 +65,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
       await apiKeyAPI.updateSharedAPIKey(apiKey.id, {
         api_key: newApiKey || undefined,
         selected_models: selectedModels,
-      });
+      }, currentOrganization?.id);
 
       toast({
         title: tToast('success'),
