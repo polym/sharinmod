@@ -21,15 +21,20 @@ def _find_model_name_by_litellm_id(litellm_model_ids_json: str, target_model_id:
 
     Args:
         litellm_model_ids_json: JSON 字符串，格式为 {"glm-4.7": "uuid-...", ...}
+                                私服模型 key 带 @org-X 后缀，如 {"glm-4.7@org-1": "uuid-..."}
         target_model_id: 要查找的 LiteLLM model_id (UUID)
 
     Returns:
         原始 model_name (如 "glm-4.7")，如果未找到返回 target_model_id
+        注意：自动去除私服模型 key 中的 @org-X 后缀
     """
     try:
         litellm_model_ids = json.loads(litellm_model_ids_json)
         for model_name, model_id in litellm_model_ids.items():
             if model_id == target_model_id:
+                # 私服模型 key 带有 @org-X 后缀，需还原为原始 model_name
+                if '@org-' in model_name:
+                    return model_name.rsplit('@org-', 1)[0]
                 return model_name
     except (json.JSONDecodeError, TypeError) as e:
         logger.warning(f"Failed to parse litellm_model_ids: {e}")
