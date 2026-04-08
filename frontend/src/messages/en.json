@@ -1,8 +1,7 @@
 {
   "sidebar": {
     "overview": "Overview",
-    "marketplace": "Marketplace",
-    "myShared": "My Shared",
+    "marketplace": "Model Marketplace",
     "apiKeys": "API Keys",
     "usage": "Usage",
     "settings": "Settings",

@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toast';
 import { Search } from 'lucide-react';
 import type { ModelInfo } from '@/types/model';
 import { useTranslations } from 'next-intl';
+import { useAuthStore } from '@/lib/store';
 
 export function ModelDiscoveryPage() {
   const t = useTranslations('marketplace');
@@ -20,11 +21,12 @@ export function ModelDiscoveryPage() {
   const [quickCallOpen, setQuickCallOpen] = useState(false);
   const [initialModelName, setInitialModelName] = useState<string | undefined>(undefined);
   const { toast } = useToast();
+  const { currentOrganization } = useAuthStore();
 
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const response = await modelAPI.getModels();
+        const response = await modelAPI.getModels(currentOrganization?.id ?? undefined);
         setModels(response.data.items);
       } catch (error: any) {
         console.error('Failed to load models:', error);
@@ -56,7 +58,7 @@ export function ModelDiscoveryPage() {
     };
 
     loadModels();
-  }, [toast, tToast]);
+  }, [toast, tToast, currentOrganization]);
 
   // 使用 useMemo 缓存过滤结果，优化性能
   const filteredModels = useMemo(() => {

@@ -139,7 +139,8 @@ export const overviewAPI = {
 
 // Model API
 export const modelAPI = {
-  getModels: () => api.get('/api/models'),
+  getModels: (orgId?: number) =>
+    api.get('/api/models', { params: orgId !== undefined ? { org_id: orgId } : undefined }),
 };
 
 // Admin API

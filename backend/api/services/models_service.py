@@ -36,12 +36,12 @@ def _find_model_name_by_litellm_id(litellm_model_ids_json: str, target_model_id:
     return target_model_id
 
 
-def get_available_models(db: Session) -> List[ModelInfo]:
+def get_available_models(db: Session, organization_id: Optional[int] = None) -> List[ModelInfo]:
     """
-    获取所有可用的模型信息
+    获取可用的模型信息，按组织隔离
 
     查询逻辑：
-    1. 从 Subscription 表获取所有记录
+    1. 从 Subscription 表获取记录（按 organization_id 过滤）
     2. JOIN SharedAPIKey 获取 provider 信息（只包含 ACTIVE 状态）
     3. JOIN User 获取共享者信息
     4. 按 model_name 分组（不按 provider），收集所有提供商和共享者列表
@@ -50,6 +50,8 @@ def get_available_models(db: Session) -> List[ModelInfo]:
 
     Args:
         db: Database session
+        organization_id: 组织 ID。None 表示公区（过滤 organization_id IS NULL），
+                         传值则过滤该组织的订阅模型。
 
     Returns:
         List[ModelInfo]: 模型信息列表
@@ -65,6 +67,12 @@ def get_available_models(db: Session) -> List[ModelInfo]:
             .join(User, Subscription.user_id == User.id)
             .where(SharedAPIKey.status == APIKeyStatus.ACTIVE)
         )
+
+        # 按组织隔离：公区过滤 IS NULL，私服过滤指定 org_id
+        if organization_id is None:
+            statement = statement.where(Subscription.organization_id == None)
+        else:
+            statement = statement.where(Subscription.organization_id == organization_id)
 
         results = db.exec(statement).all()
     except SQLAlchemyError as e:
