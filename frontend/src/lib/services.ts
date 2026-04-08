@@ -493,4 +493,25 @@ export const organizationAPI = {
 
   getMyOrganizations: () =>
     api.get('/api/organizations/my'),
+
+  listMembers: (orgId: number) =>
+    api.get(`/api/organizations/${orgId}/members`),
+
+  disableMember: (orgId: number, userId: number) =>
+    api.put(`/api/organizations/${orgId}/members/${userId}/disable`),
+
+  enableMember: (orgId: number, userId: number) =>
+    api.put(`/api/organizations/${orgId}/members/${userId}/enable`),
+
+  removeMember: (orgId: number, userId: number) =>
+    api.delete(`/api/organizations/${orgId}/members/${userId}`),
+
+  createInvite: (orgId: number) =>
+    api.post(`/api/organizations/${orgId}/invite`),
+
+  getInviteInfo: (token: string) =>
+    api.get(`/api/organizations/invite/${token}`),
+
+  acceptInvite: (token: string) =>
+    api.post(`/api/organizations/invite/${token}/accept`),
 };

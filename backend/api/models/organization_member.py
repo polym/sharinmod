@@ -24,6 +24,7 @@ class OrganizationMember(SQLModel, table=True):
     organization_id: int = Field(index=True)
     user_id: int = Field(index=True)
     role: str = Field(max_length=20)  # 'owner' or 'member'
+    is_disabled: bool = Field(default=False, description="Whether this member is disabled in the org")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Foreign keys with CASCADE delete and unique constraint

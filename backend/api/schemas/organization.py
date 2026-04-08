@@ -1,9 +1,9 @@
 """
 Organization schemas for request/response validation
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 
 class OrganizationCreate(BaseModel):
@@ -33,6 +33,57 @@ class MyOrganizationsResponse(BaseModel):
     """Schema for user's organizations response"""
     owned: list[OrganizationResponse]
     joined: list[OrganizationResponse]
+
+
+class OrgMemberStats(BaseModel):
+    """Single member statistics in an organization"""
+    user_id: int
+    email: str
+    name: Optional[str] = None
+    role: str
+    is_disabled: bool
+    org_total_tokens: int
+    last_used_at: Optional[datetime] = None
+    joined_at: datetime
+
+    @field_serializer('last_used_at', 'joined_at')
+    def serialize_dt(self, dt: Optional[datetime]) -> Optional[str]:
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
+
+class OrgMemberListResponse(BaseModel):
+    """Response containing list of org member stats"""
+    items: list[OrgMemberStats]
+
+
+class OrgInviteResponse(BaseModel):
+    """Response after creating an invite link"""
+    token: str
+    expires_at: datetime
+
+    @field_serializer('expires_at')
+    def serialize_dt(self, dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
+
+class OrgInviteInfoResponse(BaseModel):
+    """Invite link preview (no auth required)"""
+    organization_name: str
+    organization_slug: str
+    expires_at: datetime
+    is_valid: bool
+
+    @field_serializer('expires_at')
+    def serialize_dt(self, dt: datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
 
 def generate_slug(name: str) -> str:

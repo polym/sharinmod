@@ -28,6 +28,11 @@ export interface Organization {
   updated_at: string;
 }
 
+export interface MyOrganizationsData {
+  owned: Organization[];
+  joined: Organization[];
+}
+
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
@@ -40,6 +45,7 @@ interface AuthState {
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   // Organization state
   currentOrganization: Organization | null; // null = 公区
+  myOrganizations: MyOrganizationsData | null; // cached org membership data
   showCreateOrganizationDialog: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
@@ -49,6 +55,7 @@ interface AuthState {
   setShowResetPasswordDialog: (show: boolean, token?: string) => void;
   setRedirectAfterLogin: (path: string | null) => void;
   setCurrentOrganization: (org: Organization | null) => void;
+  setMyOrganizations: (data: MyOrganizationsData | null) => void;
   setShowCreateOrganizationDialog: (show: boolean) => void;
 }
 
@@ -65,12 +72,13 @@ export const useAuthStore = create<AuthState>()(
       redirectAfterLogin: null,
       _isLoggingOut: false,
       currentOrganization: null,
+      myOrganizations: null,
       showCreateOrganizationDialog: false,
       login: (user: User, token: string) => {
         set({ isAuthenticated: true, user, token, _isLoggingOut: false });
       },
       logout: () => {
-        set({ isAuthenticated: false, user: null, token: null, _isLoggingOut: true, currentOrganization: null });
+        set({ isAuthenticated: false, user: null, token: null, _isLoggingOut: true, currentOrganization: null, myOrganizations: null });
       },
       updateUser: (user: User) => {
         set({ user });
@@ -98,6 +106,9 @@ export const useAuthStore = create<AuthState>()(
       },
       setCurrentOrganization: (org: Organization | null) => {
         set({ currentOrganization: org });
+      },
+      setMyOrganizations: (data: MyOrganizationsData | null) => {
+        set({ myOrganizations: data });
       },
       setShowCreateOrganizationDialog: (show: boolean) => {
         set({ showCreateOrganizationDialog: show });

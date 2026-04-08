@@ -20,7 +20,7 @@ interface MyOrganizations {
 }
 
 export function OrganizationSwitcher() {
-  const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated } = useAuthStore();
+  const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated, setMyOrganizations } = useAuthStore();
   const [organizations, setOrganizations] = useState<MyOrganizations>({ owned: [], joined: [] });
   const [loading, setLoading] = useState(false);
 
@@ -36,6 +36,7 @@ export function OrganizationSwitcher() {
     try {
       const response = await organizationAPI.getMyOrganizations();
       setOrganizations(response.data);
+      setMyOrganizations(response.data);
     } catch (error) {
       console.error('[OrganizationSwitcher] Failed to load organizations:', error);
     } finally {

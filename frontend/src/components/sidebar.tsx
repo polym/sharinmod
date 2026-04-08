@@ -68,7 +68,8 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
-  const { user } = useAuthStore();
+  const { user, currentOrganization, myOrganizations } = useAuthStore();
+  const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
   const mainNavItems = [
     { icon: <TrendingUp className="w-4 h-4" />, label: t('overview'), href: "/overview" },
@@ -113,6 +114,20 @@ export function Sidebar() {
             />
           ))}
         </NavSection>
+
+        {isOrgOwner && (
+          <>
+            <div className="border-t border-gray-200 my-2" />
+            <NavSection>
+              <NavItem
+                icon={<Users className="w-4 h-4" />}
+                label="我的团队"
+                href="/my-team"
+                active={pathname === '/my-team'}
+              />
+            </NavSection>
+          </>
+        )}
 
         {user?.is_admin && (
           <>
