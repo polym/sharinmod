@@ -14,6 +14,7 @@ from api.models.unified_api_key import UnifiedAPIKey
 from api.models.subscription import Subscription
 from api.models.user import User
 from api.models.claw import Claw
+from api.models.organization import Organization  # noqa: F401 - required for SQLModel FK resolution
 from api.schemas.usage_log import (
     UsageLogList,
     UsageLogResponse,
