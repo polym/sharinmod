@@ -135,6 +135,44 @@ async def block_litellm_key(key: str) -> None:
             )
 
 
+def sync_block_litellm_key(key: str) -> None:
+    """
+    Synchronous version of block_litellm_key for use in non-async contexts (consumers).
+
+    Args:
+        key: LiteLLM API key to block
+
+    Raises:
+        Exception: If LiteLLM API call fails
+    """
+    with httpx.Client(timeout=10.0) as client:
+        response = client.post(
+            f"{settings.LITELLM_BASE_URL}/key/block",
+            json={"key": key},
+            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+        )
+        response.raise_for_status()
+
+
+def sync_unlock_litellm_key(key: str) -> None:
+    """
+    Synchronous version of unlock_litellm_key for use in non-async contexts (consumers).
+
+    Args:
+        key: LiteLLM API key to unblock
+
+    Raises:
+        Exception: If LiteLLM API call fails
+    """
+    with httpx.Client(timeout=10.0) as client:
+        response = client.post(
+            f"{settings.LITELLM_BASE_URL}/key/unblock",
+            json={"key": key},
+            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+        )
+        response.raise_for_status()
+
+
 async def unlock_litellm_key(key: str) -> None:
     """
     Unblock a LiteLLM API key

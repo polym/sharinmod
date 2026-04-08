@@ -360,26 +360,44 @@ def update_token_statistics(
 
                 # Check if limit exceeded
                 if new_usage > unified_key.daily_token_limit and unified_key.status == UnifiedAPIKeyStatus.ACTIVE:
-                    # Disable the key due to limit exceeded
-                    unified_key.status = UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED
-                    unified_key.daily_tokens_used = new_usage
-                    session.add(unified_key)
+                    # Block the key at LiteLLM level first; only update status if block succeeds
+                    block_ok = True
+                    if unified_key.litellm_key:
+                        try:
+                            from api.services.unified_api_key_service import sync_block_litellm_key
+                            sync_block_litellm_key(unified_key.litellm_key)
+                            logger.info(f"Blocked LiteLLM key for API key {unified_api_key_id} due to daily limit exceeded")
+                        except Exception as block_err:
+                            block_ok = False
+                            logger.error(f"Failed to block LiteLLM key for API key {unified_api_key_id}, will retry on next callback: {block_err}")
 
-                    # Create history entry
-                    from api.services.api_key_limit_history_service import create_limit_history_entry
-                    create_limit_history_entry(
-                        session,
-                        unified_api_key_id=unified_api_key_id,
-                        action="disable",
-                        tokens_used=new_usage,
-                        token_limit=unified_key.daily_token_limit,
-                        reason="daily limit exceeded"
-                    )
+                    if block_ok:
+                        # Disable the key due to limit exceeded
+                        unified_key.status = UnifiedAPIKeyStatus.DAILY_LIMIT_EXCEEDED
+                        unified_key.daily_tokens_used = new_usage
+                        session.add(unified_key)
 
-                    logger.warning(
-                        f"API key {unified_api_key_id} exceeded daily limit: "
-                        f"{new_usage}/{unified_key.daily_token_limit}"
-                    )
+                        # Create history entry
+                        from api.services.api_key_limit_history_service import create_limit_history_entry
+                        create_limit_history_entry(
+                            session,
+                            unified_api_key_id=unified_api_key_id,
+                            action="disable",
+                            tokens_used=new_usage,
+                            token_limit=unified_key.daily_token_limit,
+                            reason="daily limit exceeded"
+                        )
+
+                        logger.warning(
+                            f"API key {unified_api_key_id} exceeded daily limit: "
+                            f"{new_usage}/{unified_key.daily_token_limit}"
+                        )
+                    else:
+                        # Block failed, keep ACTIVE so next callback retries
+                        session.execute(
+                            text("UPDATE unified_api_keys SET daily_tokens_used = daily_tokens_used + :tokens, last_reset_date = :today WHERE id = :id"),
+                            {"tokens": total_tokens, "id": unified_api_key_id, "today": today}
+                        )
                 else:
                     # Just update token usage
                     session.execute(

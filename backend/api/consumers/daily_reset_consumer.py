@@ -132,6 +132,15 @@ def reset_api_key(session: Session, api_key: UnifiedAPIKey) -> bool:
         # Recover key to ACTIVE status
         api_key.status = UnifiedAPIKeyStatus.ACTIVE
 
+        # Unblock the key at LiteLLM level
+        if api_key.litellm_key:
+            try:
+                from api.services.unified_api_key_service import sync_unlock_litellm_key
+                sync_unlock_litellm_key(api_key.litellm_key)
+                logger.info(f"Unblocked LiteLLM key for API key {api_key.id} during daily reset")
+            except Exception as unblock_err:
+                logger.error(f"Failed to unblock LiteLLM key for API key {api_key.id}: {unblock_err}")
+
         # Create history entry
         create_limit_history_entry(
             session,
