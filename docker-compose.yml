@@ -30,14 +30,15 @@ services:
     env_file:
       - ./.env
     environment:
-      - CONFIG_PATH=/app/config.yaml
-      - KUBECONFIG_PATH=/app/kubeconfig
+      - CONFIG_PATH=/srv/config.yaml
+      - KUBECONFIG_PATH=/srv/kubeconfig
       - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app
       - ./frontend/public:/app/frontend/public
-      - ./etc/config.yaml:/app/config.yaml:ro
-      - ./etc/kubeconfig:/app/kubeconfig:ro
+      - ./etc/config.yaml:/srv/config.yaml:ro
+      - ./etc/kubeconfig:/srv/kubeconfig:ro
+      - ./etc/providers.yaml:/srv/providers.yaml:ro
 
   # Consumer for LiteLLM callback processing
   litellm-callback-consumer:
