@@ -13,13 +13,7 @@ import {
   Menu,
   X,
   Settings,
-  Shield,
-  LayoutGrid,
-  Cpu,
   Bot,
-  Sliders,
-  TrendingUp,
-  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -68,25 +62,16 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
-  const { user, currentOrganization, myOrganizations } = useAuthStore();
+  const { currentOrganization, myOrganizations } = useAuthStore();
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
   const mainNavItems = [
-    { icon: <TrendingUp className="w-4 h-4" />, label: t('overview'), href: "/overview" },
     { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
     { icon: <Bot className="w-4 h-4" />, label: t('claws'), href: "/claws" },
     { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
     { icon: <Settings className="w-4 h-4" />, label: t('settings'), href: "/settings" },
-  ];
-
-  const adminNavItems = [
-    { icon: <Users className="w-4 h-4" />, label: t('adminUsers'), href: "/admin/users" },
-    { icon: <LayoutGrid className="w-4 h-4" />, label: t('adminProviders'), href: "/admin/providers" },
-    { icon: <Cpu className="w-4 h-4" />, label: t('adminModels'), href: "/admin/models" },
-    { icon: <FileText className="w-4 h-4" />, label: t('adminLogs'), href: "/admin/logs" },
-    { icon: <Sliders className="w-4 h-4" />, label: t('adminSettings'), href: "/admin/settings" },
   ];
 
   const SidebarContent = () => (
@@ -129,22 +114,6 @@ export function Sidebar() {
           </>
         )}
 
-        {user?.is_admin && (
-          <>
-            <div className="border-t border-gray-200 my-2" />
-            <NavSection>
-              {adminNavItems.map((item) => (
-                <NavItem
-                  key={item.href}
-                  icon={item.icon}
-                  label={item.label}
-                  href={item.href}
-                  active={pathname === item.href}
-                />
-              ))}
-            </NavSection>
-          </>
-        )}
       </nav>
     </div>
   );

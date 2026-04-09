@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Zap, Globe } from "lucide-react";
+import { Settings, LogOut, Zap, Globe, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
@@ -134,6 +134,18 @@ export function Header() {
                 </DropdownMenuRadioGroup>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+            {user?.is_admin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-violet-600 focus:text-violet-600"
+                  onClick={() => router.push('/admin/users')}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  管理控制台
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"
