@@ -678,7 +678,8 @@ def get_user_usage_overview(
 
 def get_system_overview(
     db: Session,
-    days: int = 7
+    days: int = 7,
+    organization_id: Optional[int] = None
 ) -> SystemOverviewResponse:
     """
     Get system-wide usage overview statistics
@@ -686,12 +687,17 @@ def get_system_overview(
     Args:
         db: Database session
         days: Number of days to include for trend data (default: 7)
+        organization_id: Optional organization ID for filtering (default: None)
 
     Returns:
         SystemOverviewResponse with aggregated system statistics
     """
     # Get total tokens across all time
     total_tokens_query = select(func.sum(UsageLog.total_tokens))
+    if organization_id is not None:
+        total_tokens_query = total_tokens_query.where(UsageLog.organization_id == organization_id)
+    else:
+        total_tokens_query = total_tokens_query.where(UsageLog.organization_id.is_(None))
     total_tokens = db.exec(total_tokens_query).one() or 0
 
     # Get today's tokens (UTC date)
@@ -703,14 +709,36 @@ def get_system_overview(
         UsageLog.request_time >= utc_start,
         UsageLog.request_time <= utc_end
     )
+    if organization_id is not None:
+        today_tokens_query = today_tokens_query.where(UsageLog.organization_id == organization_id)
+    else:
+        today_tokens_query = today_tokens_query.where(UsageLog.organization_id.is_(None))
     today_tokens = db.exec(today_tokens_query).one() or 0
 
     # Get user count (exclude soft-deleted users)
-    user_count_query = select(func.count()).select_from(User).where(User.deleted_at.is_(None))
+    if organization_id is not None:
+        # For organization scope, count organization members
+        from api.models.organization_member import OrganizationMember
+        user_count_query = select(func.count()).select_from(OrganizationMember).where(
+            OrganizationMember.organization_id == organization_id
+        )
+    else:
+        # For system scope, count all users
+        user_count_query = select(func.count()).select_from(User).where(User.deleted_at.is_(None))
     user_count = db.exec(user_count_query).one()
 
     # Get claw count (all claws regardless of status)
     claw_count_query = select(func.count()).select_from(Claw)
+    if organization_id is not None:
+        # For organization scope, count claws with unified_api_key belonging to the org
+        claw_count_query = claw_count_query.join(UnifiedAPIKey, Claw.unified_api_key_id == UnifiedAPIKey.id).where(
+            UnifiedAPIKey.organization_id == organization_id
+        )
+    else:
+        # For system scope, count claws without organization (public claws)
+        claw_count_query = claw_count_query.join(UnifiedAPIKey, Claw.unified_api_key_id == UnifiedAPIKey.id).where(
+            UnifiedAPIKey.organization_id.is_(None)
+        )
     claw_count = db.exec(claw_count_query).one()
 
     # Get trend data with 96 data points, granularity depends on days parameter
@@ -729,29 +757,36 @@ def get_system_overview(
 
     if is_sqlite:
         # SQLite compatible query
+        org_filter = "AND organization_id = :org_id" if organization_id is not None else "AND organization_id IS NULL"
         trends_query = text(f"""
             SELECT CAST(((strftime('%%s', request_time) - strftime('%%s', :start_time)) / {minutes_per_slot * 60}) AS INTEGER) AS time_slot,
                    SUM(total_tokens) AS tokens
             FROM usage_logs
             WHERE request_time >= :start_date
+            {org_filter}
             GROUP BY time_slot
             ORDER BY time_slot
         """)
     else:
         # PostgreSQL query
+        org_filter = "AND organization_id = :org_id" if organization_id is not None else "AND organization_id IS NULL"
         trends_query = text(f"""
             SELECT FLOOR(EXTRACT(EPOCH FROM (request_time - :start_time)) / {minutes_per_slot * 60})::int AS time_slot,
                    SUM(total_tokens) AS tokens
             FROM usage_logs
             WHERE request_time >= :start_date
+            {org_filter}
             GROUP BY time_slot
             ORDER BY time_slot
         """)
 
     try:
+        query_params = {"start_date": utc_start_trends, "start_time": utc_start_trends}
+        if organization_id is not None:
+            query_params["org_id"] = organization_id
         trends_result = db.execute(
             trends_query,
-            {"start_date": utc_start_trends, "start_time": utc_start_trends}
+            query_params
         ).fetchall()
 
         # Fill in the actual data (limit to 96 slots)
@@ -766,19 +801,34 @@ def get_system_overview(
     daily_trends = trends_data
 
     # Get top 10 users by token consumption (all time)
-    user_rankings_query = text("""
-        SELECT u.id as user_id,
-               u.name,
-               u.email,
-               SUM(ul.total_tokens) AS tokens
-        FROM usage_logs ul
-        JOIN users u ON ul.user_id = u.id
-        WHERE u.deleted_at IS NULL
-        GROUP BY u.id, u.name, u.email
-        ORDER BY tokens DESC
-        LIMIT 10
-    """)
-    user_rankings_result = db.execute(user_rankings_query).fetchall()
+    if organization_id is not None:
+        user_rankings_query = text("""
+            SELECT u.id as user_id,
+                   u.name,
+                   u.email,
+                   SUM(ul.total_tokens) AS tokens
+            FROM usage_logs ul
+            JOIN users u ON ul.user_id = u.id
+            WHERE u.deleted_at IS NULL AND ul.organization_id = :org_id
+            GROUP BY u.id, u.name, u.email
+            ORDER BY tokens DESC
+            LIMIT 10
+        """)
+        user_rankings_result = db.execute(user_rankings_query, {"org_id": organization_id}).fetchall()
+    else:
+        user_rankings_query = text("""
+            SELECT u.id as user_id,
+                   u.name,
+                   u.email,
+                   SUM(ul.total_tokens) AS tokens
+            FROM usage_logs ul
+            JOIN users u ON ul.user_id = u.id
+            WHERE u.deleted_at IS NULL AND ul.organization_id IS NULL
+            GROUP BY u.id, u.name, u.email
+            ORDER BY tokens DESC
+            LIMIT 10
+        """)
+        user_rankings_result = db.execute(user_rankings_query).fetchall()
 
     user_rankings = [
         UserRankingData(
@@ -790,20 +840,38 @@ def get_system_overview(
     ]
 
     # Get top 10 claws by token consumption (all time)
-    claw_rankings_query = text("""
-        SELECT c.id as claw_id,
-               c.name as claw_name,
-               u.name as user_name,
-               SUM(ul.total_tokens) AS tokens
-        FROM usage_logs ul
-        JOIN claws c ON ul.unified_api_key_id = c.unified_api_key_id
-        JOIN users u ON c.user_id = u.id
-        WHERE c.unified_api_key_id IS NOT NULL
-        GROUP BY c.id, c.name, u.name
-        ORDER BY tokens DESC
-        LIMIT 10
-    """)
-    claw_rankings_result = db.execute(claw_rankings_query).fetchall()
+    if organization_id is not None:
+        claw_rankings_query = text("""
+            SELECT c.id as claw_id,
+                   c.name as claw_name,
+                   u.name as user_name,
+                   SUM(ul.total_tokens) AS tokens
+            FROM usage_logs ul
+            JOIN claws c ON ul.unified_api_key_id = c.unified_api_key_id
+            JOIN unified_api_keys uak ON ul.unified_api_key_id = uak.id
+            JOIN users u ON c.user_id = u.id
+            WHERE c.unified_api_key_id IS NOT NULL AND uak.organization_id = :org_id
+            GROUP BY c.id, c.name, u.name
+            ORDER BY tokens DESC
+            LIMIT 10
+        """)
+        claw_rankings_result = db.execute(claw_rankings_query, {"org_id": organization_id}).fetchall()
+    else:
+        claw_rankings_query = text("""
+            SELECT c.id as claw_id,
+                   c.name as claw_name,
+                   u.name as user_name,
+                   SUM(ul.total_tokens) AS tokens
+            FROM usage_logs ul
+            JOIN claws c ON ul.unified_api_key_id = c.unified_api_key_id
+            JOIN unified_api_keys uak ON ul.unified_api_key_id = uak.id
+            JOIN users u ON c.user_id = u.id
+            WHERE c.unified_api_key_id IS NOT NULL AND uak.organization_id IS NULL
+            GROUP BY c.id, c.name, u.name
+            ORDER BY tokens DESC
+            LIMIT 10
+        """)
+        claw_rankings_result = db.execute(claw_rankings_query).fetchall()
 
     claw_rankings = [
         ClawRankingData(

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { overviewAPI } from '@/lib/services';
+import { useAuthStore } from '@/lib/store';
 import { UsageStatsCard } from '@/components/usage/UsageStatsCard';
 import { UsageBarChart } from '@/components/usage/UsageBarChart';
 import { useToast } from '@/components/ui/toast';
@@ -53,6 +54,7 @@ export function OverviewPage() {
   const t = useTranslations('overview');
   const tCommon = useTranslations('common');
   const { toast } = useToast();
+  const { currentOrganization } = useAuthStore();
 
   // Time range state
   const [timeRange, setTimeRange] = useState<string>('7');
@@ -67,7 +69,8 @@ export function OverviewPage() {
     try {
       setLoading(true);
       const response = await overviewAPI.getSystemOverview({
-        days: parseInt(timeRange)
+        days: parseInt(timeRange),
+        ...(currentOrganization && { org_id: currentOrganization.id })
       });
       setOverviewData(response.data);
     } catch (error) {
@@ -80,7 +83,7 @@ export function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, toast, t, tCommon]);
+  }, [timeRange, currentOrganization, toast, t, tCommon]);
 
   // Load data on mount and when time range changes
   useEffect(() => {

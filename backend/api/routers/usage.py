@@ -4,8 +4,8 @@ Usage log router for API call usage tracking
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
-from sqlmodel import Session
+from fastapi import APIRouter, Depends, Query, HTTPException
+from sqlmodel import Session, select
 
 from api.database import get_db
 from api.dependencies.auth import get_current_user
@@ -91,6 +91,7 @@ def get_my_usage_overview(
 @router.get("/overview/system", response_model=SystemOverviewResponse)
 def get_system_overview_endpoint(
     days: int = Query(7, ge=1, le=30, description="Number of days for trend data"),
+    org_id: Optional[int] = Query(None, description="组织 ID，私服场景下传入"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -106,6 +107,16 @@ def get_system_overview_endpoint(
     - User rankings (top 10)
     - Model usage distribution
 
-    All authenticated users can access this endpoint
+    All authenticated users can access system overview.
+    For organization overview, only organization owners can access.
     """
-    return get_system_overview(db, days)
+    # Owner permission check for organization scope
+    if org_id is not None:
+        from api.models.organization_member import OrganizationMember
+        member = db.exec(select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == current_user.id
+        )).first()
+        if not member or member.role != "owner":
+            raise HTTPException(status_code=403, detail="Only organization owners can access organization overview")
+    return get_system_overview(db, days, org_id)

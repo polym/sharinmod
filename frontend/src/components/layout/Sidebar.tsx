@@ -20,9 +20,30 @@ const menuItems = [
 ];
 
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
-  const { user, currentOrganization } = useAuthStore();
-  // Hide regular menu items when in private workspace
-  const showRegularMenu = !currentOrganization;
+  const { user, currentOrganization, myOrganizations } = useAuthStore();
+
+  // Check if user is org owner
+  const isOrgOwner = currentOrganization && myOrganizations?.owned.some(org => org.id === currentOrganization.id);
+
+  // Determine menu items to show
+  // - Public mode (no organization): show all menu items
+  // - Private mode + owner: show all menu items
+  // - Private mode + non-owner: hide "overview" menu item
+  const showMenuItems = () => {
+    if (!currentOrganization) {
+      // Public mode
+      return menuItems;
+    } else if (isOrgOwner) {
+      // Private mode + owner
+      return menuItems;
+    } else {
+      // Private mode + non-owner - hide overview
+      return menuItems.filter(item => item.id !== 'overview');
+    }
+  };
+
+  const visibleMenuItems = showMenuItems();
+
   return (
     <aside
       className="w-60 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border-r-2 border-indigo-100 flex flex-col h-full"
@@ -48,7 +69,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
         <ul className="space-y-2">
-          {showRegularMenu ? menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             return (
@@ -70,13 +91,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                 </button>
               </li>
             );
-          }) : (
-            <li>
-              <div className="text-sm text-gray-500 px-4 py-3 italic">
-                私服模式 - 功能开发中
-              </div>
-            </li>
-          )}
+          })}
         </ul>
       </nav>
 

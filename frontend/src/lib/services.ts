@@ -133,7 +133,7 @@ export const usageAPI = {
 
 // Overview API
 export const overviewAPI = {
-  getSystemOverview: (params?: { days?: number }) =>
+  getSystemOverview: (params?: { days?: number; org_id?: number }) =>
     api.get('/api/usage/overview/system', { params })
 };
 
