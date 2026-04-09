@@ -71,7 +71,6 @@ export function OverviewPage() {
       });
       setOverviewData(response.data);
     } catch (error) {
-      console.error('Failed to load overview data:', error);
       setOverviewData(null);
       toast({
         title: tCommon('error'),
@@ -99,11 +98,15 @@ export function OverviewPage() {
     try {
       await loadOverviewData();
     } catch (error) {
-      console.error('Failed to refresh data:', error);
+      toast({
+        title: tCommon('error'),
+        description: t('error'),
+        variant: 'destructive'
+      });
     } finally {
       setIsRefreshing(false);
     }
-  }, [loadOverviewData]);
+  }, [loadOverviewData, toast, tCommon, t]);
 
   // Convert trend data to quarter-hourly format for bar chart
   const convertToChartFormat = (trends: TrendData[]) => {

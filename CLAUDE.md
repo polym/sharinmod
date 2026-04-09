@@ -352,3 +352,56 @@ docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "UPDATE alembic_
 - 每次添加枚举值时，迁移文件必须使用 `IF NOT EXISTS`
 - 添加新枚举值后，先检查数据库枚举状态再运行迁移
 - 如果迁移失败，检查 `alembic_version` 表状态并手动修复
+
+---
+
+## Design Context
+
+### Users
+**目标用户**: 个人开发者、开发团队、企业管理员
+**使用场景**: API 密钥创建、配置、管理；多个 AI 提供商统一管理；使用量监控和费用统计
+
+### Brand Personality
+**三个词**: 友好 · 有趣 · 易用
+**情感目标**: 让技术管理不那么枯燥，通过交互细节和视觉反馈带来愉悦感
+
+### Aesthetic Direction
+**视觉基调**: Claymorphism（拟物化）- 友好、圆润、3D 质感
+
+**核心设计元素**:
+- 字体: 标题 Fredoka + 正文 Nunito
+- 主色: 靛蓝 Indigo-600 (#4F46E5) + 橙色 Orange-500 (#F97316)
+- 圆角: 1rem - 1.5rem
+- 按钮: 3D 按钮带底部边框，点击下压效果
+- 卡片: 柔和阴影 + 内发光
+- 主题: 仅浅色模式
+
+**参考**: 友好有趣的拟物化界面，类似 Notion/Figma 的圆润设计风格
+**反向参考**: ❌ 过于企业化的扁平设计 ❌ 冰冷的技术仪表盘 ❌ 紫色渐变 AI 模板
+
+### Design Principles
+1. **友好优先**: 用圆润代替锐角，用柔和代替硬朗，用反馈代替沉默
+2. **有趣的交互**: 每个交互都有愉悦的反馈（按钮点击、卡片悬停、状态变化）
+3. **一致的品牌感**: 所有元素都符合 claymorphism 语言
+4. **清晰的信息层级**: 重要信息突出，次要信息弱化
+5. **简化复杂操作**: 友好的界面包裹复杂功能
+
+### Design Tokens
+```css
+/* Colors */
+--primary: #4F46E5;       /* Indigo-600 */
+--secondary: #818CF8;     /* Indigo-400 */
+--accent: #F97316;        /* Orange-500 */
+--background: #EEF2FF;    /* Indigo-50 */
+--text: #1E1B4B;          /* Indigo-950 */
+
+/* Typography */
+--font-heading: 'Fredoka', sans-serif;
+--font-body: 'Nunito', sans-serif;
+
+/* Radius */
+--radius-sm: 0.75rem;   /* 12px */
+--radius-md: 1rem;      /* 16px */
+--radius-lg: 1.25rem;   /* 20px */
+--radius-xl: 1.5rem;    /* 24px */
+```
