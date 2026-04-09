@@ -10,7 +10,6 @@ import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,9 +70,6 @@ export function Header() {
           </div>
           <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
         </Link>
-
-        {/* Organization Switcher */}
-        <OrganizationSwitcher />
 
         {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">

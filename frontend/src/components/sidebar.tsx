@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickCallDialog } from "@/components/QuickCallDialog";
+import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/lib/store";
 
@@ -76,10 +77,15 @@ export function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full pt-0 pl-3 pr-2 pb-4">
+      {/* Workspace Switcher */}
+      <div className="mt-3 mb-2 px-0.5">
+        <OrganizationSwitcher />
+      </div>
+
       {/* Launch Button - Claymorphism Style */}
       <QuickCallDialog>
         <Button
-          className="w-full mt-4 mb-4 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center rounded-md text-sm font-medium"
+          className="w-full mt-2 mb-4 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center rounded-md text-sm font-medium"
         >
           <Sparkles className="w-4 h-4 mr-1.5" />
           {tQuickCall('quickCall')}

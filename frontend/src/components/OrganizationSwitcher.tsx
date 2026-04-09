@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Building2, Plus, ChevronDown } from 'lucide-react';
+import { Globe, Lock, Plus, ChevronDown, Check } from 'lucide-react';
 import { useAuthStore, type Organization } from '@/lib/store';
 import { organizationAPI } from '@/lib/services';
 import {
@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface MyOrganizations {
@@ -24,7 +23,6 @@ export function OrganizationSwitcher() {
   const [organizations, setOrganizations] = useState<MyOrganizations>({ owned: [], joined: [] });
   const [loading, setLoading] = useState(false);
 
-  // Load user's organizations when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadOrganizations();
@@ -48,69 +46,119 @@ export function OrganizationSwitcher() {
     setCurrentOrganization(org);
   };
 
-  const handleCreateOrganization = () => {
-    setShowCreateOrganizationDialog(true);
-  };
-
   const allOrganizations = [...organizations.owned, ...organizations.joined];
-  const displayName = currentOrganization ? currentOrganization.name : '工区';
+  const isPublic = !currentOrganization;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="gap-2 rounded-xl border-2 border-indigo-200 bg-gradient-to-r from-indigo-100 to-indigo-50 shadow-sm hover:shadow-md"
+        <button
+          className={cn(
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer group',
+            isPublic
+              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/60 border-indigo-200 hover:border-indigo-300 hover:shadow-sm'
+              : 'bg-gradient-to-r from-violet-50 to-violet-100/60 border-violet-200 hover:border-violet-300 hover:shadow-sm'
+          )}
           style={{
-            boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+            boxShadow: isPublic
+              ? '0 1px 0 rgba(79,70,229,0.1), 0 2px 6px rgba(79,70,229,0.08)'
+              : '0 1px 0 rgba(139,92,246,0.1), 0 2px 6px rgba(139,92,246,0.08)',
           }}
         >
-          <Building2 className="h-4 w-4 text-indigo-600" />
-          <span className="text-sm font-medium text-gray-700">{displayName}</span>
-          <ChevronDown className="h-4 w-4 text-gray-500" />
-        </Button>
+          {/* Icon */}
+          <div
+            className={cn(
+              'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 border',
+              isPublic
+                ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 border-indigo-400'
+                : 'bg-gradient-to-br from-violet-500 to-violet-600 border-violet-400'
+            )}
+            style={{
+              boxShadow: isPublic
+                ? '0 2px 0 rgba(79,70,229,0.3)'
+                : '0 2px 0 rgba(139,92,246,0.3)',
+            }}
+          >
+            {isPublic
+              ? <Globe className="w-3.5 h-3.5 text-white" />
+              : <Lock className="w-3.5 h-3.5 text-white" />
+            }
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 text-left min-w-0">
+            <div className="text-xs font-medium text-gray-400 leading-none mb-0.5">
+              {isPublic ? '公共空间' : '私服'}
+            </div>
+            <div className={cn(
+              'text-sm font-semibold truncate leading-none',
+              isPublic ? 'text-indigo-700' : 'text-violet-700'
+            )}>
+              {isPublic ? '公区' : currentOrganization?.name}
+            </div>
+          </div>
+
+          {/* Chevron */}
+          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
+
+      <DropdownMenuContent align="start" sideOffset={6} className="w-52">
         {/* Public workspace */}
         <DropdownMenuItem
-          className={cn(
-            "cursor-pointer",
-            !currentOrganization && "bg-indigo-50"
-          )}
+          className="cursor-pointer flex items-center gap-2.5 py-2"
           onClick={() => handleSelectOrganization(null)}
         >
-          <Building2 className="mr-2 h-4 w-4" />
-          工区
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+            <Globe className="w-3 h-3 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-gray-800">公区</div>
+            <div className="text-xs text-gray-400">公共共享空间</div>
+          </div>
+          {isPublic && <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
         </DropdownMenuItem>
 
-        {/* User's organizations */}
+        {/* Private organizations */}
         {allOrganizations.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            {allOrganizations.map((org) => (
-              <DropdownMenuItem
-                key={org.id}
-                className={cn(
-                  "cursor-pointer",
-                  currentOrganization?.id === org.id && "bg-indigo-50"
-                )}
-                onClick={() => handleSelectOrganization(org)}
-              >
-                <Building2 className="mr-2 h-4 w-4" />
-                {org.name}
-              </DropdownMenuItem>
-            ))}
+            <div className="px-2 py-1">
+              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">私服</span>
+            </div>
+            {allOrganizations.map((org) => {
+              const isSelected = currentOrganization?.id === org.id;
+              return (
+                <DropdownMenuItem
+                  key={org.id}
+                  className="cursor-pointer flex items-center gap-2.5 py-2"
+                  onClick={() => handleSelectOrganization(org)}
+                >
+                  <div className="w-6 h-6 rounded-md bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-3 h-3 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-800 truncate">{org.name}</div>
+                    <div className="text-xs text-gray-400">
+                      {organizations.owned.some(o => o.id === org.id) ? '创建者' : '成员'}
+                    </div>
+                  </div>
+                  {isSelected && <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
           </>
         )}
 
         <DropdownMenuSeparator />
-        {/* Create organization button */}
         <DropdownMenuItem
-          className="cursor-pointer text-indigo-600 focus:text-indigo-600"
-          onClick={handleCreateOrganization}
+          className="cursor-pointer flex items-center gap-2 py-2 text-indigo-600 focus:text-indigo-600"
+          onClick={() => setShowCreateOrganizationDialog(true)}
         >
-          <Plus className="mr-2 h-4 w-4" />
-          创建私服
+          <div className="w-6 h-6 rounded-md border-2 border-dashed border-indigo-300 flex items-center justify-center flex-shrink-0">
+            <Plus className="w-3 h-3 text-indigo-500" />
+          </div>
+          <span className="text-sm font-medium">创建私服</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
