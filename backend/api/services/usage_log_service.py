@@ -441,7 +441,7 @@ def get_user_usage_logs(
         UsageLogList with paginated results
     """
     # Debug log
-    logger.info(f"get_user_usage_logs called: user_id={user_id}, unified_api_key_id={unified_api_key_id}, start_date={start_date}, end_date={end_date}")
+    logger.info(f"get_user_usage_logs called: user_id={user_id}, unified_api_key_id={unified_api_key_id}, organization_id={organization_id}, start_date={start_date}, end_date={end_date}")
 
     # Normalize timezone string
     tz_str = timezone_str or DEFAULT_TIMEZONE
@@ -485,6 +485,7 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
         status: Optional status filter
         timezone_str: Optional timezone string for date conversion
         unified_api_key_id: Optional filter by unified API key ID
+        organization_id: Optional filter by organization ID (None = private only)
 
     Returns:
         Query with filters applied
@@ -513,8 +514,13 @@ def _apply_date_and_status_filters(query, start_date: Optional[date], end_date: 
         query = query.where(UsageLog.unified_api_key_id == unified_api_key_id)
 
     # Apply organization filter
+    # None means public only (organization_id IS NULL)
+    # A specific value means that organization only
     if organization_id is not None:
         query = query.where(UsageLog.organization_id == organization_id)
+    else:
+        # Default: only show public records (organization_id IS NULL)
+        query = query.where(UsageLog.organization_id.is_(None))
 
     return query
 
@@ -566,9 +572,12 @@ def get_user_usage_overview(
     if unified_api_key_id is not None:
         base_filters.append(UsageLog.unified_api_key_id == unified_api_key_id)
 
-    # Add organization filter if provided
+    # Add organization filter
     if organization_id is not None:
         base_filters.append(UsageLog.organization_id == organization_id)
+    else:
+        # Default: only show public records (organization_id IS NULL)
+        base_filters.append(UsageLog.organization_id.is_(None))
 
     # Get total requests
     total_query = select(func.count()).select_from(UsageLog).where(*base_filters)
@@ -600,6 +609,12 @@ def get_user_usage_overview(
     # Build WHERE clause for unified_api_key_id and organization_id filters
     key_filter = "AND unified_api_key_id = :key_id" if unified_api_key_id is not None else ""
     org_filter = "AND organization_id = :org_id" if organization_id is not None else ""
+
+    # Build WHERE clause for organization_id filter
+    if organization_id is not None:
+        org_filter = "AND organization_id = :org_id"
+    else:
+        org_filter = "AND organization_id IS NULL"
 
     # Check database type to use appropriate SQL syntax
     # PostgreSQL uses EXTRACT(EPOCH FROM ...), SQLite uses strftime

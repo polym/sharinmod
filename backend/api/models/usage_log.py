@@ -29,6 +29,7 @@ class UsageLog(SQLModel, table=True):
         user_id: Foreign key to users table
         unified_api_key_id: Foreign key to unified_api_keys table (nullable)
         unified_api_key_name: Name of the API key used (nullable)
+        organization_id: Foreign key to organizations table (nullable, null = private, not null = public)
         model_id: Model identifier from LiteLLM (nullable)
         model_name: Model name used
         status: Status of the call (success/failure)
