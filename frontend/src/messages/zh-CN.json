@@ -852,5 +852,55 @@
     "dailyLimitPlaceholder": "留空表示无限制",
     "dailyLimitHint": "最大可设置 {max}",
     "unlimited": "无限制"
+  },
+  "myTeam": {
+    "title": "我的团队",
+    "memberList": "成员列表（{count} 人）",
+    "noMembers": "暂无成员，点击「邀请用户」添加第一个成员",
+    "inviteUser": "邀请用户",
+    "email": "邮箱",
+    "roleLabel": "角色",
+    "totalUsage": "总使用",
+    "lastUsed": "最近使用",
+    "actions": "操作",
+    "role": {
+      "owner": "创建者",
+      "member": "成员"
+    },
+    "disableMember": "停用",
+    "enableMember": "启用",
+    "removeMember": "移除",
+    "statusDisabled": "已停用",
+    "confirmDisable": "确定要停用成员 {email}？停用后该成员状态将标记为已禁用。",
+    "confirmEnable": "确定要启用成员 {email}？",
+    "confirmRemove": "确定要从私服中移除成员 {email}？此操作不可撤销，但不影响该用户的平台账号。",
+    "confirmDisableTitle": "确认停用成员",
+    "confirmEnableTitle": "确认启用成员",
+    "confirmRemoveTitle": "确认移除成员",
+    "inviteDialog": {
+      "title": "邀请用户加入私服",
+      "description": "将以下链接发送给受邀用户，对方登录后点击链接即可加入私服。",
+      "copy": "复制",
+      "copied": "已复制",
+      "copyHint": "邀请链接已复制到剪贴板",
+      "hint": "邀请链接有效期 7 天，仅可使用一次。",
+      "close": "关闭"
+    },
+    "toast": {
+      "loadFailed": "加载失败",
+      "loadFailedDetail": "无法加载成员列表",
+      "success": "成功",
+      "disableSuccess": "已禁用成员 {email}",
+      "enableSuccess": "已启用成员 {email}",
+      "removeSuccess": "已移除成员 {email}",
+      "actionFailed": "操作失败",
+      "disableFailed": "禁用失败",
+      "enableFailed": "启用失败",
+      "removeFailed": "移除失败",
+      "generateFailed": "生成失败",
+      "generateFailedDetail": "无法生成邀请链接",
+      "linkCopied": "链接已复制",
+      "linkCopiedHint": "邀请链接已复制到剪贴板"
+    }
   }
 }

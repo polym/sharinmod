@@ -848,5 +848,55 @@
     "dailyLimitPlaceholder": "Leave empty for unlimited",
     "dailyLimitHint": "Maximum is {max}",
     "unlimited": "Unlimited"
+  },
+  "myTeam": {
+    "title": "My Team",
+    "memberList": "Members ({count})",
+    "noMembers": "No members yet. Click \"Invite User\" to add the first member",
+    "inviteUser": "Invite User",
+    "email": "Email",
+    "roleLabel": "Role",
+    "totalUsage": "Total Usage",
+    "lastUsed": "Last Used",
+    "actions": "Actions",
+    "role": {
+      "owner": "Owner",
+      "member": "Member"
+    },
+    "disableMember": "Disable",
+    "enableMember": "Enable",
+    "removeMember": "Remove",
+    "statusDisabled": "Disabled",
+    "confirmDisable": "Are you sure you want to disable member {email}? The member's status will be marked as disabled.",
+    "confirmEnable": "Are you sure you want to enable member {email}?",
+    "confirmRemove": "Are you sure you want to remove member {email} from the private server? This action cannot be undone, but will not affect the user's platform account.",
+    "confirmDisableTitle": "Confirm Disable Member",
+    "confirmEnableTitle": "Confirm Enable Member",
+    "confirmRemoveTitle": "Confirm Remove Member",
+    "inviteDialog": {
+      "title": "Invite User to Private Server",
+      "description": "Send the following link to the invited user. They can join the private server by logging in and clicking the link.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyHint": "Invite link copied to clipboard",
+      "hint": "Invite link is valid for 7 days and can only be used once.",
+      "close": "Close"
+    },
+    "toast": {
+      "loadFailed": "Load Failed",
+      "loadFailedDetail": "Unable to load member list",
+      "success": "Success",
+      "disableSuccess": "Member {email} disabled",
+      "enableSuccess": "Member {email} enabled",
+      "removeSuccess": "Member {email} removed",
+      "actionFailed": "Action Failed",
+      "disableFailed": "Disable Failed",
+      "enableFailed": "Enable Failed",
+      "removeFailed": "Remove Failed",
+      "generateFailed": "Generate Failed",
+      "generateFailedDetail": "Unable to generate invite link",
+      "linkCopied": "Link Copied",
+      "linkCopiedHint": "Invite link copied to clipboard"
+    }
   }
 }

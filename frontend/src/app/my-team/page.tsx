@@ -17,6 +17,8 @@ import {
 import { useAuthStore } from '@/lib/store';
 import { organizationAPI } from '@/lib/services';
 import { useToast } from '@/components/ui/toast';
+import { useTranslations } from 'next-intl';
+import { useLocaleStore } from '@/lib/store';
 
 interface OrgMemberStats {
   user_id: number;
@@ -29,14 +31,21 @@ interface OrgMemberStats {
   joined_at: string;
 }
 
-function formatTokens(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
-  return n.toLocaleString();
+function formatTokens(tokens: number): string {
+  if (tokens < 1000) {
+    return tokens.toLocaleString();
+  } else if (tokens < 1000000) {
+    return (tokens / 1000).toFixed(1) + 'K';
+  } else if (tokens < 1000000000) {
+    return (tokens / 1000000).toFixed(1) + 'M';
+  } else {
+    return (tokens / 1000000000).toFixed(1) + 'B';
+  }
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, locale: string): string {
   if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString('zh-CN', {
+  return new Date(dateStr).toLocaleString(locale, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -50,6 +59,9 @@ function formatDate(dateStr: string | null): string {
 export default function MyTeamPage() {
   const router = useRouter();
   const { currentOrganization, myOrganizations, isAuthenticated, setShowLoginDialog } = useAuthStore();
+  const { locale } = useLocaleStore();
+  const t = useTranslations('myTeam');
+  const tCommon = useTranslations('common');
   const { toast } = useToast();
 
   const [members, setMembers] = useState<OrgMemberStats[]>([]);
@@ -96,14 +108,14 @@ export default function MyTeamPage() {
       setMembers(response.data.items);
     } catch (error: any) {
       toast({
-        title: '加载失败',
-        description: error.response?.data?.detail || '无法加载成员列表',
+        title: t('toast.loadFailed'),
+        description: error.response?.data?.detail || t('toast.loadFailedDetail'),
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  }, [currentOrganization, toast]);
+  }, [currentOrganization, toast, t]);
 
   const handleDisable = async () => {
     if (!targetMember || !currentOrganization) return;
@@ -113,11 +125,11 @@ export default function MyTeamPage() {
       setMembers(prev => prev.map(m =>
         m.user_id === targetMember.user_id ? { ...m, is_disabled: true } : m
       ));
-      toast({ title: '成功', description: `已禁用成员 ${targetMember.email}` });
+      toast({ title: t('toast.success'), description: t('toast.disableSuccess', { email: targetMember.email }) });
     } catch (error: any) {
       toast({
-        title: '操作失败',
-        description: error.response?.data?.detail || '禁用失败',
+        title: t('toast.actionFailed'),
+        description: error.response?.data?.detail || t('toast.disableFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -135,11 +147,11 @@ export default function MyTeamPage() {
       setMembers(prev => prev.map(m =>
         m.user_id === targetMember.user_id ? { ...m, is_disabled: false } : m
       ));
-      toast({ title: '成功', description: `已启用成员 ${targetMember.email}` });
+      toast({ title: t('toast.success'), description: t('toast.enableSuccess', { email: targetMember.email }) });
     } catch (error: any) {
       toast({
-        title: '操作失败',
-        description: error.response?.data?.detail || '启用失败',
+        title: t('toast.actionFailed'),
+        description: error.response?.data?.detail || t('toast.enableFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -155,11 +167,11 @@ export default function MyTeamPage() {
     try {
       await organizationAPI.removeMember(currentOrganization.id, targetMember.user_id);
       setMembers(prev => prev.filter(m => m.user_id !== targetMember.user_id));
-      toast({ title: '成功', description: `已移除成员 ${targetMember.email}` });
+      toast({ title: t('toast.success'), description: t('toast.removeSuccess', { email: targetMember.email }) });
     } catch (error: any) {
       toast({
-        title: '操作失败',
-        description: error.response?.data?.detail || '移除失败',
+        title: t('toast.actionFailed'),
+        description: error.response?.data?.detail || t('toast.removeFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -179,8 +191,8 @@ export default function MyTeamPage() {
       setShowInviteDialog(true);
     } catch (error: any) {
       toast({
-        title: '生成失败',
-        description: error.response?.data?.detail || '无法生成邀请链接',
+        title: t('toast.generateFailed'),
+        description: error.response?.data?.detail || t('toast.generateFailedDetail'),
         variant: 'destructive',
       });
     } finally {
@@ -196,14 +208,14 @@ export default function MyTeamPage() {
     if (!inviteUrl) return;
     await navigator.clipboard.writeText(inviteUrl);
     setCopied(true);
-    toast({ title: '链接已复制', description: '邀请链接已复制到剪贴板' });
+    toast({ title: t('toast.linkCopied'), description: t('toast.linkCopiedHint') });
     setTimeout(() => setCopied(false), 2000);
   };
 
   if (!isAuthenticated || !currentOrganization || myOrganizations === null) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -214,7 +226,7 @@ export default function MyTeamPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Users className="w-6 h-6 text-indigo-600" />
-            我的团队
+            {t('title')}
           </h1>
           <p className="text-sm text-gray-500 mt-1">{currentOrganization.name}</p>
         </div>
@@ -224,61 +236,61 @@ export default function MyTeamPage() {
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
         >
           <Plus className="w-4 h-4" />
-          邀请用户
+          {t('inviteUser')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold text-gray-700">
-            成员列表（{members.length} 人）
+            {t('memberList', { count: members.length })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">加载中...</div>
+            <div className="p-8 text-center text-gray-500">{tCommon('loading')}</div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>邮箱</TableHead>
-                  <TableHead>角色</TableHead>
-                  <TableHead>总使用</TableHead>
-                  <TableHead>最近使用</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
+                  <TableHead>{t('email')}</TableHead>
+                  <TableHead>{t('roleLabel')}</TableHead>
+                  <TableHead>{t('totalUsage')}</TableHead>
+                  <TableHead>{t('lastUsed')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.user_id} className={member.is_disabled ? 'opacity-60' : ''}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium text-sm">{member.email}</div>
-                        {member.name && <div className="text-xs text-gray-400">{member.name}</div>}
+                      <div className="flex flex-col">
+                        <span className="font-medium flex items-center gap-1.5">
+                          {member.email}
+                          {member.role === 'owner' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 flex-shrink-0">
+                              {t('role.owner')}
+                            </span>
+                          )}
+                          {member.is_disabled && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-500 text-white flex-shrink-0">
+                              {t('statusDisabled')}
+                            </span>
+                          )}
+                        </span>
+                        {member.name && (
+                          <span className="text-xs text-gray-500">{member.name}</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        member.role === 'owner'
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {member.role === 'owner' ? '创建者' : '成员'}
-                      </span>
+                      {member.role === 'owner' ? t('role.owner') : t('role.member')}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {formatTokens(member.org_total_tokens)} tokens
+                      {formatTokens(member.org_total_tokens)}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
-                      {formatDate(member.last_used_at)}
-                    </TableCell>
-                    <TableCell>
-                      {member.is_disabled && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">
-                          已禁用
-                        </span>
-                      )}
+                      {formatDate(member.last_used_at, locale)}
                     </TableCell>
                     <TableCell className="text-right">
                       {member.role !== 'owner' && (
@@ -291,7 +303,7 @@ export default function MyTeamPage() {
                               onClick={() => { setTargetMember(member); setShowEnableDialog(true); }}
                             >
                               <Power className="w-3.5 h-3.5" />
-                              启用
+                              {t('enableMember')}
                             </Button>
                           ) : (
                             <Button
@@ -301,7 +313,7 @@ export default function MyTeamPage() {
                               onClick={() => { setTargetMember(member); setShowDisableDialog(true); }}
                             >
                               <Ban className="w-3.5 h-3.5" />
-                              禁用
+                              {t('disableMember')}
                             </Button>
                           )}
                           <Button
@@ -311,7 +323,7 @@ export default function MyTeamPage() {
                             onClick={() => { setTargetMember(member); setShowRemoveDialog(true); }}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            移除
+                            {t('removeMember')}
                           </Button>
                         </div>
                       )}
@@ -320,8 +332,8 @@ export default function MyTeamPage() {
                 ))}
                 {members.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-gray-400 py-8">
-                      暂无成员，点击「邀请用户」添加第一个成员
+                    <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                      {t('noMembers')}
                     </TableCell>
                   </TableRow>
                 )}
@@ -335,15 +347,15 @@ export default function MyTeamPage() {
       <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认禁用成员</DialogTitle>
+            <DialogTitle>{t('confirmDisableTitle')}</DialogTitle>
             <DialogDescription>
-              确定要禁用成员 <strong>{targetMember?.email}</strong> 吗？禁用后该成员状态将标记为已禁用。
+              {t('confirmDisable', { email: targetMember?.email })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDisableDialog(false)} disabled={actionLoading}>取消</Button>
+            <Button variant="outline" onClick={() => setShowDisableDialog(false)} disabled={actionLoading}>{tCommon('cancel')}</Button>
             <Button variant="destructive" onClick={handleDisable} disabled={actionLoading}>
-              {actionLoading ? '处理中...' : '确认禁用'}
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -353,15 +365,15 @@ export default function MyTeamPage() {
       <Dialog open={showEnableDialog} onOpenChange={setShowEnableDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认启用成员</DialogTitle>
+            <DialogTitle>{t('confirmEnableTitle')}</DialogTitle>
             <DialogDescription>
-              确定要启用成员 <strong>{targetMember?.email}</strong> 吗？
+              {t('confirmEnable', { email: targetMember?.email })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEnableDialog(false)} disabled={actionLoading}>取消</Button>
+            <Button variant="outline" onClick={() => setShowEnableDialog(false)} disabled={actionLoading}>{tCommon('cancel')}</Button>
             <Button onClick={handleEnable} disabled={actionLoading} className="bg-green-600 hover:bg-green-700">
-              {actionLoading ? '处理中...' : '确认启用'}
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -371,15 +383,15 @@ export default function MyTeamPage() {
       <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认移除成员</DialogTitle>
+            <DialogTitle>{t('confirmRemoveTitle')}</DialogTitle>
             <DialogDescription>
-              确定要从私服中移除成员 <strong>{targetMember?.email}</strong> 吗？此操作不可撤销，但不影响该用户的平台账号。
+              {t('confirmRemove', { email: targetMember?.email })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemoveDialog(false)} disabled={actionLoading}>取消</Button>
+            <Button variant="outline" onClick={() => setShowRemoveDialog(false)} disabled={actionLoading}>{tCommon('cancel')}</Button>
             <Button variant="destructive" onClick={handleRemove} disabled={actionLoading}>
-              {actionLoading ? '处理中...' : '确认移除'}
+              {actionLoading ? tCommon('loading') : tCommon('confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -389,9 +401,9 @@ export default function MyTeamPage() {
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>邀请用户加入私服</DialogTitle>
+            <DialogTitle>{t('inviteDialog.title')}</DialogTitle>
             <DialogDescription>
-              将以下链接发送给受邀用户，对方登录后点击链接即可加入私服。
+              {t('inviteDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -404,13 +416,13 @@ export default function MyTeamPage() {
                 onClick={handleCopyInvite}
               >
                 {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-                {copied ? '已复制' : '复制'}
+                {copied ? t('inviteDialog.copied') : t('inviteDialog.copy')}
               </Button>
             </div>
-            <p className="text-xs text-gray-400">邀请链接有效期 7 天，仅可使用一次。</p>
+            <p className="text-xs text-gray-400">{t('inviteDialog.hint')}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInviteDialog(false)}>关闭</Button>
+            <Button variant="outline" onClick={() => setShowInviteDialog(false)}>{t('inviteDialog.close')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
