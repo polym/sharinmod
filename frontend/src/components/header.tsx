@@ -3,15 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Zap, Shield, Lock, Globe } from "lucide-react";
+import { User, LogOut, Zap, Shield, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import {
   DropdownMenu,
@@ -51,6 +49,11 @@ export function Header() {
     setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN');
   };
 
+  const langOptions = [
+    { code: 'zh-CN' as const, label: 'ZH' },
+    { code: 'en' as const, label: 'EN' },
+  ];
+
   return (
     <header
       className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-3"
@@ -82,20 +85,25 @@ export function Header() {
 
         {/* Language Toggle + Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
-          {/* Language Toggle Switch */}
-          <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-white gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
+          {/* Language Toggle */}
+          <div className="flex gap-1 bg-white h-8 px-1.5 rounded-lg border-2 border-indigo-200 shadow-sm"
             style={{
-              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.1)"
             }}>
-            <Globe className="h-3.5 w-3.5 text-indigo-600" />
-            <Switch
-              checked={locale === 'en'}
-              onCheckedChange={toggleLocale}
-              className="h-4 w-8"
-            />
-            <Label htmlFor="language-toggle" className="sr-only">
-              {t('language')}
-            </Label>
+            {langOptions.map((option) => (
+              <button
+                key={option.code}
+                onClick={() => setLocale(option.code)}
+                className={cn(
+                  "px-2.5 py-1 text-sm font-medium rounded-md transition-colors",
+                  locale === option.code
+                    ? "bg-indigo-500 text-white"
+                    : "text-gray-600 hover:bg-indigo-50"
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
 
           {/* Token Balance Button */}
