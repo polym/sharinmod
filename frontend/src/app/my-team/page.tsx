@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ban, Power, Trash2, Users, Plus, Copy, Check } from 'lucide-react';
+import { Ban, Power, Trash2, Plus, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
@@ -221,27 +221,22 @@ export default function MyTeamPage() {
   }
 
   return (
-    <Card>
-      <CardHeader className="p-6">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col space-y-1.5">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-indigo-600" />
-              {t('title')}
-            </CardTitle>
-            <CardDescription>{currentOrganization.name}</CardDescription>
+    <div className="max-w-7xl mx-auto p-8 space-y-6">
+      <Card>
+        <CardHeader className="p-6">
+          <div className="flex justify-between items-center">
+            <CardTitle>{t('title')}</CardTitle>
+            <Button
+              onClick={handleCreateInvite}
+              disabled={inviteLoading}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4" />
+              {t('inviteUser')}
+            </Button>
           </div>
-          <Button
-            onClick={handleCreateInvite}
-            disabled={inviteLoading}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-          >
-            <Plus className="w-4 h-4" />
-            {t('inviteUser')}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
+        </CardHeader>
+        <CardContent>
         <Card>
           <CardHeader>
             <CardTitle className="text-base font-semibold text-gray-700">
@@ -343,7 +338,7 @@ export default function MyTeamPage() {
       </Card>
       </CardContent>
 
-    {/* Disable confirmation */}
+      {/* Disable confirmation */}
       <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <DialogContent>
           <DialogHeader>
@@ -427,5 +422,6 @@ export default function MyTeamPage() {
         </DialogContent>
       </Dialog>
     </Card>
+    </div>
   );
 }
