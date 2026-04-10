@@ -3,13 +3,15 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Zap, Globe, Shield, Lock } from "lucide-react";
+import { User, LogOut, Zap, Shield, Lock, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import {
   DropdownMenu,
@@ -17,14 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useTranslations } from "next-intl";
-import { localeNames, locales, type Locale } from "@/i18n";
 
 export function Header() {
   const t = useTranslations('topbar');
@@ -50,6 +46,10 @@ export function Header() {
   };
 
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
+
+  const toggleLocale = () => {
+    setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN');
+  };
 
   return (
     <header
@@ -80,8 +80,25 @@ export function Header() {
           </div>
         </div>
 
-        {/* Token余额显示 + Account Avatar */}
+        {/* Language Toggle + Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
+          {/* Language Toggle Switch */}
+          <div className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-white gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
+            style={{
+              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
+            }}>
+            <Globe className="h-3.5 w-3.5 text-indigo-600" />
+            <Switch
+              checked={locale === 'en'}
+              onCheckedChange={toggleLocale}
+              className="h-4 w-8"
+            />
+            <Label htmlFor="language-toggle" className="sr-only">
+              {t('language')}
+            </Label>
+          </div>
+
+          {/* Token Balance Button */}
           <Button
             variant="ghost"
             className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
@@ -131,21 +148,6 @@ export function Header() {
               <Lock className="mr-2 h-4 w-4" />
               {t('changePassword')}
             </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Globe className="mr-2 h-4 w-4" />
-                {t('language')}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-                  {locales.map((loc) => (
-                    <DropdownMenuRadioItem key={loc} value={loc}>
-                      {localeNames[loc]}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
             {user?.is_admin && (
               <>
                 <DropdownMenuSeparator />
