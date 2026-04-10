@@ -17,7 +17,8 @@
     "logout": "Logout",
     "apiKeys": "API Keys",
     "language": "Language",
-    "languageSettings": "Language Settings"
+    "languageSettings": "Language Settings",
+    "profile": "Profile"
   },
   "settings": {
     "languageSettings": "Language Settings",
@@ -216,6 +217,9 @@
     "apiKey": "API Key:",
     "selectDatePlaceholder": "Select date",
     "selectApiKeyPlaceholder": "Select API Key",
+    "selectMember": "Select Member:",
+    "selectMemberPlaceholder": "Select team member",
+    "allMembers": "All Members",
     "all": "All",
     "loading": "Loading...",
     "noData": "No usage records",

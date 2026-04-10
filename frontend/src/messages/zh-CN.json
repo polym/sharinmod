@@ -18,7 +18,8 @@
     "logout": "登出",
     "apiKeys": "API Keys",
     "language": "语言",
-    "languageSettings": "语言设置"
+    "languageSettings": "语言设置",
+    "profile": "个人资料"
   },
   "language": {
     "zh-CN": "中文",
@@ -156,6 +157,9 @@
     "apiKey": "API Key:",
     "selectDatePlaceholder": "选择日期",
     "selectApiKeyPlaceholder": "选择 API Key",
+    "selectMember": "选择成员:",
+    "selectMemberPlaceholder": "选择团队成员",
+    "allMembers": "全部成员",
     "all": "全部",
     "loading": "加载中...",
     "noData": "暂无使用记录",

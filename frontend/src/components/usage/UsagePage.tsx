@@ -5,7 +5,7 @@ import { RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { usageAPI, apiKeyAPI } from '@/lib/services';
+import { usageAPI, apiKeyAPI, organizationAPI } from '@/lib/services';
 import { useAuthStore } from '@/lib/store';
 import { UsageStatsCard } from './UsageStatsCard';
 import { UsageBarChart } from './UsageBarChart';
@@ -57,7 +57,10 @@ export function UsagePage() {
   const t = useTranslations('usage');
   const tCommon = useTranslations('common');
   const { toast } = useToast();
-  const { currentOrganization } = useAuthStore();
+  const { myOrganizations, currentOrganization, user } = useAuthStore();
+
+  // Check if current user is org owner
+  const isOrgOwner = myOrganizations?.owned.some(org => org.id === currentOrganization?.id) ?? false;
 
   // Get user timezone
   const [userTimezone] = useState<string>(() =>
@@ -74,10 +77,26 @@ export function UsagePage() {
     return `${year}-${month}-${day}`;
   });
   const [selectedApiKey, setSelectedApiKey] = useState<string>('all');
+  const [selectedMember, setSelectedMember] = useState<string>('all');
+
+  // Check if selected member is the current user
+  const isCurrentUserSelected = useMemo(() => {
+    return selectedMember !== 'all' && parseInt(selectedMember) === user?.id;
+  }, [selectedMember, user?.id]);
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<UnifiedAPIKey[]>([]);
   const [apiKeysLoading, setApiKeysLoading] = useState(true);
+
+  // Team members state
+  const [teamMembers, setTeamMembers] = useState<Array<{user_id: number, email: string, name: string | null}>>([]);
+  const [teamMembersLoading, setTeamMembersLoading] = useState(false);
+
+  // Reset filters when switching organizations
+  useEffect(() => {
+    setSelectedMember('all');
+    setSelectedApiKey('all');
+  }, [currentOrganization?.id]);
 
   // Overview data state
   const [overviewData, setOverviewData] = useState<UsageOverview | null>(null);
@@ -131,6 +150,20 @@ export function UsagePage() {
     }
   }, [currentOrganization]);
 
+  // Load team members (org owners only)
+  const loadTeamMembers = useCallback(async () => {
+    if (!currentOrganization?.id || !isOrgOwner) return;
+    try {
+      setTeamMembersLoading(true);
+      const response = await organizationAPI.listMembers(currentOrganization.id);
+      setTeamMembers(response.data.items);
+    } catch (error) {
+      console.error('Failed to load team members:', error);
+    } finally {
+      setTeamMembersLoading(false);
+    }
+  }, [currentOrganization?.id, isOrgOwner]);
+
   // Load overview data
   const loadOverviewData = useCallback(async () => {
     try {
@@ -138,7 +171,8 @@ export function UsagePage() {
       const response = await usageAPI.getOverview({
         target_date: selectedDate,
         ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) }),
-        ...(currentOrganization && { org_id: currentOrganization.id })
+        ...(currentOrganization && { org_id: currentOrganization.id }),
+        ...(selectedMember !== 'all' && { target_user_id: parseInt(selectedMember) })
       });
       setOverviewData(response.data);
     } catch (error) {
@@ -147,7 +181,7 @@ export function UsagePage() {
     } finally {
       setOverviewLoading(false);
     }
-  }, [selectedDate, selectedApiKey, currentOrganization]);
+  }, [selectedDate, selectedApiKey, selectedMember, currentOrganization]);
 
   // Load logs data
   const loadLogsData = useCallback(async (page: number, reset: boolean = false) => {
@@ -159,7 +193,8 @@ export function UsagePage() {
         start_date: selectedDate,
         end_date: selectedDate,
         ...(selectedApiKey !== 'all' && { unified_api_key_id: parseInt(selectedApiKey) }),
-        ...(currentOrganization && { org_id: currentOrganization.id })
+        ...(currentOrganization && { org_id: currentOrganization.id }),
+        ...(selectedMember !== 'all' && { target_user_id: parseInt(selectedMember) })
       });
 
       const data = response.data as UsageLogsResponse;
@@ -182,12 +217,17 @@ export function UsagePage() {
     } finally {
       setLogsLoading(false);
     }
-  }, [selectedDate, selectedApiKey, currentOrganization]);
+  }, [selectedDate, selectedApiKey, selectedMember, currentOrganization]);
 
   // Load API Keys on mount
   useEffect(() => {
     loadAPIKeys();
   }, [loadAPIKeys]);
+
+  // Load team members when org changes (org owners only)
+  useEffect(() => {
+    loadTeamMembers();
+  }, [loadTeamMembers]);
 
   // Load overview data when date changes
   useEffect(() => {
@@ -198,7 +238,7 @@ export function UsagePage() {
   useEffect(() => {
     loadLogsData(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedApiKey]);
+  }, [selectedDate, selectedApiKey, selectedMember]);
 
   const handleLoadMore = () => {
     loadLogsData(logsPage + 1, false);
@@ -210,6 +250,14 @@ export function UsagePage() {
 
   const handleApiKeyChange = (value: string) => {
     setSelectedApiKey(value);
+  };
+
+  const handleMemberChange = (value: string) => {
+    setSelectedMember(value);
+    // Reset API Key filter only when selecting other members (not self)
+    if (value !== 'all' && parseInt(value) !== user?.id) {
+      setSelectedApiKey('all');
+    }
   };
 
   // Refresh all data
@@ -261,9 +309,26 @@ export function UsagePage() {
               </SelectContent>
             </Select>
 
+            {/* Team Member Filter (org owners only) */}
+            {isOrgOwner && (
+              <Select value={selectedMember} onValueChange={handleMemberChange} disabled={teamMembersLoading}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder={t('selectMemberPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('allMembers')}</SelectItem>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.user_id} value={member.user_id.toString()}>
+                      {member.name || member.email.split('@')[0]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             {/* API Key Filter */}
-            <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading}>
-              <SelectTrigger className="w-[200px]">
+            <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading || (selectedMember !== 'all' && !isCurrentUserSelected)}>
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
               </SelectTrigger>
               <SelectContent>

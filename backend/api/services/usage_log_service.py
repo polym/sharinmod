@@ -420,7 +420,8 @@ def get_user_usage_logs(
     status: Optional[UsageLogStatus] = None,
     timezone_str: Optional[str] = None,
     unified_api_key_id: Optional[int] = None,
-    organization_id: Optional[int] = None
+    organization_id: Optional[int] = None,
+    target_user_id: Optional[int] = None
 ) -> UsageLogList:
     """
     Get paginated usage logs for a user
@@ -436,24 +437,35 @@ def get_user_usage_logs(
         timezone_str: Optional timezone string (e.g., "Asia/Shanghai", "UTC")
         unified_api_key_id: Optional filter by unified API key ID
         organization_id: Optional filter by organization ID (private server isolation)
+        target_user_id: Optional filter by target user ID (for org owners to view specific member's logs)
 
     Returns:
         UsageLogList with paginated results
     """
+    # Determine which user_id to use for filtering
+    filter_user_id = target_user_id if target_user_id is not None else user_id
+
     # Debug log
-    logger.info(f"get_user_usage_logs called: user_id={user_id}, unified_api_key_id={unified_api_key_id}, organization_id={organization_id}, start_date={start_date}, end_date={end_date}")
+    logger.info(f"get_user_usage_logs called: user_id={user_id}, target_user_id={target_user_id}, filter_user_id={filter_user_id}, unified_api_key_id={unified_api_key_id}, organization_id={organization_id}, start_date={start_date}, end_date={end_date}")
 
     # Normalize timezone string
     tz_str = timezone_str or DEFAULT_TIMEZONE
 
     # Build base query with user filter
-    query = select(UsageLog).where(UsageLog.user_id == user_id)
+    # When organization_id is provided and target_user_id is None, query entire organization's logs
+    if organization_id is not None and target_user_id is None:
+        query = select(UsageLog).where(UsageLog.organization_id == organization_id)
+    else:
+        query = select(UsageLog).where(UsageLog.user_id == filter_user_id)
 
     # Apply filters using helper function to avoid duplication
     query = _apply_date_and_status_filters(query, start_date, end_date, status, tz_str, unified_api_key_id, organization_id)
 
     # Get total count using the same filters
-    count_query = select(func.count()).select_from(UsageLog).where(UsageLog.user_id == user_id)
+    if organization_id is not None and target_user_id is None:
+        count_query = select(func.count()).select_from(UsageLog).where(UsageLog.organization_id == organization_id)
+    else:
+        count_query = select(func.count()).select_from(UsageLog).where(UsageLog.user_id == filter_user_id)
     count_query = _apply_date_and_status_filters(count_query, start_date, end_date, status, tz_str, unified_api_key_id, organization_id)
     total = db.exec(count_query).one()
 
@@ -531,7 +543,8 @@ def get_user_usage_overview(
     target_date: Optional[date] = None,
     timezone_str: Optional[str] = None,
     unified_api_key_id: Optional[int] = None,
-    organization_id: Optional[int] = None
+    organization_id: Optional[int] = None,
+    target_user_id: Optional[int] = None
 ) -> UsageOverviewResponse:
     """
     Get usage overview for a user on a specific date (user timezone)
@@ -543,10 +556,14 @@ def get_user_usage_overview(
         timezone_str: Optional timezone string for date conversion
         unified_api_key_id: Optional filter by unified API key ID
         organization_id: Optional filter by organization ID (private server isolation)
+        target_user_id: Optional filter by target user ID (for org owners to view specific member's data)
 
     Returns:
         UsageOverviewResponse with aggregated data
     """
+    # Determine which user_id to use for filtering
+    filter_user_id = target_user_id if target_user_id is not None else user_id
+
     # Normalize timezone string
     tz_str = timezone_str or DEFAULT_TIMEZONE
 
@@ -562,11 +579,19 @@ def get_user_usage_overview(
     utc_end = datetime.combine(target_date, datetime.max.time()) - tz_offset
 
     # Build base filters
-    base_filters = [
-        UsageLog.user_id == user_id,
-        UsageLog.request_time >= utc_start,
-        UsageLog.request_time <= utc_end
-    ]
+    # When organization_id is provided and target_user_id is None, query entire organization's data
+    if organization_id is not None and target_user_id is None:
+        base_filters = [
+            UsageLog.organization_id == organization_id,
+            UsageLog.request_time >= utc_start,
+            UsageLog.request_time <= utc_end
+        ]
+    else:
+        base_filters = [
+            UsageLog.user_id == filter_user_id,
+            UsageLog.request_time >= utc_start,
+            UsageLog.request_time <= utc_end
+        ]
 
     # Add unified API key filter if provided
     if unified_api_key_id is not None:
@@ -616,6 +641,13 @@ def get_user_usage_overview(
     else:
         org_filter = "AND organization_id IS NULL"
 
+    # Build WHERE clause for user_id filter
+    # When organization_id is provided and target_user_id is None, don't filter by user_id
+    if organization_id is not None and target_user_id is None:
+        user_filter = ""
+    else:
+        user_filter = "AND user_id = :user_id"
+
     # Check database type to use appropriate SQL syntax
     # PostgreSQL uses EXTRACT(EPOCH FROM ...), SQLite uses strftime
     db_url = str(db.get_bind().url)
@@ -629,7 +661,8 @@ def get_user_usage_overview(
             SELECT CAST(((strftime('%%s', datetime(request_time, '+{tz_offset_hours} hours')) %% 86400) / 900) AS INTEGER) AS quarter_hour,
                    SUM(total_tokens) as tokens
             FROM usage_logs
-            WHERE user_id = :user_id
+            WHERE 1=1
+              {user_filter}
               AND request_time >= :utc_start
               AND request_time <= :utc_end
               {key_filter}
@@ -643,7 +676,8 @@ def get_user_usage_overview(
             SELECT FLOOR(EXTRACT(EPOCH FROM (request_time AT TIME ZONE 'UTC' + INTERVAL '1 hour' * :offset)) % 86400 / 900)::int AS quarter_hour,
                    SUM(total_tokens) as tokens
             FROM usage_logs
-            WHERE user_id = :user_id
+            WHERE 1=1
+              {user_filter}
               AND request_time >= :utc_start
               AND request_time <= :utc_end
               {key_filter}
@@ -657,11 +691,12 @@ def get_user_usage_overview(
 
     # Execute query and update distribution
     query_params = {
-        "user_id": user_id,
         "utc_start": utc_start,
         "utc_end": utc_end,
         "offset": tz_offset_hours
     }
+    if user_filter:
+        query_params["user_id"] = filter_user_id
     if unified_api_key_id is not None:
         query_params["key_id"] = unified_api_key_id
     if organization_id is not None:

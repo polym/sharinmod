@@ -30,6 +30,7 @@ def get_my_usage_logs(
     timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     unified_api_key_id: Optional[int] = Query(None, description="Filter by unified API key ID"),
     org_id: Optional[int] = Query(None, description="Filter by organization ID (null = public, not null = private)"),
+    target_user_id: Optional[int] = Query(None, description="Filter by target user ID (org owner only)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -42,6 +43,7 @@ def get_my_usage_logs(
     Supports dynamic timezone specification
     Supports optional unified API key filtering
     Supports optional organization filtering (default: private only)
+    Supports optional target user filtering for organization owners
     """
     return get_user_usage_logs(
         db=db,
@@ -53,7 +55,8 @@ def get_my_usage_logs(
         status=status,
         timezone_str=timezone,
         unified_api_key_id=unified_api_key_id,
-        organization_id=org_id
+        organization_id=org_id,
+        target_user_id=target_user_id
     )
 
 
@@ -63,6 +66,7 @@ def get_my_usage_overview(
     timezone: Optional[str] = Query(None, description="Timezone for date filtering (e.g., Asia/Shanghai, UTC). Defaults to Asia/Shanghai"),
     unified_api_key_id: Optional[int] = Query(None, description="Filter by unified API key ID"),
     org_id: Optional[int] = Query(None, description="Filter by organization ID (null = public, not null = private)"),
+    target_user_id: Optional[int] = Query(None, description="Filter by target user ID (org owner only)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -79,6 +83,7 @@ def get_my_usage_overview(
     Supports dynamic timezone specification
     Supports optional unified API key filtering
     Supports optional organization filtering (default: private only)
+    Supports optional target user filtering for organization owners
     """
     return get_user_usage_overview(
         db=db,
@@ -86,7 +91,8 @@ def get_my_usage_overview(
         target_date=target_date,
         timezone_str=timezone,
         unified_api_key_id=unified_api_key_id,
-        organization_id=org_id
+        organization_id=org_id,
+        target_user_id=target_user_id
     )
 
 
