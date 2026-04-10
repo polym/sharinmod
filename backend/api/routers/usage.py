@@ -45,6 +45,23 @@ def get_my_usage_logs(
     Supports optional organization filtering (default: private only)
     Supports optional target user filtering for organization owners
     """
+    # Security check: target_user_id can only be used by org owners to view their own org members
+    if target_user_id is not None and org_id is not None:
+        from api.models.organization_member import OrganizationMember
+        member = db.exec(select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == current_user.id
+        )).first()
+        if not member or member.role != "owner":
+            raise HTTPException(status_code=403, detail="Only organization owners can filter by target user")
+        # Verify target_user_id is a member of the organization
+        target_member = db.exec(select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == target_user_id
+        )).first()
+        if not target_member:
+            raise HTTPException(status_code=400, detail="Target user is not a member of this organization")
+
     return get_user_usage_logs(
         db=db,
         user_id=current_user.id,
@@ -85,6 +102,23 @@ def get_my_usage_overview(
     Supports optional organization filtering (default: private only)
     Supports optional target user filtering for organization owners
     """
+    # Security check: target_user_id can only be used by org owners to view their own org members
+    if target_user_id is not None and org_id is not None:
+        from api.models.organization_member import OrganizationMember
+        member = db.exec(select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == current_user.id
+        )).first()
+        if not member or member.role != "owner":
+            raise HTTPException(status_code=403, detail="Only organization owners can filter by target user")
+        # Verify target_user_id is a member of the organization
+        target_member = db.exec(select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == target_user_id
+        )).first()
+        if not target_member:
+            raise HTTPException(status_code=400, detail="Target user is not a member of this organization")
+
     return get_user_usage_overview(
         db=db,
         user_id=current_user.id,

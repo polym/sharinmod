@@ -222,6 +222,7 @@
     "allMembers": "All Members",
     "all": "All",
     "loading": "Loading...",
+    "loadMembersFailed": "Failed to load team members",
     "noData": "No usage records",
     "totalTokens": "Total Tokens",
     "inputTokens": "Input Tokens",

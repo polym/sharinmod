@@ -631,27 +631,39 @@ def get_user_usage_overview(
     # Calculate timezone offset in hours for PostgreSQL date conversion
     tz_offset_hours = int(tz_offset.total_seconds() / 3600)
 
-    # Build WHERE clause for unified_api_key_id and organization_id filters
-    key_filter = "AND unified_api_key_id = :key_id" if unified_api_key_id is not None else ""
-    org_filter = "AND organization_id = :org_id" if organization_id is not None else ""
-
-    # Build WHERE clause for organization_id filter
-    if organization_id is not None:
-        org_filter = "AND organization_id = :org_id"
-    else:
-        org_filter = "AND organization_id IS NULL"
-
+    # Build WHERE clauses (using parameters, not string interpolation)
     # Build WHERE clause for user_id filter
     # When organization_id is provided and target_user_id is None, don't filter by user_id
     if organization_id is not None and target_user_id is None:
-        user_filter = ""
+        user_filter_condition = None
     else:
-        user_filter = "AND user_id = :user_id"
+        user_filter_condition = UsageLog.user_id == filter_user_id
+
+    # Build WHERE clause for unified_api_key_id filter
+    key_filter_condition = UsageLog.unified_api_key_id == unified_api_key_id if unified_api_key_id is not None else None
+
+    # Build WHERE clause for organization_id filter
+    if organization_id is not None:
+        org_filter_condition = UsageLog.organization_id == organization_id
+    else:
+        org_filter_condition = UsageLog.organization_id.is_(None)
 
     # Check database type to use appropriate SQL syntax
     # PostgreSQL uses EXTRACT(EPOCH FROM ...), SQLite uses strftime
     db_url = str(db.get_bind().url)
     is_sqlite = db_url.startswith("sqlite")
+
+    # Build base filters list
+    base_conditions = [
+        UsageLog.request_time >= utc_start,
+        UsageLog.request_time <= utc_end
+    ]
+    if user_filter_condition is not None:
+        base_conditions.append(user_filter_condition)
+    if key_filter_condition is not None:
+        base_conditions.append(key_filter_condition)
+    if org_filter_condition is not None:
+        base_conditions.append(org_filter_condition)
 
     if is_sqlite:
         # SQLite compatible query - calculate quarter_hour using strftime
@@ -662,26 +674,26 @@ def get_user_usage_overview(
                    SUM(total_tokens) as tokens
             FROM usage_logs
             WHERE 1=1
-              {user_filter}
               AND request_time >= :utc_start
               AND request_time <= :utc_end
-              {key_filter}
-              {org_filter}
+              {"AND user_id = :user_id" if user_filter_condition is not None else ""}
+              {"AND unified_api_key_id = :key_id" if key_filter_condition is not None else ""}
+              {"AND organization_id = :org_id" if organization_id is not None else "AND organization_id IS NULL"}
             GROUP BY quarter_hour
             ORDER BY quarter_hour
         """)
     else:
-        # PostgreSQL query
+        # PostgreSQL query - use text with parameter binding
         quarter_hourly_query = text(f"""
             SELECT FLOOR(EXTRACT(EPOCH FROM (request_time AT TIME ZONE 'UTC' + INTERVAL '1 hour' * :offset)) % 86400 / 900)::int AS quarter_hour,
                    SUM(total_tokens) as tokens
             FROM usage_logs
             WHERE 1=1
-              {user_filter}
               AND request_time >= :utc_start
               AND request_time <= :utc_end
-              {key_filter}
-              {org_filter}
+              {"AND user_id = :user_id" if user_filter_condition is not None else ""}
+              {"AND unified_api_key_id = :key_id" if key_filter_condition is not None else ""}
+              {"AND organization_id = :org_id" if organization_id is not None else "AND organization_id IS NULL"}
             GROUP BY quarter_hour
             ORDER BY quarter_hour
         """)
@@ -695,7 +707,7 @@ def get_user_usage_overview(
         "utc_end": utc_end,
         "offset": tz_offset_hours
     }
-    if user_filter:
+    if user_filter_condition is not None:
         query_params["user_id"] = filter_user_id
     if unified_api_key_id is not None:
         query_params["key_id"] = unified_api_key_id

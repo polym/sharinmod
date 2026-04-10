@@ -89,35 +89,22 @@ export function UsagePage() {
   const [apiKeysLoading, setApiKeysLoading] = useState(true);
 
   // Team members state
-  const [teamMembers, setTeamMembers] = useState<Array<{user_id: number, email: string, name: string | null}>>([]);
+  const [teamMembers, setTeamMembers] = useState<Array<{
+    user_id: number;
+    email: string;
+    name: string | null;
+    role: string;
+    is_disabled: boolean;
+  }>>([]);
   const [teamMembersLoading, setTeamMembersLoading] = useState(false);
 
-  // Reset filters when switching organizations
-  useEffect(() => {
-    setSelectedMember('all');
-    setSelectedApiKey('all');
-  }, [currentOrganization?.id]);
-
-  // Overview data state
-  const [overviewData, setOverviewData] = useState<UsageOverview | null>(null);
-  const [overviewLoading, setOverviewLoading] = useState(true);
-
-  // Logs data state
-  const [logsData, setLogsData] = useState<UsageLog[]>([]);
-  const [logsPage, setLogsPage] = useState(1);
-  const [logsTotal, setLogsTotal] = useState(0);
-  const [logsLoading, setLogsLoading] = useState(false);
-  const [hasMoreLogs, setHasMoreLogs] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const PAGE_SIZE = 10;
-
-  // Generate last 7 days options
-  const dateOptions = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      return date;
+  // Check if selected member is the current user
+  const isCurrentUserSelected = useMemo(() => {
+    if (selectedMember === 'all') return false;
+    const memberId = parseInt(selectedMember, 10);
+    if (isNaN(memberId)) return false;
+    return memberId === user?.id;
+  }, [selectedMember, user?.id]);
     });
   }, []);
 
@@ -159,10 +146,15 @@ export function UsagePage() {
       setTeamMembers(response.data.items);
     } catch (error) {
       console.error('Failed to load team members:', error);
+      toast({
+        title: tCommon('error'),
+        description: t('loadMembersFailed'),
+        variant: 'destructive'
+      });
     } finally {
       setTeamMembersLoading(false);
     }
-  }, [currentOrganization?.id, isOrgOwner]);
+  }, [currentOrganization?.id, isOrgOwner, toast, tCommon, t]);
 
   // Load overview data
   const loadOverviewData = useCallback(async () => {
@@ -255,8 +247,11 @@ export function UsagePage() {
   const handleMemberChange = (value: string) => {
     setSelectedMember(value);
     // Reset API Key filter only when selecting other members (not self)
-    if (value !== 'all' && parseInt(value) !== user?.id) {
-      setSelectedApiKey('all');
+    if (value !== 'all') {
+      const memberId = parseInt(value, 10);
+      if (!isNaN(memberId) && memberId !== user?.id) {
+        setSelectedApiKey('all');
+      }
     }
   };
 
@@ -312,23 +307,27 @@ export function UsagePage() {
             {/* Team Member Filter (org owners only) */}
             {isOrgOwner && (
               <Select value={selectedMember} onValueChange={handleMemberChange} disabled={teamMembersLoading}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder={t('selectMemberPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('allMembers')}</SelectItem>
-                  {teamMembers.map((member) => (
-                    <SelectItem key={member.user_id} value={member.user_id.toString()}>
-                      {member.name || member.email.split('@')[0]}
-                    </SelectItem>
-                  ))}
+                  {teamMembers.length === 0 ? (
+                    <SelectItem value="all" disabled>{t('loading')}</SelectItem>
+                  ) : (
+                    teamMembers.map((member) => (
+                      <SelectItem key={member.user_id} value={member.user_id.toString()}>
+                        {member.name || member.email.split('@')[0]}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             )}
 
             {/* API Key Filter */}
             <Select value={selectedApiKey} onValueChange={handleApiKeyChange} disabled={apiKeysLoading || (selectedMember !== 'all' && !isCurrentUserSelected)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder={t('selectApiKeyPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
