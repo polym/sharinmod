@@ -1,10 +1,10 @@
 'use client';
 
-import { Store, Key, BarChart3, Share } from 'lucide-react';
+import { Store, Key, BarChart3, Share, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
 
-export type PageType = 'overview' | 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users';
+export type PageType = 'overview' | 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users' | 'my-team';
 
 interface SidebarProps {
   currentPage: PageType;
@@ -17,6 +17,7 @@ const menuItems = [
   { id: 'my-shared' as PageType, label: '我的共享', icon: Share },
   { id: 'api-keys' as PageType, label: 'API Keys', icon: Key },
   { id: 'usage' as PageType, label: '使用情况', icon: BarChart3 },
+  { id: 'my-team' as PageType, label: '我的团队', icon: Users },
 ];
 
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
@@ -28,7 +29,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   // Determine menu items to show
   // - Public mode (no organization): show all menu items
   // - Private mode + owner: show all menu items
-  // - Private mode + non-owner: hide "overview" menu item
+  // - Private mode + non-owner: hide "overview" and "my-team" menu items
   const showMenuItems = () => {
     if (!currentOrganization) {
       // Public mode
@@ -37,8 +38,8 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       // Private mode + owner
       return menuItems;
     } else {
-      // Private mode + non-owner - hide overview
-      return menuItems.filter(item => item.id !== 'overview');
+      // Private mode + non-owner - hide overview and my-team
+      return menuItems.filter(item => item.id !== 'overview' && item.id !== 'my-team');
     }
   };
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Ban, Power, Trash2, Users, Plus, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
@@ -221,32 +221,34 @@ export default function MyTeamPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-600" />
-            {t('title')}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">{currentOrganization.name}</p>
+    <Card>
+      <CardHeader className="p-6">
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-1.5">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-6 h-6 text-indigo-600" />
+              {t('title')}
+            </CardTitle>
+            <CardDescription>{currentOrganization.name}</CardDescription>
+          </div>
+          <Button
+            onClick={handleCreateInvite}
+            disabled={inviteLoading}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4" />
+            {t('inviteUser')}
+          </Button>
         </div>
-        <Button
-          onClick={handleCreateInvite}
-          disabled={inviteLoading}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="w-4 h-4" />
-          {t('inviteUser')}
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-gray-700">
-            {t('memberList', { count: members.length })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      </CardHeader>
+      <CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-gray-700">
+              {t('memberList', { count: members.length })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
           {loading ? (
             <div className="p-8 text-center text-gray-500">{tCommon('loading')}</div>
           ) : (
@@ -294,36 +296,33 @@ export default function MyTeamPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {member.role !== 'owner' && (
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           {member.is_disabled ? (
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
-                              className="h-7 text-xs gap-1 text-green-600 border-green-200 hover:bg-green-50"
                               onClick={() => { setTargetMember(member); setShowEnableDialog(true); }}
+                              aria-label={t('enableMember')}
                             >
-                              <Power className="w-3.5 h-3.5" />
-                              {t('enableMember')}
+                              <Power className="w-4 h-4" />
                             </Button>
                           ) : (
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
-                              className="h-7 text-xs gap-1 text-amber-600 border-amber-200 hover:bg-amber-50"
                               onClick={() => { setTargetMember(member); setShowDisableDialog(true); }}
+                              aria-label={t('disableMember')}
                             >
-                              <Ban className="w-3.5 h-3.5" />
-                              {t('disableMember')}
+                              <Ban className="w-4 h-4" />
                             </Button>
                           )}
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
-                            className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50"
                             onClick={() => { setTargetMember(member); setShowRemoveDialog(true); }}
+                            aria-label={t('removeMember')}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            {t('removeMember')}
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       )}
@@ -342,8 +341,9 @@ export default function MyTeamPage() {
           )}
         </CardContent>
       </Card>
+      </CardContent>
 
-      {/* Disable confirmation */}
+    {/* Disable confirmation */}
       <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
         <DialogContent>
           <DialogHeader>
@@ -426,6 +426,6 @@ export default function MyTeamPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 }
