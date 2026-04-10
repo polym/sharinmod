@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Zap, Globe, Shield } from "lucide-react";
+import { User, LogOut, Zap, Globe, Shield, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
@@ -28,7 +28,7 @@ import { localeNames, locales, type Locale } from "@/i18n";
 
 export function Header() {
   const t = useTranslations('topbar');
-  const { user, logout, updateUser, isAuthenticated } = useAuthStore();
+  const { user, logout, updateUser, isAuthenticated, setShowProfileDialog, setShowChangePasswordDialog } = useAuthStore();
   const { locale, setLocale } = useLocaleStore();
   const router = useRouter();
 
@@ -119,10 +119,17 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => router.push("/settings")}
+              onClick={() => setShowProfileDialog(true)}
             >
-              <Settings className="mr-2 h-4 w-4" />
-              {t('settings')}
+              <User className="mr-2 h-4 w-4" />
+              {t('profile')}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setShowChangePasswordDialog(true)}
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              {t('changePassword')}
             </DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>

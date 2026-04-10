@@ -18,7 +18,9 @@
     "logout": "登出",
     "apiKeys": "API Keys",
     "language": "语言",
-    "languageSettings": "语言设置"
+    "languageSettings": "语言设置",
+    "profile": "个人资料",
+    "changePassword": "修改密码"
   },
   "language": {
     "zh-CN": "中文",
@@ -366,6 +368,7 @@
   },
   "password": {
     "changePassword": "修改密码",
+    "description": "更新您的账户密码",
     "changeDescription": "更新您的账户密码",
     "forceChangeDescription": "首次登录需要修改密码，修改后才能使用其他功能",
     "required": "必填",

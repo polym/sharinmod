@@ -17,7 +17,9 @@
     "logout": "Logout",
     "apiKeys": "API Keys",
     "language": "Language",
-    "languageSettings": "Language Settings"
+    "languageSettings": "Language Settings",
+    "profile": "Profile",
+    "changePassword": "Change Password"
   },
   "settings": {
     "languageSettings": "Language Settings",
@@ -42,6 +44,7 @@
   },
   "password": {
     "changePassword": "Change Password",
+    "description": "Update your account password",
     "changeDescription": "Update your account password",
     "forceChangeDescription": "First-time login requires password change before accessing other features",
     "required": "Required",

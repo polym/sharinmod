@@ -4,8 +4,10 @@ import './globals.css'
 import { Toaster } from '@/components/ui/toast'
 import { LoginDialog } from '@/components/LoginDialog'
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
+import { ChangePasswordDialogFromMenu } from '@/components/ChangePasswordDialogFromMenu'
 import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
 import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog'
+import { ProfileDialog } from '@/components/ProfileDialog'
 import { I18nProvider } from '@/lib/i18n-provider'
 import { MainLayoutWrapper } from '@/components/layout/MainLayoutWrapper'
 
@@ -28,8 +30,10 @@ export default function RootLayout({
           <Toaster />
           <LoginDialog />
           <ChangePasswordDialog />
+          <ChangePasswordDialogFromMenu />
           <ResetPasswordDialog />
           <CreateOrganizationDialog />
+          <ProfileDialog />
           <MainLayoutWrapper>
             {children}
           </MainLayoutWrapper>

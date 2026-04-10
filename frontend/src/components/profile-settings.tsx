@@ -71,7 +71,11 @@ function LanguageSelector() {
   );
 }
 
-export function ProfileSettings() {
+interface ProfileSettingsProps {
+  onSaveSuccess?: () => void;
+}
+
+export function ProfileSettings({ onSaveSuccess }: ProfileSettingsProps) {
   const t = useTranslations('settings');
   const tApiKeys = useTranslations('apiKeys');
   const tCommon = useTranslations('common');
@@ -124,6 +128,7 @@ export function ProfileSettings() {
         title: t('toast.success'),
         description: t('toast.profileUpdateSuccess'),
       });
+      onSaveSuccess?.();
     } catch (error: any) {
       toast({
         title: tApiKeys('toast.error'),
