@@ -10,6 +10,7 @@ import { authAPI } from "@/lib/services";
 import { useIntervalOnVisible } from "@/hooks/useIntervalOnVisible";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
+import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,18 +59,26 @@ export function Header() {
       }}
     >
       <div className="flex items-center justify-between gap-8">
-        {/* Logo - Claymorphism Style */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回首页">
-          <div
-            className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
-            style={{
-              boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
-            }}
-          >
-            SM
+        {/* Logo + Organization Switcher */}
+        <div className="flex items-center gap-4">
+          {/* Logo - Claymorphism Style */}
+          <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回首页">
+            <div
+              className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
+              style={{
+                boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
+              }}
+            >
+              SM
+            </div>
+            <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
+          </Link>
+
+          {/* Organization Switcher */}
+          <div className="w-52">
+            <OrganizationSwitcher />
           </div>
-          <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
-        </Link>
+        </div>
 
         {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
