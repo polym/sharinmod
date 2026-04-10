@@ -409,3 +409,86 @@ docker exec sharinmod-ws2-db-1 psql -U postgres -d sharinmod -c "UPDATE alembic_
 --radius-lg: 1.25rem;   /* 20px */
 --radius-xl: 1.5rem;    /* 24px */
 ```
+
+---
+
+## BMad Quick Dev Workflow
+
+本项目使用 `bmad-quick-dev` workflow 进行快速开发。该 workflow 专为小型变更和功能设计，确保代码质量和实现完整性。
+
+### Workflow 步骤
+
+| 步骤 | 名称 | 目的 |
+|------|------|------|
+| **Step 1** | Mode Detection | 确定执行模式（tech-spec 或 direct），捕获基线 commit |
+| **Step 2** | Context Gathering | 收集上下文：文件、模式、依赖关系（仅 direct 模式） |
+| **Step 3** | Execute Implementation | 执行所有任务，编写测试，处理错误 |
+| **Step 4** | Self-Check | 自我审核：任务完成、测试通过、AC 满足、模式遵循 |
+| **Step 5** | Adversarial Code Review | 构建差异，调用对抗性审查，发现潜在问题 |
+| **Step 6** | Resolve Findings | 处理审查发现，应用修复，完成技术规范 |
+
+### 执行模式
+
+**Mode A: Tech-Spec**
+- 用户提供技术规范文件路径（如 `quick-dev tech-spec-xxx.md`）
+- 直接从规范中提取任务、上下文和 AC
+- 跳过 Step 2（Context Gathering）
+
+**Mode B: Direct Instructions**
+- 用户提供直接任务描述（如 `refactor src/foo.ts...`）
+- 在 Step 2 中收集文件、模式和依赖
+- 创建心智计划并请求确认
+
+### 状态变量
+
+Workflow 执行期间维护以下状态：
+
+- `{baseline_commit}` - Git HEAD 在 workflow 开始时的 commit hash
+- `{execution_mode}` - "tech-spec" 或 "direct"
+- `{tech_spec_path}` - 技术规范文件路径（仅 Mode A）
+- `{project_context}` - 项目上下文（如果存在）
+
+### 对抗性审查
+
+**Step 5** 会执行对抗性代码审查，发现至少 10 个潜在问题。审查类型包括：
+
+- 未使用的变量和导入
+- React 最佳实践问题（如 useEffect 中的函数定义）
+- 性能优化机会
+- 错误处理缺失
+- 边界情况处理
+- UI 一致性问题
+
+**处理选项：**
+- `[W] Walk through` - 逐个讨论每个发现
+- `[F] Fix automatically` - 自动修复标记为 "real" 的问题
+- `[S] Skip` - 确认并跳过所有发现
+
+### 提交规范
+
+Workflow 完成后，遵循项目提交规范：
+
+```bash
+git add <files>
+git commit -m "$(cat <<'EOF'
+<type>(<scope>): <subject>
+
+<description>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Type 可选值：** feat, fix, refactor, chore, docs, test, perf
+**Scope 可选值：** org, api, frontend, backend, db, ui
+
+### Workflow 完成
+
+**检查清单：**
+- ✅ 所有任务标记为完成
+- ✅ 所有 AC（验收标准）满足
+- ✅ 代码模式遵循项目约定
+- ✅ 技术规范状态更新为 "Implementation Complete"
+- ✅ 对抗性审查发现已处理
+- ✅ 代码已提交
