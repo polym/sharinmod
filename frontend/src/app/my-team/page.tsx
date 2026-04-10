@@ -256,7 +256,7 @@ export default function MyTeamPage() {
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium flex items-center gap-1.5">
-                          {member.email}
+                          {member.name || member.email}
                           {member.role === 'owner' && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 flex-shrink-0">
                               {t('role.owner')}
@@ -269,7 +269,7 @@ export default function MyTeamPage() {
                           )}
                         </span>
                         {member.name && (
-                          <span className="text-xs text-gray-500">{member.name}</span>
+                          <span className="text-xs text-gray-500">{member.email}</span>
                         )}
                       </div>
                     </TableCell>

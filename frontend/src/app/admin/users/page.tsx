@@ -578,7 +578,7 @@ export default function AdminUsersPage() {
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium flex items-center gap-1.5">
-                              {u.email}
+                              {u.name || u.email}
                               {u.is_admin && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500 text-white flex-shrink-0">
                                   Admin
@@ -591,7 +591,7 @@ export default function AdminUsersPage() {
                               )}
                             </span>
                             {u.name && (
-                              <span className="text-xs text-gray-500">{u.name}</span>
+                              <span className="text-xs text-gray-500">{u.email}</span>
                             )}
                           </div>
                         </TableCell>

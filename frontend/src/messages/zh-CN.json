@@ -515,7 +515,7 @@
   "adminUsers": {
     "title": "用户管理",
     "description": "查看和管理所有用户信息",
-    "email": "邮箱",
+    "email": "用户名",
     "role": "角色",
     "subscriptions": "绑定订阅",
     "consumedTokens": "已使用",
@@ -865,7 +865,7 @@
     "memberList": "成员列表（{count} 人）",
     "noMembers": "暂无成员，点击「邀请用户」添加第一个成员",
     "inviteUser": "邀请用户",
-    "email": "邮箱",
+    "email": "用户名",
     "roleLabel": "角色",
     "totalUsage": "总使用",
     "lastUsed": "最近使用",
