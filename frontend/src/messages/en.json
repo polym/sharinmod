@@ -18,7 +18,8 @@
     "apiKeys": "API Keys",
     "language": "Language",
     "languageSettings": "Language Settings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "changePassword": "Change Password"
   },
   "settings": {
     "languageSettings": "Language Settings",
@@ -43,6 +44,7 @@
   },
   "password": {
     "changePassword": "Change Password",
+    "description": "Update your account password",
     "changeDescription": "Update your account password",
     "forceChangeDescription": "First-time login requires password change before accessing other features",
     "required": "Required",

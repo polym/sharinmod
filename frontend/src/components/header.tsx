@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, LogOut, Zap, Globe, Shield } from "lucide-react";
+import { User, LogOut, Zap, Shield, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
@@ -17,18 +17,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useTranslations } from "next-intl";
-import { localeNames, locales, type Locale } from "@/i18n";
 
 export function Header() {
   const t = useTranslations('topbar');
-  const { user, logout, updateUser, isAuthenticated } = useAuthStore();
+  const { user, logout, updateUser, isAuthenticated, setShowProfileDialog, setShowChangePasswordDialog } = useAuthStore();
   const { locale, setLocale } = useLocaleStore();
   const router = useRouter();
 
@@ -50,6 +44,15 @@ export function Header() {
   };
 
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
+
+  const toggleLocale = () => {
+    setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN');
+  };
+
+  const langOptions = [
+    { code: 'zh-CN' as const, label: 'ZH' },
+    { code: 'en' as const, label: 'EN' },
+  ];
 
   return (
     <header
@@ -80,8 +83,30 @@ export function Header() {
           </div>
         </div>
 
-        {/* Token余额显示 + Account Avatar */}
+        {/* Language Toggle + Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
+          {/* Language Toggle */}
+          <div className="flex gap-1 bg-white h-8 px-1.5 rounded-lg border-2 border-indigo-200 shadow-sm"
+            style={{
+              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.1)"
+            }}>
+            {langOptions.map((option) => (
+              <button
+                key={option.code}
+                onClick={() => setLocale(option.code)}
+                className={cn(
+                  "px-2.5 py-1 text-sm font-medium rounded-md transition-colors",
+                  locale === option.code
+                    ? "bg-indigo-500 text-white"
+                    : "text-gray-600 hover:bg-indigo-50"
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Token Balance Button */}
           <Button
             variant="ghost"
             className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
@@ -119,26 +144,18 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() => router.push("/settings")}
+              onClick={() => setShowProfileDialog(true)}
             >
-              <Settings className="mr-2 h-4 w-4" />
-              {t('settings')}
+              <User className="mr-2 h-4 w-4" />
+              {t('profile')}
             </DropdownMenuItem>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>
-                <Globe className="mr-2 h-4 w-4" />
-                {t('language')}
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuRadioGroup value={locale} onValueChange={(value) => setLocale(value as Locale)}>
-                  {locales.map((loc) => (
-                    <DropdownMenuRadioItem key={loc} value={loc}>
-                      {localeNames[loc]}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setShowChangePasswordDialog(true)}
+            >
+              <Lock className="mr-2 h-4 w-4" />
+              {t('changePassword')}
+            </DropdownMenuItem>
             {user?.is_admin && (
               <>
                 <DropdownMenuSeparator />
