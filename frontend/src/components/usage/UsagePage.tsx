@@ -93,6 +93,15 @@ export function UsagePage() {
   }>>([]);
   const [teamMembersLoading, setTeamMembersLoading] = useState(false);
 
+  // Generate last 7 days options
+  const dateOptions = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return date;
+    });
+  }, []);
+
   // Check if selected member is the current user
   const isCurrentUserSelected = useMemo(() => {
     if (selectedMember === 'all') return false;
