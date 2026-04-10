@@ -237,15 +237,8 @@ export default function MyTeamPage() {
           </div>
         </CardHeader>
         <CardContent>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-gray-700">
-              {t('memberList', { count: members.length })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">{tCommon('loading')}</div>
+            <div className="text-center py-8 text-gray-500">{tCommon('loading')}</div>
           ) : (
             <Table>
               <TableHeader>
@@ -335,8 +328,6 @@ export default function MyTeamPage() {
             </Table>
           )}
         </CardContent>
-      </Card>
-      </CardContent>
 
       {/* Disable confirmation */}
       <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
