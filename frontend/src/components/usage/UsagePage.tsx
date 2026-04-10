@@ -79,11 +79,6 @@ export function UsagePage() {
   const [selectedApiKey, setSelectedApiKey] = useState<string>('all');
   const [selectedMember, setSelectedMember] = useState<string>('all');
 
-  // Check if selected member is the current user
-  const isCurrentUserSelected = useMemo(() => {
-    return selectedMember !== 'all' && parseInt(selectedMember) === user?.id;
-  }, [selectedMember, user?.id]);
-
   // API Keys state
   const [apiKeys, setApiKeys] = useState<UnifiedAPIKey[]>([]);
   const [apiKeysLoading, setApiKeysLoading] = useState(true);
@@ -105,8 +100,6 @@ export function UsagePage() {
     if (isNaN(memberId)) return false;
     return memberId === user?.id;
   }, [selectedMember, user?.id]);
-    });
-  }, []);
 
   // Format date label as "YYYY/MM/DD"
   const formatDateLabel = (date: Date) => {
