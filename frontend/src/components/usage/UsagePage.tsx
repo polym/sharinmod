@@ -93,6 +93,20 @@ export function UsagePage() {
   }>>([]);
   const [teamMembersLoading, setTeamMembersLoading] = useState(false);
 
+  // Overview data state
+  const [overviewData, setOverviewData] = useState<UsageOverview | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+
+  // Logs data state
+  const [logsData, setLogsData] = useState<UsageLog[]>([]);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [hasMoreLogs, setHasMoreLogs] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const PAGE_SIZE = 10;
+
   // Generate last 7 days options
   const dateOptions = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
