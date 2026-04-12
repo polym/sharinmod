@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,9 @@ interface Message {
 }
 
 function ChatPageContent() {
+  const t = useTranslations('chat');
+  const tToast = useTranslations('chat.toast');
+  const tCommon = useTranslations('common');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,8 +46,8 @@ function ChatPageContent() {
       // For now, we'll create a temporary unified API key or handle this differently
       // In a real implementation, you might want to allow direct usage
       toast({
-        title: '提示',
-        description: '请先创建统一API Key来使用发现的API Keys',
+        title: tToast('noKeyTitle'),
+        description: tToast('noKeyDescription'),
       });
     }
   }, [isAuthenticated, router, searchParams]);
@@ -60,8 +64,8 @@ function ChatPageContent() {
   const handleSendMessage = async () => {
     if (!input.trim() || !selectedAPIKeyId) {
       toast({
-        title: '错误',
-        description: '请输入消息并选择API Key',
+        title: tToast('noInputTitle'),
+        description: tToast('noInputDescription'),
         variant: 'destructive',
       });
       return;
@@ -96,8 +100,8 @@ function ChatPageContent() {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
       toast({
-        title: '错误',
-        description: error.response?.data?.message || '发送消息失败',
+        title: tCommon('error'),
+        description: error.response?.data?.message || tToast('sendFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -120,14 +124,14 @@ function ChatPageContent() {
     <div className="max-w-4xl mx-auto p-8">
       <Card className="h-[calc(100vh-12rem)] min-h-[500px] max-h-[800px] flex flex-col">
         <CardHeader>
-          <CardTitle>与AI对话</CardTitle>
+          <CardTitle>{t('title')}</CardTitle>
           <CardDescription>
-            选择一个统一 API Key 开始聊天
+            {t('description')}
           </CardDescription>
           <div className="flex gap-4">
             <Select value={selectedAPIKeyId} onValueChange={setSelectedAPIKeyId}>
               <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="选择统一API Key" />
+                <SelectValue placeholder={t('selectApiKey')} />
               </SelectTrigger>
               <SelectContent>
                 {unifiedAPIKeys.map((apiKey) => (
@@ -164,7 +168,7 @@ function ChatPageContent() {
               {loading && (
                 <div className="flex justify-start">
                   <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
-                    AI正在思考...
+                    {t('thinking')}
                   </div>
                 </div>
               )}
@@ -176,7 +180,7 @@ function ChatPageContent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="输入您的消息..."
+              placeholder={t('placeholder')}
               disabled={loading || !selectedAPIKeyId}
               className="flex-1"
             />
@@ -184,7 +188,7 @@ function ChatPageContent() {
               onClick={handleSendMessage}
               disabled={loading || !input.trim() || !selectedAPIKeyId}
             >
-              {loading ? '发送中...' : '发送'}
+              {loading ? t('sending') : t('send')}
             </Button>
           </div>
         </CardContent>
@@ -194,8 +198,9 @@ function ChatPageContent() {
 }
 
 export default function ChatPage() {
+  const tCommon = useTranslations('common');
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="text-gray-500">加载中...</div></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="text-gray-500">{tCommon('loading')}</div></div>}>
       <ChatPageContent />
     </Suspense>
   );

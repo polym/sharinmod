@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface MyOrganizations {
   owned: Organization[];
@@ -19,6 +20,8 @@ interface MyOrganizations {
 }
 
 export function OrganizationSwitcher() {
+  const t = useTranslations('sidebar');
+  const tCommon = useTranslations('common');
   const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated, setMyOrganizations } = useAuthStore();
   const [organizations, setOrganizations] = useState<MyOrganizations>({ owned: [], joined: [] });
 
@@ -65,7 +68,7 @@ export function OrganizationSwitcher() {
             'text-sm font-semibold truncate',
             isPublic ? 'text-indigo-700' : 'text-violet-700'
           )}>
-            {isPublic ? '共享空间' : currentOrganization?.name || '未命名组织'}
+            {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
           </span>
           <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
         </button>
@@ -77,7 +80,7 @@ export function OrganizationSwitcher() {
           className="cursor-pointer flex items-center justify-between py-2"
           onClick={() => handleSelectOrganization(null)}
         >
-          <span className="text-sm font-medium text-gray-800">共享空间</span>
+          <span className="text-sm font-medium text-gray-800">{t('sharedSpace')}</span>
           {isPublic && <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
         </DropdownMenuItem>
 
@@ -106,7 +109,7 @@ export function OrganizationSwitcher() {
           className="cursor-pointer flex items-center py-2 text-indigo-600 focus:text-indigo-600"
           onClick={() => setShowCreateOrganizationDialog(true)}
         >
-          <span className="text-sm font-medium">创建专属私服</span>
+          <span className="text-sm font-medium">{t('createOrganization')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -65,7 +65,7 @@ export function Header() {
         {/* Logo + Organization Switcher */}
         <div className="flex items-center gap-4">
           {/* Logo - Claymorphism Style */}
-          <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回首页">
+          <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label={t('backToHome')}>
             <div
               className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
               style={{
@@ -131,7 +131,7 @@ export function Header() {
               style={{
                 boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
               }}
-              aria-label="用户菜单"
+              aria-label={t('userMenu')}
             >
               <UserAvatar
                 email={user?.email}
@@ -164,7 +164,7 @@ export function Header() {
                   onClick={() => router.push('/admin/users')}
                 >
                   <Shield className="mr-2 h-4 w-4" />
-                  管理控制台
+                  {t('adminConsole')}
                 </DropdownMenuItem>
               </>
             )}

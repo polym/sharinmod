@@ -3,6 +3,7 @@
 import { Store, Key, BarChart3, Share, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store';
+import { useTranslations } from 'next-intl';
 
 export type PageType = 'overview' | 'marketplace' | 'my-shared' | 'api-keys' | 'usage' | 'settings' | 'admin-users' | 'my-team';
 
@@ -11,16 +12,17 @@ interface SidebarProps {
   onPageChange: (page: PageType) => void;
 }
 
-const menuItems = [
-  { id: 'overview' as PageType, label: '总览', icon: BarChart3 },
-  { id: 'marketplace' as PageType, label: '广场', icon: Store },
-  { id: 'my-shared' as PageType, label: '我的共享', icon: Share },
-  { id: 'api-keys' as PageType, label: 'API Keys', icon: Key },
-  { id: 'usage' as PageType, label: '使用情况', icon: BarChart3 },
-  { id: 'my-team' as PageType, label: '我的团队', icon: Users },
-];
-
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
+  const t = useTranslations('sidebar');
+
+  const menuItems = [
+    { id: 'overview' as PageType, labelKey: 'overview', icon: BarChart3 },
+    { id: 'marketplace' as PageType, labelKey: 'marketplace', icon: Store },
+    { id: 'my-shared' as PageType, labelKey: 'myShared', icon: Share },
+    { id: 'api-keys' as PageType, labelKey: 'apiKeys', icon: Key },
+    { id: 'usage' as PageType, labelKey: 'usage', icon: BarChart3 },
+    { id: 'my-team' as PageType, labelKey: 'myTeam', icon: Users },
+  ];
   const { user, currentOrganization, myOrganizations } = useAuthStore();
 
   // Check if user is org owner
@@ -88,7 +90,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                   } : {}}
                 >
                   <Icon className="w-5 h-5" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </button>
               </li>
             );

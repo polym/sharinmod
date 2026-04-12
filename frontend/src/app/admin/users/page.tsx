@@ -38,6 +38,7 @@ export default function AdminUsersPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const t = useTranslations('adminUsers');
+  const tPagination = useTranslations('adminUsersPagination');
   const tCommon = useTranslations('common');
   const { locale } = useLocaleStore();
   const { user: currentUser, isAuthenticated, setShowLoginDialog } = useAuthStore();
@@ -680,7 +681,11 @@ export default function AdminUsersPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between gap-4 mt-6">
                   <div className="text-sm text-muted-foreground">
-                    显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, total)} 条，共 {total} 条
+                    {tPagination('showing', {
+                      start: (currentPage - 1) * PAGE_SIZE + 1,
+                      end: Math.min(currentPage * PAGE_SIZE, total),
+                      total
+                    })}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button

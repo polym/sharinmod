@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Sidebar, PageType } from './Sidebar';
 import { TopBar } from './TopBar';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, currentPage, onPageChange }: DashboardLayoutProps) {
+  const t = useTranslations('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handlePageChange = (page: PageType) => {
@@ -31,7 +33,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       <button
         className="md:hidden fixed top-20 left-4 z-50 p-4 rounded-2xl bg-white shadow-lg border-2 border-indigo-100 hover:shadow-xl transition-all"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label={sidebarOpen ? '关闭菜单' : '打开菜单'}
+        aria-label={sidebarOpen ? t('closeMenu') : t('openMenu')}
         style={{
           boxShadow: "0 4px 0 rgba(79, 70, 229, 0.15), 0 8px 16px rgba(79, 70, 229, 0.1)"
         }}

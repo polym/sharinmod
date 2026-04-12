@@ -12,7 +12,12 @@
     "adminUsers": "用户管理",
     "adminModels": "模型配置",
     "adminLogs": "操作日志",
-    "adminSettings": "系统设置"
+    "adminSettings": "系统设置",
+    "createOrganization": "创建专属私服"
+  },
+  "dashboard": {
+    "closeMenu": "关闭菜单",
+    "openMenu": "打开菜单"
   },
   "topbar": {
     "settings": "设置",
@@ -21,7 +26,10 @@
     "language": "语言",
     "languageSettings": "语言设置",
     "profile": "个人资料",
-    "changePassword": "修改密码"
+    "changePassword": "修改密码",
+    "backToHome": "返回首页",
+    "userMenu": "用户菜单",
+    "adminConsole": "管理控制台"
   },
   "language": {
     "zh-CN": "中文",
@@ -932,5 +940,41 @@
       "linkCopied": "链接已复制",
       "linkCopiedHint": "邀请链接已复制到剪贴板"
     }
+  },
+  "chat": {
+    "title": "与AI对话",
+    "description": "选择一个统一 API Key 开始聊天",
+    "selectApiKey": "选择统一API Key",
+    "placeholder": "输入您的消息...",
+    "send": "发送",
+    "sending": "发送中...",
+    "thinking": "AI正在思考...",
+    "toast": {
+      "noKeyTitle": "提示",
+      "noKeyDescription": "请先创建统一API Key来使用发现的API Keys",
+      "noInputTitle": "错误",
+      "noInputDescription": "请输入消息并选择API Key",
+      "sendFailed": "发送消息失败"
+    }
+  },
+  "discovery": {
+    "title": "发现 Keys",
+    "description": "浏览社区分享的 API Keys，使用它们进行 AI 模型调用",
+    "selectProvider": "选择供应商",
+    "allProviders": "全部",
+    "loading": "加载中...",
+    "noKeys": "暂无可用的API Keys",
+    "provider": "提供者",
+    "uses": "使用次数",
+    "createdAt": "创建时间",
+    "use": "使用",
+    "loadMore": "加载更多",
+    "toast": {
+      "error": "错误",
+      "loadFailed": "加载API Key失败"
+    }
+  },
+  "adminUsersPagination": {
+    "showing": "显示 {start} 到 {end}，共 {total} 条"
   }
 }

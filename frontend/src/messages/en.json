@@ -12,7 +12,12 @@
     "adminUsers": "User Management",
     "adminModels": "Model Config",
     "adminLogs": "Operation Logs",
-    "adminSettings": "System Settings"
+    "adminSettings": "System Settings",
+    "createOrganization": "Create Private Server"
+  },
+  "dashboard": {
+    "closeMenu": "Close menu",
+    "openMenu": "Open menu"
   },
   "topbar": {
     "settings": "Settings",
@@ -21,7 +26,10 @@
     "language": "Language",
     "languageSettings": "Language Settings",
     "profile": "Profile",
-    "changePassword": "Change Password"
+    "changePassword": "Change Password",
+    "backToHome": "Back to Home",
+    "userMenu": "User Menu",
+    "adminConsole": "Admin Console"
   },
   "settings": {
     "languageSettings": "Language Settings",
@@ -932,5 +940,41 @@
       "linkCopied": "Link Copied",
       "linkCopiedHint": "Invite link copied to clipboard"
     }
+  },
+  "chat": {
+    "title": "Chat with AI",
+    "description": "Select a Unified API Key to start chatting",
+    "selectApiKey": "Select Unified API Key",
+    "placeholder": "Enter your message...",
+    "send": "Send",
+    "sending": "Sending...",
+    "thinking": "AI is thinking...",
+    "toast": {
+      "noKeyTitle": "Notice",
+      "noKeyDescription": "Please create a Unified API Key first to use discovered API Keys",
+      "noInputTitle": "Error",
+      "noInputDescription": "Please enter a message and select an API Key",
+      "sendFailed": "Failed to send message"
+    }
+  },
+  "discovery": {
+    "title": "Discover Keys",
+    "description": "Browse community-shared API Keys to use for AI model calls",
+    "selectProvider": "Select Provider",
+    "allProviders": "All",
+    "loading": "Loading...",
+    "noKeys": "No API Keys available",
+    "provider": "Provider",
+    "uses": "Uses",
+    "createdAt": "Created",
+    "use": "Use",
+    "loadMore": "Load More",
+    "toast": {
+      "error": "Error",
+      "loadFailed": "Failed to load API Keys"
+    }
+  },
+  "adminUsersPagination": {
+    "showing": "Showing {start} to {end} of {total} entries"
   }
 }
