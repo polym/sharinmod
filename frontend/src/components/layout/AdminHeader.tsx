@@ -16,10 +16,13 @@ import { useAuthStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { authAPI } from '@/lib/services';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
+import { useTranslations } from 'next-intl';
 
 export function AdminHeader() {
   const { user, logout, updateUser, isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const t = useTranslations('adminHeader');
+  const tLayout = useTranslations('adminLayout');
 
   const handleLogout = () => {
     logout();
@@ -49,7 +52,7 @@ export function AdminHeader() {
       <div className="flex items-center justify-between gap-8">
         {/* Left - Logo + Admin badge */}
         <div className="flex items-center gap-3">
-          <Link href="/marketplace" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label="返回主应用">
+          <Link href="/marketplace" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label={tLayout('backToApp')}>
             <div
               className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
               style={{
@@ -62,7 +65,7 @@ export function AdminHeader() {
           </Link>
           <span className="text-gray-300 text-sm">/</span>
           <div className="px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200">
-            <span className="text-xs font-medium text-indigo-700">管理控制台</span>
+            <span className="text-xs font-medium text-indigo-700">{tLayout('adminConsole')}</span>
           </div>
         </div>
 
@@ -91,7 +94,7 @@ export function AdminHeader() {
                 style={{
                   boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
                 }}
-                aria-label="用户菜单"
+                aria-label={tLayout('userMenu')}
               >
                 <UserAvatar
                   email={user?.email}
@@ -107,7 +110,7 @@ export function AdminHeader() {
                 onClick={() => router.push('/settings')}
               >
                 <Settings className="mr-2 h-4 w-4" />
-                设置
+                {t('settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -115,7 +118,7 @@ export function AdminHeader() {
                 onClick={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                登出
+                {t('logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

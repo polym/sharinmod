@@ -4,18 +4,20 @@ import { Users, BookOpen, Cpu, ScrollText, Sliders, TrendingUp } from 'lucide-re
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-
-const adminNavItems = [
-  { icon: TrendingUp, label: '总览', href: '/admin/overview' },
-  { icon: Users, label: '用户管理', href: '/admin/users' },
-  { icon: BookOpen, label: '订阅配置', href: '/admin/providers' },
-  { icon: Cpu, label: '模型配置', href: '/admin/models' },
-  { icon: ScrollText, label: '操作日志', href: '/admin/logs' },
-  { icon: Sliders, label: '系统设置', href: '/admin/settings' },
-];
+import { useTranslations } from 'next-intl';
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const t = useTranslations('adminSidebar');
+
+  const adminNavItems = [
+    { icon: TrendingUp, label: t('overview'), href: '/admin/overview' },
+    { icon: Users, label: t('users'), href: '/admin/users' },
+    { icon: BookOpen, label: t('providers'), href: '/admin/providers' },
+    { icon: Cpu, label: t('models'), href: '/admin/models' },
+    { icon: ScrollText, label: t('logs'), href: '/admin/logs' },
+    { icon: Sliders, label: t('settings'), href: '/admin/settings' },
+  ];
 
   return (
     <aside className="w-56 bg-white border-r border-gray-200 flex flex-col h-full">

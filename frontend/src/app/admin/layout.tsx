@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { AdminHeader } from '@/components/layout/AdminHeader';
+import { useTranslations } from 'next-intl';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isAuthenticated, setShowLoginDialog } = useAuthStore();
   const [canAccess, setCanAccess] = useState(false);
+  const t = useTranslations('adminLayout');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -26,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!canAccess) {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-50">
-        <div className="text-indigo-400">加载中...</div>
+        <div className="text-indigo-400">{t('loading')}</div>
       </div>
     );
   }

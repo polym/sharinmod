@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { UsagePage } from '@/components/usage/UsagePage';
+import { useTranslations } from 'next-intl';
 
 export default function UsagePageRoute() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAuthenticated, setShowLoginDialog } = useAuthStore();
+  const t = useTranslations('common');
 
   useEffect(() => {
     setIsHydrated(true);
@@ -24,7 +26,7 @@ export default function UsagePageRoute() {
   if (!isHydrated || !isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">{t('loading')}</div>
       </div>
     );
   }

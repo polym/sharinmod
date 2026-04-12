@@ -38,6 +38,8 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const tToast = useTranslations('auth.toast');
 
   const [email, setEmail] = useState('');
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -58,7 +60,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
       setProvidersError('');
     }).catch(err => {
       console.error('Failed to load OAuth providers:', err);
-      setProvidersError('无法加载登录方式');
+      setProvidersError(t('loadProvidersFailed'));
     });
   }, []);
 
@@ -179,7 +181,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
           <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">或</span>
+          <span className="px-2 bg-white text-gray-500">{t('or')}</span>
         </div>
       </div>
 
@@ -209,12 +211,12 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
             )}
             {!oauthLoading && provider.id === 'github' && <GithubIcon className="h-4 w-4 mr-2" />}
             {!oauthLoading && provider.id === 'gitlab' && <GitlabIcon className="h-4 w-4 mr-2" />}
-            使用 {provider.name} 登录
+            {t('loginWithProvider', { provider: provider.name })}
           </Button>
         ))
       ) : (
         <div className="text-center text-sm text-gray-500">
-          暂无可用的登录方式
+          {t('noLoginMethods')}
         </div>
       )}
 

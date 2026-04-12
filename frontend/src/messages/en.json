@@ -1,5 +1,7 @@
 {
   "sidebar": {
+    "sharedSpace": "Shared Space",
+    "myShared": "My Shared",
     "overview": "Overview",
     "marketplace": "Model Marketplace",
     "apiKeys": "API Keys",
@@ -102,6 +104,7 @@
     "status": "Status",
     "statusActive": "Active",
     "statusRevoked": "Revoked",
+    "statusDailyLimitExceeded": "Daily Limit Exceeded",
     "statusEnabled": "Enabled",
     "statusDisabled": "Disabled",
     "createdAt": "Created",
@@ -132,6 +135,7 @@
       "unblockSuccess": "API Key has been enabled",
       "deleteSuccess": "API Key deleted successfully",
       "regenerateSuccess": "API Key has been regenerated",
+      "success": "Success",
       "error": "Error",
       "enterName": "Please enter a name",
       "confirmDisable": "Are you sure you want to disable this API Key? Once disabled, the key cannot be used to call APIs.",
@@ -197,6 +201,10 @@
   "auth": {
     "email": "Email",
     "password": "Password",
+    "or": "OR",
+    "loginWithProvider": "Login with {provider}",
+    "noLoginMethods": "No login methods available",
+    "loadProvidersFailed": "Failed to load login methods",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "••••••••",
     "login": "Login",
@@ -745,6 +753,24 @@
       "deleteFailed": "Failed to delete model"
     }
   },
+  "adminLayout": {
+    "loading": "Loading...",
+    "adminConsole": "Admin Console",
+    "backToApp": "Back to App",
+    "userMenu": "User Menu"
+  },
+  "adminSidebar": {
+    "overview": "Overview",
+    "users": "Users",
+    "providers": "Providers",
+    "models": "Models",
+    "logs": "Logs",
+    "settings": "Settings"
+  },
+  "adminHeader": {
+    "settings": "Settings",
+    "logout": "Logout"
+  },
   "adminSettings": {
     "title": "System Settings",
     "description": "Manage system global configuration and user limits",
@@ -829,6 +855,7 @@
       "type": "Type",
       "chatTool": "Chat",
       "status": "Status",
+      "dailyLimit": "Daily Limit",
       "createdAt": "Created",
       "actions": "Actions"
     },

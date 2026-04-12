@@ -1,5 +1,6 @@
 {
   "sidebar": {
+    "sharedSpace": "共享空间",
     "overview": "总览",
     "marketplace": "模型广场",
     "myShared": "我的共享",
@@ -136,6 +137,10 @@
   "auth": {
     "email": "邮箱",
     "password": "密码",
+    "or": "或",
+    "loginWithProvider": "使用 {provider} 登录",
+    "noLoginMethods": "暂无可用的登录方式",
+    "loadProvidersFailed": "无法加载登录方式",
     "emailPlaceholder": "your@email.com",
     "passwordPlaceholder": "••••••••",
     "login": "登录",
@@ -747,6 +752,24 @@
       "deleteSuccess": "模型已删除",
       "deleteFailed": "删除失败"
     }
+  },
+  "adminLayout": {
+    "loading": "加载中...",
+    "adminConsole": "管理控制台",
+    "backToApp": "返回主应用",
+    "userMenu": "用户菜单"
+  },
+  "adminSidebar": {
+    "overview": "总览",
+    "users": "用户管理",
+    "providers": "订阅配置",
+    "models": "模型配置",
+    "logs": "操作日志",
+    "settings": "系统设置"
+  },
+  "adminHeader": {
+    "settings": "设置",
+    "logout": "登出"
   },
   "adminSettings": {
     "title": "系统设置",
