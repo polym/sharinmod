@@ -38,8 +38,6 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   const tToast = useTranslations('auth.toast');
 
   const [email, setEmail] = useState('');
-
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
