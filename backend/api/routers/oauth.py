@@ -13,18 +13,18 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/oauth", tags=["oauth"])
 
-# 根据功能开关有条件地注册 OAuth 客户端
-if settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
+# 根据 client_id 是否配置来注册 OAuth 客户端
+if settings.GITHUB_CLIENT_ID:
     register_github_client()
-    logger.info("[FEATURE_FLAGS] GitHub OAuth client registered (enabled)")
+    logger.info("[OAUTH] GitHub OAuth client registered (client_id configured)")
 else:
-    logger.warning("[FEATURE_FLAGS] GitHub OAuth client registration skipped (disabled)")
+    logger.warning("[OAUTH] GitHub OAuth client registration skipped (no client_id)")
 
-if settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
+if settings.GITLAB_CLIENT_ID:
     register_gitlab_client()
-    logger.info("[FEATURE_FLAGS] GitLab OAuth client registered (enabled)")
+    logger.info("[OAUTH] GitLab OAuth client registered (client_id configured)")
 else:
-    logger.warning("[FEATURE_FLAGS] GitLab OAuth client registration skipped (disabled)")
+    logger.warning("[OAUTH] GitLab OAuth client registration skipped (no client_id)")
 
 
 @router.get("/github/login")
@@ -35,15 +35,15 @@ async def github_login(request: Request):
     Returns:
         RedirectResponse to GitHub authorization URL
     """
-    # 检查功能开关
-    if not settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
-        logger.warning("[FEATURE_FLAGS] GitHub OAuth login attempt blocked (feature disabled)")
+    # 检查是否配置了 client_id
+    if not settings.GITHUB_CLIENT_ID:
+        logger.warning("[OAUTH] GitHub OAuth login attempt blocked (not configured)")
         raise HTTPException(
             status_code=403,
-            detail="GitHub OAuth login is disabled by administrator"
+            detail="GitHub OAuth is not configured"
         )
 
-    logger.info("[FEATURE_FLAGS] GitHub OAuth login attempt (feature enabled)")
+    logger.info("[OAUTH] GitHub OAuth login attempt (configured)")
 
     # 将 FastAPI Request 转换为 Starlette Request
     starlette_request = StarletteRequest(request.scope, request.receive)
@@ -90,42 +90,33 @@ async def github_callback(
 @router.get("/providers")
 async def get_oauth_providers():
     """
-    Get list of available OAuth providers based on feature flags.
+    Get list of available OAuth providers based on client_id configuration.
 
     Returns:
         List of supported and enabled OAuth providers.
-        A provider is only included if both the feature flag is enabled
-        AND the OAuth client credentials are configured.
+        A provider is included if the client_id is configured.
     """
     providers = []
 
-    if settings.FEATURE_FLAG_ENABLE_GITHUB_OAUTH:
-        has_credentials = bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET)
-        if has_credentials:
-            providers.append({
-                "id": "github",
-                "name": "GitHub",
-                "enabled": True,
-                "login_url": "/api/oauth/github/login"
-            })
-            logger.debug("[FEATURE_FLAGS] GitHub OAuth provider available (credentials configured)")
-        else:
-            logger.warning("[FEATURE_FLAGS] GitHub OAuth feature enabled but credentials missing")
+    if settings.GITHUB_CLIENT_ID:
+        providers.append({
+            "id": "github",
+            "name": "GitHub",
+            "enabled": True,
+            "login_url": "/api/oauth/github/login"
+        })
+        logger.debug("[OAUTH] GitHub OAuth provider available")
 
-    if settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
-        has_credentials = bool(settings.GITLAB_CLIENT_ID and settings.GITLAB_CLIENT_SECRET)
-        if has_credentials:
-            providers.append({
-                "id": "gitlab",
-                "name": "GitLab",
-                "enabled": True,
-                "login_url": "/api/oauth/gitlab/login"
-            })
-            logger.debug("[FEATURE_FLAGS] GitLab OAuth provider available (credentials configured)")
-        else:
-            logger.warning("[FEATURE_FLAGS] GitLab OAuth feature enabled but credentials missing")
+    if settings.GITLAB_CLIENT_ID:
+        providers.append({
+            "id": "gitlab",
+            "name": "GitLab",
+            "enabled": True,
+            "login_url": "/api/oauth/gitlab/login"
+        })
+        logger.debug("[OAUTH] GitLab OAuth provider available")
 
-    logger.info(f"[FEATURE_FLAGS] Returning {len(providers)} available OAuth provider(s)")
+    logger.info(f"[OAUTH] Returning {len(providers)} available OAuth provider(s)")
     return {"providers": providers}
 
 
@@ -137,15 +128,15 @@ async def gitlab_login(request: Request):
     Returns:
         RedirectResponse to GitLab authorization URL
     """
-    # 检查功能开关
-    if not settings.FEATURE_FLAG_ENABLE_GITLAB_OAUTH:
-        logger.warning("[FEATURE_FLAGS] GitLab OAuth login attempt blocked (feature disabled)")
+    # 检查是否配置了 client_id
+    if not settings.GITLAB_CLIENT_ID:
+        logger.warning("[OAUTH] GitLab OAuth login attempt blocked (not configured)")
         raise HTTPException(
             status_code=403,
-            detail="GitLab OAuth login is disabled by administrator"
+            detail="GitLab OAuth is not configured"
         )
 
-    logger.info("[FEATURE_FLAGS] GitLab OAuth login attempt (feature enabled)")
+    logger.info("[OAUTH] GitLab OAuth login attempt (configured)")
 
     starlette_request = StarletteRequest(request.scope, request.receive)
     client = oauth.create_client('gitlab')

@@ -226,8 +226,6 @@ class Settings(BaseSettings):
 
     # Feature Flags
     FEATURE_FLAG_ENABLE_CLAW_CREATION: bool = True
-    FEATURE_FLAG_ENABLE_GITHUB_OAUTH: bool = True
-    FEATURE_FLAG_ENABLE_GITLAB_OAUTH: bool = True
 
     # Logging
     MAX_LOG_TRUNCATE_LENGTH: int = 1000  # Maximum length for truncated log output
@@ -359,24 +357,6 @@ class Settings(BaseSettings):
     @field_validator("FEATURE_FLAG_ENABLE_CLAW_CREATION", mode="before")
     @classmethod
     def feature_flag_enable_claw_creation_default(cls, v: bool | None | str) -> bool:
-        if v is None:
-            return True
-        if isinstance(v, str):
-            return v.lower() in ("true", "1", "yes", "on")
-        return bool(v)
-
-    @field_validator("FEATURE_FLAG_ENABLE_GITHUB_OAUTH", mode="before")
-    @classmethod
-    def feature_flag_enable_github_oauth_default(cls, v: bool | None | str) -> bool:
-        if v is None:
-            return True
-        if isinstance(v, str):
-            return v.lower() in ("true", "1", "yes", "on")
-        return bool(v)
-
-    @field_validator("FEATURE_FLAG_ENABLE_GITLAB_OAUTH", mode="before")
-    @classmethod
-    def feature_flag_enable_gitlab_oauth_default(cls, v: bool | None | str) -> bool:
         if v is None:
             return True
         if isinstance(v, str):
