@@ -1,6 +1,7 @@
 """
 User service layer for business logic
 """
+import logging
 from sqlmodel import Session, select, func
 from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
@@ -10,6 +11,8 @@ from api.models.shared_api_key import SharedAPIKey, APIKeyStatus
 from api.models.usage_log import UsageLog
 from api.schemas.user import UserProfileUpdate
 from api.utils.security import hash_password
+
+logger = logging.getLogger(__name__)
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -212,6 +215,33 @@ def change_password(db: Session, user: User, new_password: str) -> User:
     return user
 
 
+
+def _block_all_user_keys(db: Session, user_id: int, block: bool = True) -> None:
+    """Block or unblock all LiteLLM unified API keys for a user (all orgs).
+
+    When unblocking, skips keys with status=REVOKED to avoid resurrecting intentionally deleted keys.
+    """
+    from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
+    from api.services.unified_api_key_service import sync_block_litellm_key, sync_unlock_litellm_key
+
+    conditions = [
+        UnifiedAPIKey.user_id == user_id,
+        UnifiedAPIKey.litellm_key.isnot(None),
+        UnifiedAPIKey.litellm_key != "",
+    ]
+    if not block:
+        # Never unblock keys that were explicitly revoked
+        conditions.append(UnifiedAPIKey.status != UnifiedAPIKeyStatus.REVOKED)
+
+    keys = db.exec(select(UnifiedAPIKey).where(*conditions)).all()
+    action = sync_block_litellm_key if block else sync_unlock_litellm_key
+    for key in keys:
+        try:
+            action(key.litellm_key)
+        except Exception as e:
+            logger.error(f"Failed to {'block' if block else 'unblock'} LiteLLM key for user {user_id}: {e}")
+
+
 def disable_user(db: Session, user_id: int) -> User | None:
     """
     Disable a user account
@@ -230,6 +260,7 @@ def disable_user(db: Session, user_id: int) -> User | None:
         db.add(user)
         db.commit()
         db.refresh(user)
+        _block_all_user_keys(db, user_id)
     return user
 
 
@@ -251,6 +282,7 @@ def enable_user(db: Session, user_id: int) -> User | None:
         db.add(user)
         db.commit()
         db.refresh(user)
+        _block_all_user_keys(db, user_id, block=False)
     return user
 
 

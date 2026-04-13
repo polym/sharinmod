@@ -62,6 +62,35 @@ def _require_org_owner(org_id: int, current_user: User, db: Session) -> Organiza
     return organization
 
 
+def _toggle_user_org_keys(db: Session, user_id: int, org_id: int, block: bool) -> None:
+    """Block or unblock all LiteLLM unified API keys for a user within an organization.
+
+    When unblocking, skips keys with status=REVOKED to avoid resurrecting intentionally deleted keys.
+    Also skips keys with empty litellm_key values.
+    """
+    from api.models.unified_api_key import UnifiedAPIKey, UnifiedAPIKeyStatus
+    from api.services.unified_api_key_service import sync_block_litellm_key, sync_unlock_litellm_key
+
+    conditions = [
+        UnifiedAPIKey.user_id == user_id,
+        UnifiedAPIKey.organization_id == org_id,
+        UnifiedAPIKey.litellm_key.isnot(None),
+        UnifiedAPIKey.litellm_key != "",
+    ]
+    if not block:
+        # Never unblock keys that were explicitly revoked
+        conditions.append(UnifiedAPIKey.status != UnifiedAPIKeyStatus.REVOKED)
+
+    keys = db.exec(select(UnifiedAPIKey).where(*conditions)).all()
+    action = sync_block_litellm_key if block else sync_unlock_litellm_key
+    action_name = "block" if block else "unblock"
+    for key in keys:
+        try:
+            action(key.litellm_key)
+        except Exception as e:
+            logger.error(f"Failed to {action_name} LiteLLM key for user {user_id} in org {org_id}: {e}")
+
+
 @router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 def create_organization(
     organization_data: OrganizationCreate,
@@ -348,6 +377,10 @@ def disable_org_member(
     member.is_disabled = True
     db.add(member)
     db.commit()
+
+    # Block all the member's unified API keys in LiteLLM so they can't be used
+    _toggle_user_org_keys(db, user_id, org_id, block=True)
+
     return {"message": "成员已禁用"}
 
 
@@ -377,6 +410,10 @@ def enable_org_member(
     member.is_disabled = False
     db.add(member)
     db.commit()
+
+    # Unblock all the member's unified API keys in LiteLLM
+    _toggle_user_org_keys(db, user_id, org_id, block=False)
+
     return {"message": "成员已启用"}
 
 
