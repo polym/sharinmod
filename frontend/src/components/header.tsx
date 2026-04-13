@@ -78,9 +78,7 @@ export function Header() {
           </Link>
 
           {/* Organization Switcher */}
-          <div className="w-52">
-            <OrganizationSwitcher />
-          </div>
+          <OrganizationSwitcher />
         </div>
 
         {/* Language Toggle + Token余额显示 + Account Avatar */}

@@ -53,7 +53,7 @@ export function OrganizationSwitcher() {
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            'w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition-all duration-200 cursor-pointer group',
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border-2 transition-all duration-200 cursor-pointer group min-w-[80px] max-w-[160px] overflow-hidden',
             isPublic
               ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/60 border-indigo-200 hover:border-indigo-300 hover:shadow-sm'
               : 'bg-gradient-to-r from-violet-50 to-violet-100/60 border-violet-200 hover:border-violet-300 hover:shadow-sm'
@@ -70,7 +70,10 @@ export function OrganizationSwitcher() {
           )}>
             {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
           </span>
-          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <ChevronDown className={cn(
+            'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
+            isPublic ? 'text-indigo-400' : 'text-violet-400'
+          )} />
         </button>
       </DropdownMenuTrigger>
 

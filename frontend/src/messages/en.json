@@ -1,6 +1,6 @@
 {
   "sidebar": {
-    "sharedSpace": "Shared Space",
+    "sharedSpace": "Default",
     "myShared": "My Shared",
     "overview": "Overview",
     "marketplace": "Model Marketplace",
@@ -101,11 +101,10 @@
   },
   "apiKeys": {
     "title": "My API Keys",
-    "description": "Create and manage your API keys to call large language models",
+    "description": "Description",
     "create": "Create API Key",
     "edit": "Edit API Key",
     "name": "Name",
-    "description": "Description",
     "optionalDescription": "Optional description",
     "namePlaceholder": "API Key name",
     "descriptionPlaceholder": "Optional description",
@@ -458,7 +457,7 @@
   },
   "adminProviders": {
     "title": "Provider Configuration",
-    "description": "Manage subscription providers and their model configurations",
+    "description": "Description",
     "create": "Add Provider",
     "edit": "Edit Provider",
     "manageModels": "Manage Models",
@@ -483,7 +482,6 @@
     "codingScore": "Coding Score",
     "modelKey": "Model Key",
     "displayName": "Display Name",
-    "description": "Description",
     "inputTypes": "Input Types",
     "outputTypes": "Output Types",
     "commaSeparated": "Separate multiple values with commas",
@@ -673,7 +671,7 @@
     "addDialog": {
       "title": "Add Model",
       "editTitle": "Edit Model",
-      "description": "Select from global model list and add to provider",
+      "description": "Description",
       "provider": "Provider",
       "providerPlaceholder": "Select provider",
       "modelKey": "Model Key",
@@ -681,7 +679,6 @@
       "realModel": "Real Model",
       "realModelPlaceholder": "e.g. anthropic/claude-3-sonet or glm-4.7",
       "displayName": "Display Name",
-      "description": "Description",
       "contextLength": "Context Length",
       "maxOutput": "Max Output",
       "codingScore": "Coding Score",
