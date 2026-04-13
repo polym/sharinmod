@@ -280,7 +280,7 @@ export default function MyTeamPage() {
                       {formatTokens(member.org_total_tokens)}
                     </TableCell>
                     <TableCell className="text-sm text-gray-500">
-                      {formatDate(member.last_used_at, locale)}
+                      {formatDate(member.last_used_at, locale || 'zh-CN')}
                     </TableCell>
                     <TableCell className="text-right">
                       {member.role !== 'owner' && (
@@ -335,7 +335,7 @@ export default function MyTeamPage() {
           <DialogHeader>
             <DialogTitle>{t('confirmDisableTitle')}</DialogTitle>
             <DialogDescription>
-              {t('confirmDisable', { email: targetMember?.email })}
+              {t('confirmDisable', { email: targetMember?.email || '' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -353,7 +353,7 @@ export default function MyTeamPage() {
           <DialogHeader>
             <DialogTitle>{t('confirmEnableTitle')}</DialogTitle>
             <DialogDescription>
-              {t('confirmEnable', { email: targetMember?.email })}
+              {t('confirmEnable', { email: targetMember?.email || '' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -371,7 +371,7 @@ export default function MyTeamPage() {
           <DialogHeader>
             <DialogTitle>{t('confirmRemoveTitle')}</DialogTitle>
             <DialogDescription>
-              {t('confirmRemove', { email: targetMember?.email })}
+              {t('confirmRemove', { email: targetMember?.email || '' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

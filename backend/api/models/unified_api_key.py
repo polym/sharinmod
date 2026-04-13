@@ -2,6 +2,7 @@
 Unified API Key model for platform-generated API access keys
 """
 from sqlmodel import SQLModel, Field, Index, Relationship
+from sqlalchemy import BigInteger
 from datetime import datetime, date
 from typing import Optional, List
 from enum import Enum
@@ -40,8 +41,8 @@ class UnifiedAPIKey(SQLModel, table=True):
     organization_id: Optional[int] = Field(default=None, index=True, foreign_key="organizations.id", description="Organization ID for private server isolation. None = public area.")
 
     # Daily token limit fields
-    daily_token_limit: Optional[int] = Field(default=None, description="Daily token limit for this API key")
-    daily_tokens_used: int = Field(default=0, description="Tokens used today")
+    daily_token_limit: Optional[int] = Field(default=None, sa_type=BigInteger(), description="Daily token limit for this API key")
+    daily_tokens_used: int = Field(default=0, sa_type=BigInteger(), description="Tokens used today")
     last_reset_date: Optional[date] = Field(default=None, description="Last date when daily tokens were reset")
     
     # Index for user + status queries (enforcing 5-key limit)

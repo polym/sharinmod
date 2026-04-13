@@ -373,6 +373,7 @@ function ProviderModelTab() {
     setModelForm({
       providerId: 0,
       modelKey: '',
+      realModel: '',
       displayName: '',
       description: '',
       contextLength: '',

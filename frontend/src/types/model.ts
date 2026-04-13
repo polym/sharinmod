@@ -10,6 +10,7 @@ export interface SharedBy {
 
 export interface ProviderInfo {
   code: string;
+  name: string;
   logo_path: string;
 }
 

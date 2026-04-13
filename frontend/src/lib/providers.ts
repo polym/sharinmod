@@ -166,4 +166,7 @@ export const PROVIDER_INFO: Record<ProviderCode, { supported_models: string[] }>
   openrouter: {
     supported_models: ['pony-alpha'],
   },
+  bailian: {
+    supported_models: [],
+  },
 };
