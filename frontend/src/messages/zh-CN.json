@@ -853,7 +853,7 @@
     "title": "领养龙虾",
     "description": "管理您的龙虾家族（最多 {max} 只）",
     "createButton": "创建龙虾",
-    "disabledMessage": "龙虾创建功能已禁用",
+    "disabledMessage": "暂未开放",
     "loading": "加载中...",
     "emptyState": {
       "title": "还没有龙虾，快去领养一只吧！"
