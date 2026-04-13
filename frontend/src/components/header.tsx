@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Zap, Shield, Lock } from "lucide-react";
+import { User, LogOut, Zap, Shield, Lock, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore, useLocaleStore } from "@/lib/store";
 import { authAPI } from "@/lib/services";
@@ -49,11 +49,6 @@ export function Header() {
     setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN');
   };
 
-  const langOptions = [
-    { code: 'zh-CN' as const, label: 'ZH' },
-    { code: 'en' as const, label: 'EN' },
-  ];
-
   return (
     <header
       className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-3"
@@ -81,29 +76,8 @@ export function Header() {
           <OrganizationSwitcher />
         </div>
 
-        {/* Language Toggle + Token余额显示 + Account Avatar */}
+        {/* Token余额显示 + Account Avatar */}
         <div className="flex items-center gap-3">
-          {/* Language Toggle */}
-          <div className="flex gap-1 bg-white h-8 px-1.5 rounded-lg border-2 border-indigo-200 shadow-sm"
-            style={{
-              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.1)"
-            }}>
-            {langOptions.map((option) => (
-              <button
-                key={option.code}
-                onClick={() => setLocale(option.code)}
-                className={cn(
-                  "px-2.5 py-1 text-sm font-medium rounded-md transition-colors",
-                  locale === option.code
-                    ? "bg-indigo-500 text-white"
-                    : "text-gray-600 hover:bg-indigo-50"
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
           {/* Token Balance Button */}
           <Button
             variant="ghost"
@@ -166,6 +140,14 @@ export function Header() {
                 </DropdownMenuItem>
               </>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={toggleLocale}
+            >
+              <Globe className="mr-2 h-4 w-4" />
+              {locale === 'zh-CN' ? 'English' : '中文'}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"
