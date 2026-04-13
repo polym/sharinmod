@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { QuickCallDialog } from "@/components/QuickCallDialog";
+import { OrganizationSwitcher } from "@/components/OrganizationSwitcher";
 import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/lib/store";
 
@@ -61,7 +62,7 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
-  const { currentOrganization, myOrganizations } = useAuthStore();
+  const { currentOrganization, myOrganizations, isAuthenticated } = useAuthStore();
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
   const mainNavItems = [
@@ -74,10 +75,20 @@ export function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full pt-0 pl-3 pr-2 pb-4">
+      {/* Organization Switcher */}
+      {isAuthenticated && (
+        <div className="mt-4 mb-2">
+          <OrganizationSwitcher variant="sidebar" />
+        </div>
+      )}
+
       {/* Launch Button - Claymorphism Style */}
       <QuickCallDialog>
         <Button
-          className="w-full mt-4 mb-4 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center rounded-md text-sm font-medium"
+          className={cn(
+            "w-full mb-4 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center rounded-md text-sm font-medium",
+            isAuthenticated ? "mt-2" : "mt-4"
+          )}
         >
           <Sparkles className="w-4 h-4 mr-1.5" />
           {tQuickCall('quickCall')}

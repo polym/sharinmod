@@ -19,7 +19,7 @@ interface MyOrganizations {
   joined: Organization[];
 }
 
-export function OrganizationSwitcher() {
+export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header' | 'sidebar' }) {
   const t = useTranslations('sidebar');
   const tCommon = useTranslations('common');
   const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated, setMyOrganizations } = useAuthStore();
@@ -51,30 +51,44 @@ export function OrganizationSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border-2 transition-all duration-200 cursor-pointer group min-w-[80px] max-w-[160px] overflow-hidden',
-            isPublic
-              ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/60 border-indigo-200 hover:border-indigo-300 hover:shadow-sm'
-              : 'bg-gradient-to-r from-violet-50 to-violet-100/60 border-violet-200 hover:border-violet-300 hover:shadow-sm'
-          )}
-          style={{
-            boxShadow: isPublic
-              ? '0 1px 0 rgba(79,70,229,0.1), 0 2px 6px rgba(79,70,229,0.08)'
-              : '0 1px 0 rgba(139,92,246,0.1), 0 2px 6px rgba(139,92,246,0.08)',
-          }}
-        >
-          <span className={cn(
-            'text-sm font-semibold truncate',
-            isPublic ? 'text-indigo-700' : 'text-violet-700'
-          )}>
-            {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
-          </span>
-          <ChevronDown className={cn(
-            'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
-            isPublic ? 'text-indigo-400' : 'text-violet-400'
-          )} />
-        </button>
+        {variant === 'sidebar' ? (
+          <button
+            className={cn(
+              'w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer group',
+              'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+            )}
+          >
+            <span className="truncate">
+              {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
+            </span>
+            <ChevronDown className="w-4 h-4 flex-shrink-0 text-indigo-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </button>
+        ) : (
+          <button
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border-2 transition-all duration-200 cursor-pointer group min-w-[80px] max-w-[160px] overflow-hidden',
+              isPublic
+                ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/60 border-indigo-200 hover:border-indigo-300 hover:shadow-sm'
+                : 'bg-gradient-to-r from-violet-50 to-violet-100/60 border-violet-200 hover:border-violet-300 hover:shadow-sm'
+            )}
+            style={{
+              boxShadow: isPublic
+                ? '0 1px 0 rgba(79,70,229,0.1), 0 2px 6px rgba(79,70,229,0.08)'
+                : '0 1px 0 rgba(139,92,246,0.1), 0 2px 6px rgba(139,92,246,0.08)',
+            }}
+          >
+            <span className={cn(
+              'text-sm font-semibold truncate',
+              isPublic ? 'text-indigo-700' : 'text-violet-700'
+            )}>
+              {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
+            </span>
+            <ChevronDown className={cn(
+              'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
+              isPublic ? 'text-indigo-400' : 'text-violet-400'
+            )} />
+          </button>
+        )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" sideOffset={6} className="w-40">
