@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-indigo-50 via-white to-indigo-50 overflow-hidden">
+    <div className="flex h-screen bg-clay-background overflow-hidden">
       {/* Admin Header - fixed at top */}
       <div className="fixed top-0 left-0 right-0 z-50 w-full">
         <AdminHeader />
@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 pt-16 pl-56">
-        <main className="flex-1 overflow-auto p-4 md:p-6 bg-gradient-to-br from-indigo-50/50 via-transparent to-indigo-50/30">
+        <main className="flex-1 overflow-auto p-4 md:p-6">
           {children}
         </main>
       </div>

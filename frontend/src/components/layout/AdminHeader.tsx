@@ -44,9 +44,9 @@ export function AdminHeader() {
 
   return (
     <header
-      className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b border-gray-200 px-8 py-4"
+      className="bg-white/80 backdrop-blur-md px-8 py-4"
       style={{
-        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
+        boxShadow: "0 1px 3px rgba(79, 70, 229, 0.06), 0 8px 24px rgba(79, 70, 229, 0.04)"
       }}
     >
       <div className="flex items-center justify-between gap-8">
@@ -64,7 +64,7 @@ export function AdminHeader() {
             <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
           </Link>
           <span className="text-gray-300 text-sm">/</span>
-          <div className="px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200">
+          <div className="px-2.5 py-1 rounded-md bg-indigo-50/80">
             <span className="text-xs font-medium text-indigo-700">{tLayout('adminConsole')}</span>
           </div>
         </div>
@@ -73,10 +73,7 @@ export function AdminHeader() {
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
-            className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
-            style={{
-              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-            }}
+            className="bg-indigo-50/80 hover:bg-indigo-100 gap-1.5 h-8 px-3 rounded-xl"
           >
             <Zap className="h-3.5 w-3.5 text-indigo-600" />
             <span className={cn(
@@ -90,10 +87,7 @@ export function AdminHeader() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border-2 border-indigo-200 hover:shadow-md transition-all cursor-pointer"
-                style={{
-                  boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-                }}
+                className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-indigo-50/80 hover:bg-indigo-100 transition-all cursor-pointer"
                 aria-label={tLayout('userMenu')}
               >
                 <UserAvatar
