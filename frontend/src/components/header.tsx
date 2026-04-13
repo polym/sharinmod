@@ -126,7 +126,7 @@ export function Header() {
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="cursor-pointer text-violet-600 focus:text-violet-600"
+                  className="cursor-pointer"
                   onClick={() => router.push('/admin/users')}
                 >
                   <Shield className="mr-2 h-4 w-4" />
