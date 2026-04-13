@@ -62,8 +62,8 @@ export function ClawSettingsForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center gap-4">
+        <div className="flex-1">
           <Label htmlFor="archive-enabled">{t('archive.enabled')}</Label>
           <p className="text-xs text-gray-500">{t('archive.description')}</p>
         </div>
@@ -89,8 +89,10 @@ export function ClawSettingsForm({
       )}
 
       {archiveEnabled && (
-        <div className="flex items-center justify-between">
-          <Label htmlFor="auto-enabled">{t('archive.autoEnabled')}</Label>
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <Label htmlFor="auto-enabled">{t('archive.autoEnabled')}</Label>
+          </div>
           <Switch
             id="auto-enabled"
             checked={autoEnabled}
