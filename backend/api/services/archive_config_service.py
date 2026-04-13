@@ -38,14 +38,15 @@ def get_archive_config() -> Dict[str, Any]:
         with open(config_path, "r", encoding="utf-8") as f:
             full_config = yaml.safe_load(f) or {}
 
+        claw_cfg = full_config.get("claw") or {}
         return {
-            "claws_archive_enabled": _to_bool(full_config.get("claws_archive_enabled", True)),
-            "claws_archive_auto_enabled": _to_bool(full_config.get("claws_archive_auto_enabled", True)),
-            "claws_archive_schedule_daily": full_config.get("claws_archive_schedule_daily", "0 6 * * *"),
-            "claws_archive_schedule_interval": full_config.get("claws_archive_schedule_interval", 20),
-            "claws_archive_retention_daily": full_config.get("claws_archive_retention_daily", 1),
-            "claws_archive_retention_interval": full_config.get("claws_archive_retention_interval", 5),
-            "claws_archive_max_manual": full_config.get("claws_archive_max_manual", 5),
+            "claws_archive_enabled": _to_bool(claw_cfg.get("archive_enabled", False)),
+            "claws_archive_auto_enabled": _to_bool(claw_cfg.get("archive_auto_enabled", False)),
+            "claws_archive_schedule_daily": claw_cfg.get("archive_schedule_daily", "0 6 * * *"),
+            "claws_archive_schedule_interval": claw_cfg.get("archive_schedule_interval", 20),
+            "claws_archive_retention_daily": claw_cfg.get("archive_retention_daily", 1),
+            "claws_archive_retention_interval": claw_cfg.get("archive_retention_interval", 5),
+            "claws_archive_max_manual": claw_cfg.get("archive_max_manual", 5),
         }
     except FileNotFoundError:
         logger.error(f"[ArchiveConfig] Configuration file not found: {config_path}")
@@ -97,14 +98,16 @@ def update_archive_config(
         with open(config_path, "r", encoding="utf-8") as f:
             full_config = yaml.safe_load(f) or {}
 
-        # Update archive config fields
-        full_config["claws_archive_enabled"] = claws_archive_enabled
-        full_config["claws_archive_auto_enabled"] = claws_archive_auto_enabled
-        full_config["claws_archive_schedule_daily"] = claws_archive_schedule_daily
-        full_config["claws_archive_schedule_interval"] = claws_archive_schedule_interval
-        full_config["claws_archive_retention_daily"] = claws_archive_retention_daily
-        full_config["claws_archive_retention_interval"] = claws_archive_retention_interval
-        full_config["claws_archive_max_manual"] = claws_archive_max_manual
+        # Update archive config fields in the claw section
+        claw_cfg = full_config.get("claw") or {}
+        full_config["claw"] = claw_cfg
+        claw_cfg["archive_enabled"] = claws_archive_enabled
+        claw_cfg["archive_auto_enabled"] = claws_archive_auto_enabled
+        claw_cfg["archive_schedule_daily"] = claws_archive_schedule_daily
+        claw_cfg["archive_schedule_interval"] = claws_archive_schedule_interval
+        claw_cfg["archive_retention_daily"] = claws_archive_retention_daily
+        claw_cfg["archive_retention_interval"] = claws_archive_retention_interval
+        claw_cfg["archive_max_manual"] = claws_archive_max_manual
 
         # Write to temporary file first, then atomic rename
         dir_name = os.path.dirname(config_path)

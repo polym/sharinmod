@@ -43,13 +43,17 @@ def get_claw_config(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         full_config = yaml.safe_load(f) or {}
-    claw_types_config = full_config.get("claw_types", {})
+    claw_cfg = full_config.get("claw") or {}
+    claw_types_config = claw_cfg.get("types") or {}
     featured = claw_types_config.get("featured_brain_models", ["glm-4.7", "minimax-m2.5", "kimi-k2.5"])
-    prunc_enabled = full_config.get("prunc_enabled", False) is True
-    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
-    claws_archive_auto_enabled = full_config.get("claws_archive_auto_enabled", False) is True
-    claws_archive_schedule_interval = full_config.get("claws_archive_schedule_interval", 20)
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True
+    claws_archive_enabled = claw_cfg.get("archive_enabled", False) is True
+    claws_archive_auto_enabled = claw_cfg.get("archive_auto_enabled", False) is True
+    claws_archive_schedule_interval = claw_cfg.get("archive_schedule_interval", 20)
+    # Use startup-cached value to stay consistent with server-side enforcement (Finding 7)
+    enable_creation = settings.FEATURE_FLAG_ENABLE_CLAW_CREATION
     return {
+        "enable_creation": enable_creation,
         "featured_brain_models": featured,
         "prunc_enabled": prunc_enabled,
         "claws_archive_enabled": claws_archive_enabled,
@@ -408,8 +412,9 @@ def get_claw_archives(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         full_config = yaml.safe_load(f) or {}
-    prunc_enabled = full_config.get("prunc_enabled", False) is True
-    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    claw_cfg = full_config.get("claw", {})
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True
+    claws_archive_enabled = claw_cfg.get("archive_enabled", False) is True
 
     if not prunc_enabled or not claws_archive_enabled:
         raise HTTPException(status_code=403, detail="存档功能未启用")
@@ -446,8 +451,9 @@ def create_claw_archive(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         full_config = yaml.safe_load(f) or {}
-    prunc_enabled = full_config.get("prunc_enabled", False) is True
-    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    claw_cfg = full_config.get("claw", {})
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True
+    claws_archive_enabled = claw_cfg.get("archive_enabled", False) is True
 
     if not prunc_enabled or not claws_archive_enabled:
         raise HTTPException(status_code=403, detail="存档功能未启用")
@@ -455,7 +461,7 @@ def create_claw_archive(
     claw = get_user_claw_by_id(session, current_user.id, claw_id)
 
     # 检查手动存档数量限制
-    max_manual = full_config.get("claws_archive_max_manual", 5)
+    max_manual = claw_cfg.get("archive_max_manual", 5)
     manual_count = k8s_service.count_manual_archives(
         claw_id,
         namespace=claw.k8s_namespace or "default",
@@ -552,8 +558,9 @@ def restore_claw_archive(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         full_config = yaml.safe_load(f) or {}
-    prunc_enabled = full_config.get("prunc_enabled", False) is True
-    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    claw_cfg = full_config.get("claw", {})
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True
+    claws_archive_enabled = claw_cfg.get("archive_enabled", False) is True
 
     if not prunc_enabled or not claws_archive_enabled:
         raise HTTPException(status_code=403, detail="存档功能未启用")
@@ -615,8 +622,9 @@ def delete_claw_archive(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         full_config = yaml.safe_load(f) or {}
-    prunc_enabled = full_config.get("prunc_enabled", False) is True
-    claws_archive_enabled = full_config.get("claws_archive_enabled", False) is True
+    claw_cfg = full_config.get("claw", {})
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True
+    claws_archive_enabled = claw_cfg.get("archive_enabled", False) is True
 
     if not prunc_enabled or not claws_archive_enabled:
         raise HTTPException(status_code=403, detail="存档功能未启用")

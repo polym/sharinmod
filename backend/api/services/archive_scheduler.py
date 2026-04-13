@@ -40,10 +40,12 @@ class ArchiveScheduler:
             with open(config_path, "r", encoding="utf-8") as f:
                 full_config = yaml.safe_load(f) or {}
 
+            claw_cfg = full_config.get("claw") or {}
+
             # Log raw config values for debugging
-            prunc_raw = full_config.get("prunc_enabled")
-            claws_archive_raw = full_config.get("claws_archive_enabled")
-            auto_raw = full_config.get("claws_archive_auto_enabled")
+            prunc_raw = claw_cfg.get("prunc_enabled")
+            claws_archive_raw = claw_cfg.get("archive_enabled")
+            auto_raw = claw_cfg.get("archive_auto_enabled")
 
             logger.info(f"[ArchiveScheduler] Raw config values: prunc_enabled={prunc_raw!r} (type: {type(prunc_raw).__name__}), "
                        f"claws_archive_enabled={claws_archive_raw!r} (type: {type(claws_archive_raw).__name__}), "
@@ -62,18 +64,18 @@ class ArchiveScheduler:
                 logger.info("[ArchiveScheduler] Auto archive disabled: prunc_enabled is False")
                 return {"enabled": False}
             if not claws_archive_enabled:
-                logger.info("[ArchiveScheduler] Auto archive disabled: claws_archive_enabled is False")
+                logger.info("[ArchiveScheduler] Auto archive disabled: archive_enabled is False")
                 return {"enabled": False}
             if not auto_enabled:
-                logger.info("[ArchiveScheduler] Auto archive disabled: claws_archive_auto_enabled is False")
+                logger.info("[ArchiveScheduler] Auto archive disabled: archive_auto_enabled is False")
                 return {"enabled": False}
 
             config = {
                 "enabled": True,
-                "schedule_daily": full_config.get("claws_archive_schedule_daily", "0 6 * * *"),
-                "schedule_interval": full_config.get("claws_archive_schedule_interval", 20),
-                "retention_daily": full_config.get("claws_archive_retention_daily", 1),
-                "retention_interval": full_config.get("claws_archive_retention_interval", 5),
+                "schedule_daily": claw_cfg.get("archive_schedule_daily", "0 6 * * *"),
+                "schedule_interval": claw_cfg.get("archive_schedule_interval", 20),
+                "retention_daily": claw_cfg.get("archive_retention_daily", 1),
+                "retention_interval": claw_cfg.get("archive_retention_interval", 5),
             }
             logger.info(f"[ArchiveScheduler] Auto archive config loaded: {config}")
             return config

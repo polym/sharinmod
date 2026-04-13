@@ -147,6 +147,17 @@ class YamlConfigSource(PydanticBaseSettingsSource):
                 field_key = f"FEATURE_FLAG_{key.upper()}"
                 result[field_key] = value
 
+        # Read enable_creation from claw section (overrides any feature_flags value)
+        claw_cfg = self.full_config.get("claw") or {}
+        if isinstance(claw_cfg, dict) and "enable_creation" in claw_cfg:
+            if "FEATURE_FLAG_ENABLE_CLAW_CREATION" in result:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "[Config] Both feature_flags.enable_claw_creation and claw.enable_creation are set; "
+                    "claw.enable_creation takes precedence."
+                )
+            result["FEATURE_FLAG_ENABLE_CLAW_CREATION"] = claw_cfg["enable_creation"]
+
         return result
 
 

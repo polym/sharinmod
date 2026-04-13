@@ -282,12 +282,13 @@ def create_statefulset(
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
         root_cfg = _yaml.safe_load(f)
-    storage_class = root_cfg.get("workspace_storage_class", "")
-    storage_size = root_cfg.get("workspace_storage_size", "10Gi")
-    mount_path = root_cfg.get("workspace_mount_path") or "/app/workspace"
-    prunc_enabled = root_cfg.get("prunc_enabled", False) is True  # guard against bool("false") == True
-    rootfs_storage_class = root_cfg.get("rootfs_storage_class", "")
-    rootfs_storage_size = root_cfg.get("rootfs_storage_size", "10Gi")
+    claw_cfg = root_cfg.get("claw", {})
+    storage_class = claw_cfg.get("workspace_storage_class", "")
+    storage_size = claw_cfg.get("workspace_storage_size", "10Gi")
+    mount_path = claw_cfg.get("workspace_mount_path") or "/app/workspace"
+    prunc_enabled = claw_cfg.get("prunc_enabled", False) is True  # guard against bool("false") == True
+    rootfs_storage_class = claw_cfg.get("rootfs_storage_class", "")
+    rootfs_storage_size = claw_cfg.get("rootfs_storage_size", "10Gi")
     if not mount_path.startswith("/"):
         raise ValueError(f"workspace_mount_path must be an absolute path, got: {mount_path!r}")
     import re as _re

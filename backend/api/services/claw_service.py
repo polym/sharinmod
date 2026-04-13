@@ -24,8 +24,12 @@ def _load_claw_type_config(claw_type: str) -> dict:
     from api.config import _get_config_path
     config_path = _get_config_path()
     with open(config_path, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    return config["claw_types"][claw_type]
+        config = yaml.safe_load(f) or {}
+    claw_section = config.get("claw") or {}
+    types_section = claw_section.get("types") or {}
+    if claw_type not in types_section:
+        raise KeyError(f"Claw type '{claw_type}' not found in config claw.types")
+    return types_section[claw_type]
 
 
 def get_max_claws_per_user(session: Session) -> int:

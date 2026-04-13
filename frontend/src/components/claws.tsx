@@ -330,9 +330,21 @@ export function ClawsPage() {
 
   const loadClaws = async () => {
     try {
-      const response = await clawAPI.getMyClaws();
-      setClaws(response.data.items ?? []);
-      setClawCreationDisabled(false);
+      const [clawsResult, configResult] = await Promise.allSettled([
+        clawAPI.getMyClaws(),
+        clawAPI.getConfig(),
+      ]);
+      if (clawsResult.status === 'fulfilled') {
+        setClaws(clawsResult.value.data.items ?? []);
+      } else {
+        console.error('Failed to load claws list:', clawsResult.reason);
+      }
+      // 根据后端配置决定「领养龙虾」入口是否显示
+      if (configResult.status === 'fulfilled') {
+        setClawCreationDisabled(configResult.value.data.enable_creation === false);
+      } else {
+        console.error('Failed to load claw config:', configResult.reason);
+      }
     } catch (error: any) {
       console.error('Failed to load claws:', error);
     } finally {
