@@ -16,6 +16,12 @@ services:
       - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
       - ./frontend/postcss.config.js:/app/postcss.config.js
       - ./frontend/tsconfig.json:/app/tsconfig.json
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     image: sharinmod-backend:${VERSION:-latest}
