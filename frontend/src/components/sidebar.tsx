@@ -57,9 +57,8 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
   );
 }
 
-export function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
   const { currentOrganization, myOrganizations, isAuthenticated } = useAuthStore();
@@ -73,7 +72,7 @@ export function Sidebar() {
     { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
   ];
 
-  const SidebarContent = () => (
+  return (
     <div className="flex flex-col h-full pt-0 pl-3 pr-2 pb-4">
       {/* Organization Switcher */}
       {isAuthenticated && (
@@ -126,6 +125,10 @@ export function Sidebar() {
       </nav>
     </div>
   );
+}
+
+export function Sidebar() {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
     <>
