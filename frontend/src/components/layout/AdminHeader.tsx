@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Settings, LogOut, Zap } from 'lucide-react';
+import { User, LogOut, Zap, Lock, Globe } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,16 +12,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useLocaleStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import { authAPI } from '@/lib/services';
 import { useIntervalOnVisible } from '@/hooks/useIntervalOnVisible';
 import { useTranslations } from 'next-intl';
 
 export function AdminHeader() {
-  const { user, logout, updateUser, isAuthenticated } = useAuthStore();
+  const { user, logout, updateUser, isAuthenticated, setShowProfileDialog, setShowChangePasswordDialog } = useAuthStore();
+  const { locale, setLocale } = useLocaleStore();
   const router = useRouter();
   const t = useTranslations('adminHeader');
+  const tTopbar = useTranslations('topbar');
   const tLayout = useTranslations('adminLayout');
 
   const handleLogout = () => {
@@ -41,6 +43,10 @@ export function AdminHeader() {
   };
 
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
+
+  const toggleLocale = () => {
+    setLocale(locale === 'zh-CN' ? 'en' : 'zh-CN');
+  };
 
   return (
     <header
@@ -64,9 +70,12 @@ export function AdminHeader() {
             <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
           </Link>
           <span className="text-gray-300 text-sm">/</span>
-          <div className="px-2.5 py-1 rounded-md bg-indigo-50/80">
-            <span className="text-xs font-medium text-indigo-700">{tLayout('adminConsole')}</span>
-          </div>
+          <Button
+            variant="ghost"
+            className="bg-indigo-50/80 hover:bg-indigo-100 h-8 px-3 rounded-xl"
+          >
+            <span className="text-sm font-medium text-indigo-600">{tLayout('adminConsole')}</span>
+          </Button>
         </div>
 
         {/* Right - Token balance + user menu */}
@@ -101,10 +110,24 @@ export function AdminHeader() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => router.push('/settings')}
+                onClick={() => setShowProfileDialog(true)}
               >
-                <Settings className="mr-2 h-4 w-4" />
-                {t('settings')}
+                <User className="mr-2 h-4 w-4" />
+                {tTopbar('profile')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => setShowChangePasswordDialog(true)}
+              >
+                <Lock className="mr-2 h-4 w-4" />
+                {tTopbar('changePassword')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={toggleLocale}
+              >
+                <Globe className="mr-2 h-4 w-4" />
+                {locale === 'zh-CN' ? 'English' : '中文'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

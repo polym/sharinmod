@@ -8,6 +8,7 @@
     "usage": "使用情况",
     "settings": "设置",
     "claws": "领养龙虾",
+    "myTeam": "我的团队",
     "adminProviders": "订阅配置",
     "adminUsers": "用户管理",
     "adminModels": "模型配置",
@@ -29,7 +30,7 @@
     "changePassword": "修改密码",
     "backToHome": "返回首页",
     "userMenu": "用户菜单",
-    "adminConsole": "管理控制台"
+    "adminConsole": "管理看板"
   },
   "language": {
     "zh-CN": "中文",
