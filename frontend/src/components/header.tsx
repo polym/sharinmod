@@ -122,19 +122,6 @@ export function Header() {
               <Lock className="mr-2 h-4 w-4" />
               {t('changePassword')}
             </DropdownMenuItem>
-            {user?.is_admin && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => router.push('/admin/users')}
-                >
-                  <Shield className="mr-2 h-4 w-4" />
-                  {t('adminConsole')}
-                </DropdownMenuItem>
-              </>
-            )}
-            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={toggleLocale}
@@ -143,6 +130,18 @@ export function Header() {
               {locale === 'zh-CN' ? 'English' : '中文'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            {user?.is_admin && (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => router.push('/admin/users')}
+                >
+                  <Shield className="mr-2 h-4 w-4" />
+                  {t('adminConsole')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"
               onClick={handleLogout}

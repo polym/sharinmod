@@ -44,11 +44,14 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
     <Link
       href={href}
       className={cn(
-        "w-full px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2.5 transition-colors",
+        "w-full px-4 py-3 rounded-md text-sm font-medium flex items-center gap-3 transition-all",
         active
-          ? "bg-indigo-50 text-indigo-700"
-          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          ? "bg-indigo-100 text-indigo-700 shadow-lg"
+          : "text-gray-600 hover:bg-indigo-50 hover:text-indigo-700"
       )}
+      style={active ? {
+        boxShadow: "0 2px 8px rgba(79, 70, 229, 0.2), 0 8px 16px rgba(79, 70, 229, 0.12)"
+      } : {}}
     >
       {icon}
       {label}
@@ -65,11 +68,11 @@ export function Sidebar() {
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
   const mainNavItems = [
-    { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
-    { icon: <Bot className="w-4 h-4" />, label: t('claws'), href: "/claws" },
-    { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
-    { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
-    { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
+    { icon: <Store className="w-5 h-5" />, label: t('marketplace'), href: "/marketplace" },
+    { icon: <Bot className="w-5 h-5" />, label: t('claws'), href: "/claws" },
+    { icon: <Users className="w-5 h-5" />, label: t('myShared'), href: "/shared" },
+    { icon: <Key className="w-5 h-5" />, label: t('apiKeys'), href: "/api-keys" },
+    { icon: <BarChart3 className="w-5 h-5" />, label: t('usage'), href: "/usage" },
   ];
 
   const SidebarContent = () => (
@@ -103,8 +106,8 @@ export function Sidebar() {
             <div className="border-t border-gray-200 my-2" />
             <NavSection>
               <NavItem
-                icon={<Users className="w-4 h-4" />}
-                label="我的团队"
+                icon={<Users className="w-5 h-5" />}
+                label={t('myTeam')}
                 href="/my-team"
                 active={pathname === '/my-team'}
               />
