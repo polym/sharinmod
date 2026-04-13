@@ -62,7 +62,7 @@ export function ClawSettingsForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4">
         <div>
           <Label htmlFor="archive-enabled">{t('archive.enabled')}</Label>
           <p className="text-xs text-gray-500">{t('archive.description')}</p>
@@ -74,93 +74,97 @@ export function ClawSettingsForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="max-manual">{t('archive.maxManual')}</Label>
-        <Input
-          id="max-manual"
-          type="number"
-          min="1"
-          max="100"
-          value={maxManual}
-          onChange={(e) => onChange('maxManual', parseInt(e.target.value) || 1)}
-          disabled={!archiveEnabled}
-        />
-      </div>
+      {archiveEnabled && (
+        <div className="space-y-2">
+          <Label htmlFor="max-manual">{t('archive.maxManual')}</Label>
+          <Input
+            id="max-manual"
+            type="number"
+            min="1"
+            max="100"
+            value={maxManual}
+            onChange={(e) => onChange('maxManual', parseInt(e.target.value) || 1)}
+          />
+        </div>
+      )}
 
-      <div className="flex items-center justify-between">
-        <Label htmlFor="auto-enabled">{t('archive.autoEnabled')}</Label>
-        <Switch
-          id="auto-enabled"
-          checked={autoEnabled}
-          onCheckedChange={(checked) => onChange('autoEnabled', checked)}
-          disabled={!archiveEnabled}
-        />
-      </div>
+      {archiveEnabled && (
+        <div className="flex items-center gap-4">
+          <div>
+            <Label htmlFor="auto-enabled">{t('archive.autoEnabled')}</Label>
+          </div>
+          <Switch
+            id="auto-enabled"
+            checked={autoEnabled}
+            onCheckedChange={(checked) => onChange('autoEnabled', checked)}
+          />
+        </div>
+      )}
 
       {/* 每日备份配置 - 双列 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="schedule-hour">{t('archive.scheduleDaily')}</Label>
-          <Select
-            value={scheduleHour.toString()}
-            onValueChange={(value) => onChange('scheduleHour', parseInt(value))}
-            disabled={!archiveEnabled || !autoEnabled}
-          >
-            <SelectTrigger id="schedule-hour">
-              <SelectValue placeholder={t('archive.scheduleDailyPlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 24 }, (_, i) => (
-                <SelectItem key={i} value={i.toString()}>
-                  {t(`archive.hours.${i}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {archiveEnabled && autoEnabled && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="schedule-hour">{t('archive.scheduleDaily')}</Label>
+            <Select
+              value={scheduleHour.toString()}
+              onValueChange={(value) => onChange('scheduleHour', parseInt(value))}
+            >
+              <SelectTrigger id="schedule-hour">
+                <SelectValue placeholder={t('archive.scheduleDailyPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 24 }, (_, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    {t(`archive.hours.${i}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="retention-daily">{t('archive.retentionDaily')}</Label>
-          <Input
-            id="retention-daily"
-            type="number"
-            min="1"
-            max="365"
-            value={retentionDaily}
-            onChange={(e) => onChange('retentionDaily', parseInt(e.target.value) || 1)}
-            disabled={!archiveEnabled || !autoEnabled}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="retention-daily">{t('archive.retentionDaily')}</Label>
+            <Input
+              id="retention-daily"
+              type="number"
+              min="1"
+              max="365"
+              value={retentionDaily}
+              onChange={(e) => onChange('retentionDaily', parseInt(e.target.value) || 1)}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 间隔备份配置 - 双列 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="schedule-interval">{t('archive.scheduleInterval')}</Label>
-          <Input
-            id="schedule-interval"
-            type="number"
-            min="5"
-            max="1440"
-            value={scheduleInterval}
-            onChange={(e) => onChange('scheduleInterval', parseInt(e.target.value) || 5)}
-            disabled={!archiveEnabled || !autoEnabled}
-          />
-        </div>
+      {archiveEnabled && autoEnabled && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="schedule-interval">{t('archive.scheduleInterval')}</Label>
+            <Input
+              id="schedule-interval"
+              type="number"
+              min="5"
+              max="1440"
+              value={scheduleInterval}
+              onChange={(e) => onChange('scheduleInterval', parseInt(e.target.value) || 5)}
+            />
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="retention-interval">{t('archive.retentionInterval')}</Label>
-          <Input
-            id="retention-interval"
-            type="number"
-            min="1"
-            max="168"
-            value={retentionInterval}
-            onChange={(e) => onChange('retentionInterval', parseInt(e.target.value) || 1)}
-            disabled={!archiveEnabled || !autoEnabled}
-          />
+          <div className="space-y-2">
+            <Label htmlFor="retention-interval">{t('archive.retentionInterval')}</Label>
+            <Input
+              id="retention-interval"
+              type="number"
+              min="1"
+              max="168"
+              value={retentionInterval}
+              onChange={(e) => onChange('retentionInterval', parseInt(e.target.value) || 1)}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
