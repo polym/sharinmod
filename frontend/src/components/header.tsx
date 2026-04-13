@@ -51,9 +51,9 @@ export function Header() {
 
   return (
     <header
-      className="bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 px-8 py-3"
+      className="bg-white/80 backdrop-blur-md px-8 py-3"
       style={{
-        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
+        boxShadow: "0 1px 3px rgba(79, 70, 229, 0.06), 0 8px 24px rgba(79, 70, 229, 0.04)"
       }}
     >
       <div className="flex items-center justify-between gap-8">
@@ -81,10 +81,7 @@ export function Header() {
           {/* Token Balance Button */}
           <Button
             variant="ghost"
-            className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 h-8 px-3 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
-            style={{
-              boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-            }}
+            className="bg-indigo-50/80 hover:bg-indigo-100 gap-1.5 h-8 px-3 rounded-xl"
           >
             <Zap className="h-3.5 w-3.5 text-indigo-600" />
             <span className={cn(
@@ -99,10 +96,7 @@ export function Header() {
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border-2 border-indigo-200 hover:shadow-md transition-all"
-              style={{
-                boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-              }}
+              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-indigo-50/80 hover:bg-indigo-100 transition-all"
               aria-label={t('userMenu')}
             >
               <UserAvatar

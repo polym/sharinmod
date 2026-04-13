@@ -49,13 +49,13 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
 
   return (
     <aside
-      className="w-60 bg-gradient-to-br from-indigo-50 via-white to-indigo-50 border-r-2 border-indigo-100 flex flex-col h-full"
+      className="w-60 bg-white/60 backdrop-blur-sm flex flex-col h-full"
       style={{
-        boxShadow: "4px 0 16px rgba(79, 70, 229, 0.1)"
+        boxShadow: "inset -1px 0 0 rgba(79, 70, 229, 0.06)"
       }}
     >
       {/* Logo - Claymorphism Style */}
-      <div className="h-16 flex items-center px-6 border-b-2 border-indigo-100">
+      <div className="h-16 flex items-center px-6">
         <div className="flex items-center gap-2">
           <div
             className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center border-2 border-indigo-300"
@@ -80,13 +80,13 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                 <button
                   onClick={() => onPageChange(item.id)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all border-2 relative',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
                     isActive
-                      ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-indigo-300 shadow-lg'
-                      : 'text-gray-700 hover:bg-white hover:text-indigo-600 hover:border-indigo-200 border-transparent hover:shadow-md'
+                      ? 'bg-indigo-600 text-white shadow-lg'
+                      : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'
                   )}
                   style={isActive ? {
-                    boxShadow: "0 4px 0 rgba(79, 70, 229, 0.3), 0 8px 16px rgba(79, 70, 229, 0.2)"
+                    boxShadow: "0 2px 8px rgba(79, 70, 229, 0.2), 0 8px 16px rgba(79, 70, 229, 0.12)"
                   } : {}}
                 >
                   <Icon className="w-5 h-5" />
@@ -99,12 +99,9 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
       </nav>
 
       {/* Footer - Claymorphism Style */}
-      <div className="p-4 border-t-2 border-indigo-100">
+      <div className="p-4">
         <div
-          className="text-xs text-indigo-400 text-center bg-gradient-to-r from-indigo-50 to-white rounded-xl p-2 border border-indigo-100"
-          style={{
-            boxShadow: "inset 0 1px 3px rgba(79, 70, 229, 0.1)"
-          }}
+          className="text-xs text-indigo-400 text-center bg-indigo-50/50 rounded-xl p-2"
         >
           © 2026 SharinMod
         </div>
