@@ -14,6 +14,8 @@
     "adminModels": "Model Config",
     "adminLogs": "Operation Logs",
     "adminSettings": "System Settings",
+    "orgNotFound": "This private server no longer exists or you have been removed. Switched to default.",
+    "orgSwitchFailed": "Failed to switch private server. Please try again.",
     "createOrganization": "Create Private Server",
     "privateServerTitle": "Share with your team?",
     "privateServerDesc": "Create a private space and invite friends to share APIs together!",

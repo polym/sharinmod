@@ -14,6 +14,8 @@
     "adminModels": "模型配置",
     "adminLogs": "操作日志",
     "adminSettings": "系统设置",
+    "orgNotFound": "该私服不存在或您已被移除，已切换到默认",
+    "orgSwitchFailed": "切换私服失败，请稍后重试",
     "createOrganization": "创建专属私服",
     "privateServerTitle": "和小伙伴一起玩？",
     "privateServerDesc": "创建专属私服，邀请好友共享 API，一起嗨！",

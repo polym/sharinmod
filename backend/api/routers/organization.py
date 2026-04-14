@@ -183,6 +183,8 @@ def get_my_organizations(
     joined = []
 
     for membership in memberships:
+        if membership.role != "owner" and membership.is_disabled:
+            continue
         organization = db.get(Organization, membership.organization_id)
         if organization:
             org_response = org_to_response(organization)
