@@ -35,16 +35,13 @@ function NavItem({ icon, label, href, active }: NavItemProps) {
     <Link
       href={href}
       className={cn(
-        "relative w-full px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-3 transition-all duration-200 cursor-pointer",
+        "relative w-full px-4 py-2.5 rounded-full text-sm font-medium flex items-center gap-3 transition-all duration-200 cursor-pointer",
         active
-          ? "bg-[#1f1f1f] text-[#b3b3b3] font-semibold"
-          : "text-[#b3b3b3] hover:bg-[#1f1f1f] hover:text-[#b3b3b3]"
+          ? "bg-[#1f1f1f] text-white font-bold"
+          : "text-[#b3b3b3] hover:bg-[#1f1f1f] hover:text-white"
       )}
     >
-      {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#1f1f1f]0 rounded-r-full" />
-      )}
-      <span className={cn("transition-colors", active ? "text-[#b3b3b3]" : "text-[#535353] group-hover:text-[#b3b3b3]")}>
+      <span className={cn("transition-colors", active ? "text-[#1ed760]" : "text-[#b3b3b3]")}>
         {icon}
       </span>
       {label}
@@ -80,8 +77,7 @@ function SidebarContent() {
       {/* Quick Call Button */}
       <QuickCallDialog>
         <Button
-          className="w-full mb-3 bg-[#1ed760] hover:bg-[#1ed760]/90 text-white flex items-center justify-center rounded-lg text-sm font-medium cursor-pointer"
-          
+          className="w-full mb-3"
         >
           <Sparkles className="w-4 h-4 mr-1.5" />
           {tQuickCall('quickCall')}

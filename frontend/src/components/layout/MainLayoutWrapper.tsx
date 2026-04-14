@@ -17,14 +17,14 @@ export function MainLayoutWrapper({ children }: MainLayoutWrapperProps) {
   }
 
   return (
-    <div className="min-h-screen bg-clay-background">
+    <div className="min-h-screen bg-[#121212]">
       {/* Fixed Header at top */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <Header />
       </div>
 
       {/* Fixed Sidebar on desktop */}
-      <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40 bg-white border-r border-indigo-100/80">
+      <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40 bg-[#121212] border-r border-[#282828]">
         <div className="w-full">
           <Sidebar />
         </div>
