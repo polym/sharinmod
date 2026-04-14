@@ -11,12 +11,13 @@ const config: Config = {
         sans: [
           'SpotifyMixUI', 'CircularSp-Arab', 'CircularSp-Hebr', 'CircularSp-Cyrl',
           'CircularSp-Grek', 'CircularSp-Deva', 'Helvetica Neue', 'helvetica',
-          'arial', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo',
+          'arial', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC',
+          'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Meiryo',
           'MS Gothic', 'sans-serif',
         ],
         title: [
           'SpotifyMixUITitle', 'SpotifyMixUI', 'Helvetica Neue', 'helvetica',
-          'arial', 'sans-serif',
+          'arial', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'sans-serif',
         ],
       },
       backgroundImage: {

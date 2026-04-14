@@ -51,6 +51,7 @@ body {
   background-color: #121212;
   font-family: 'SpotifyMixUI', 'CircularSp-Arab', 'CircularSp-Hebr', 'CircularSp-Cyrl',
     'CircularSp-Grek', 'CircularSp-Deva', 'Helvetica Neue', helvetica, arial,
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC',
     'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, 'MS Gothic', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -59,7 +60,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: 'SpotifyMixUITitle', 'SpotifyMixUI', 'CircularSp-Arab', 'CircularSp-Hebr',
     'CircularSp-Cyrl', 'CircularSp-Grek', 'CircularSp-Deva', 'Helvetica Neue',
-    helvetica, arial, sans-serif;
+    helvetica, arial, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   font-weight: 700;
 }
 
