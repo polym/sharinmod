@@ -18,6 +18,7 @@ from api.dependencies.auth import get_current_user
 from api.models.organization import Organization
 from api.models.organization_invite import OrganizationInvite
 from api.models.organization_member import OrganizationMember
+from api.models.api_key_limit_history import APIKeyLimitHistory
 from api.models.shared_api_key import SharedAPIKey
 from api.models.unified_api_key import UnifiedAPIKey
 from api.models.usage_log import UsageLog
@@ -618,6 +619,12 @@ async def destroy_organization(
             .where(UsageLog.unified_api_key_id == key.id)
             .values(unified_api_key_id=None)
         )
+        # Delete api_key_limit_history records first (NOT NULL FK, no DB cascade)
+        limit_history_records = db.exec(
+            select(APIKeyLimitHistory).where(APIKeyLimitHistory.unified_api_key_id == key.id)
+        ).all()
+        for record in limit_history_records:
+            db.delete(record)
         db.delete(key)
 
     # --- Step 5: Null usage_logs.organization_id ---
