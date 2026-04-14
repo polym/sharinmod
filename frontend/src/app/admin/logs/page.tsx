@@ -48,7 +48,7 @@ const getOperationTypeStyle = (type: string): string => {
     disable: 'bg-[#535353]/20 text-[#b3b3b3] border border-[#4d4d4d]',
     reset_password: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
     grant_admin: 'bg-purple-500/10 text-purple-400 border border-purple-500/30',
-    revoke_admin: 'bg-violet-500/10 text-violet-400 border border-violet-500/30',
+    revoke_admin: 'bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30',
     reset_token: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
   };
   return styles[type] || 'bg-[#282828] text-[#b3b3b3] border border-[#4d4d4d]';
