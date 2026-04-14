@@ -130,13 +130,13 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
             <>
               <span className={cn(
                 'text-sm font-semibold truncate',
-                isPublic ? 'text-[#b3b3b3]' : 'text-violet-700'
+                isPublic ? 'text-[#b3b3b3]' : 'text-[#1ed760]'
               )}>
                 {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
               </span>
               <ChevronDown className={cn(
                 'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
-                isPublic ? 'text-[#535353]' : 'text-violet-400'
+                isPublic ? 'text-[#535353]' : 'text-[#1ed760]'
               )} />
             </>
           )}
@@ -150,7 +150,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           onClick={() => handleSelectOrganization(null)}
         >
           <span className="text-sm font-medium text-white">{t('sharedSpace')}</span>
-          {isPublic && <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />}
+          {isPublic && <Check className="w-4 h-4 text-[#1ed760] flex-shrink-0" />}
         </DropdownMenuItem>
 
         {/* Private organizations */}
@@ -166,7 +166,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
                   onClick={() => handleSelectOrganization(org)}
                 >
                   <span className="text-sm font-medium text-white truncate">{org.name}</span>
-                  {isSelected && <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />}
+                  {isSelected && <Check className="w-4 h-4 text-[#1ed760] flex-shrink-0" />}
                 </DropdownMenuItem>
               );
             })}
