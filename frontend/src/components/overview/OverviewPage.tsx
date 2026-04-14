@@ -122,18 +122,18 @@ export function OverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+      <Card className=" border border-[#282828] bg-[#181818]">
         <CardHeader className="p-6">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold text-indigo-900 leading-none tracking-tight">{t('title')}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
+              <h3 className="text-2xl font-bold text-white leading-none tracking-tight">{t('title')}</h3>
+              <p className="text-sm text-[#b3b3b3] font-medium">{t('description')}</p>
             </div>
             {/* Refresh Button */}
             <Button
               variant="ghost"
               size="icon"
-              className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100"
+              className="text-[#b3b3b3] hover:text-[#b3b3b3] hover:bg-[#282828]"
               onClick={handleRefresh}
               disabled={isRefreshing}
               aria-label="刷新"
@@ -147,12 +147,12 @@ export function OverviewPage() {
       {/* Loading state */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-indigo-600 font-medium">{t('loading')}</div>
+          <div className="text-[#b3b3b3] font-medium">{t('loading')}</div>
         </div>
       ) : overviewData === null ? (
         /* No data state */
         <div className="flex items-center justify-center py-12">
-          <div className="text-indigo-600 font-medium">{t('noData')}</div>
+          <div className="text-[#b3b3b3] font-medium">{t('noData')}</div>
         </div>
       ) : (
         <>
@@ -177,17 +177,17 @@ export function OverviewPage() {
           </div>
 
           {/* Token Trend Chart - Full Width */}
-          <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+          <Card className=" border border-[#282828] bg-[#181818]">
             <CardHeader className="p-6">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <h4 className="text-lg font-bold text-indigo-900">{t('tokenTrend')}</h4>
+                <h4 className="text-lg font-bold text-white">{t('tokenTrend')}</h4>
                 {/* Time Range Selector */}
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-indigo-700 whitespace-nowrap">
+                  <label className="text-sm font-medium text-[#b3b3b3] whitespace-nowrap">
                     {t('timeRange')}:
                   </label>
                   <Select value={timeRange} onValueChange={handleTimeRangeChange}>
-                    <SelectTrigger className="clay-input w-[140px] border-2 border-indigo-200/50">
+                    <SelectTrigger className=" w-[140px] border border-[#282828]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -203,13 +203,13 @@ export function OverviewPage() {
             </CardHeader>
             <CardContent className="p-6 pt-0">
               {overviewData.daily_trends.length > 0 ? (
-                <div className="clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-64 bg-white">
+                <div className=" border border-[#282828] rounded-2xl overflow-hidden h-64 bg-[#181818]">
                   <div className="p-4 h-full">
                     <UsageBarChart quarterHourlyDistribution={convertToChartFormat(overviewData.daily_trends)} days={parseInt(timeRange)} />
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-64 text-indigo-300 text-sm">
+                <div className="flex items-center justify-center h-64 text-[#535353] text-sm">
                   {t('noData')}
                 </div>
               )}
@@ -219,9 +219,9 @@ export function OverviewPage() {
           {/* Charts Row: Claw Rankings and User Rankings */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Claw Rankings */}
-            <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+            <Card className=" border border-[#282828] bg-[#181818]">
               <CardHeader className="p-6">
-                <h4 className="text-lg font-bold text-indigo-900">{t('clawRankings')}</h4>
+                <h4 className="text-lg font-bold text-white">{t('clawRankings')}</h4>
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 {overviewData.claw_rankings.length > 0 ? (
@@ -229,27 +229,27 @@ export function OverviewPage() {
                     {overviewData.claw_rankings.map((claw, index) => (
                       <div
                         key={claw.claw_id}
-                        className="flex items-center justify-between p-2.5 bg-gradient-to-r from-indigo-50 to-white rounded-xl border-2 border-indigo-100"
+                        className="flex items-center justify-between p-2.5 bg-[#282828] rounded-xl border border-[#282828]"
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' :
-                            index === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-orange-800' :
-                            'bg-gradient-to-br from-indigo-400 to-indigo-500 text-white'
+                            index === 0 ? 'bg-[#ffa42b] text-[#121212]' :
+                            index === 1 ? 'bg-[#535353] text-white' :
+                            index === 2 ? 'bg-[#cd7f32] text-white' :
+                            'bg-[#282828] text-[#b3b3b3]'
                           }`}>
                             {index + 1}
                           </div>
-                          <span className="text-sm font-medium text-indigo-900">{claw.claw_name} ({claw.user_name})</span>
+                          <span className="text-sm font-medium text-white">{claw.claw_name} ({claw.user_name})</span>
                         </div>
-                        <span className="text-sm font-bold text-indigo-600">
+                        <span className="text-sm font-bold text-[#b3b3b3]">
                           {claw.consumed_tokens.toLocaleString()}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-48 text-indigo-300 text-sm">
+                  <div className="flex items-center justify-center h-48 text-[#535353] text-sm">
                     {t('noData')}
                   </div>
                 )}
@@ -257,9 +257,9 @@ export function OverviewPage() {
             </Card>
 
             {/* User Rankings */}
-            <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+            <Card className=" border border-[#282828] bg-[#181818]">
               <CardHeader className="p-6">
-                <h4 className="text-lg font-bold text-indigo-900">{t('userRankings')}</h4>
+                <h4 className="text-lg font-bold text-white">{t('userRankings')}</h4>
               </CardHeader>
               <CardContent className="p-6 pt-0">
                 {overviewData.user_rankings.length > 0 ? (
@@ -267,27 +267,27 @@ export function OverviewPage() {
                     {overviewData.user_rankings.map((user, index) => (
                       <div
                         key={user.user_id}
-                        className="flex items-center justify-between p-2.5 bg-gradient-to-r from-indigo-50 to-white rounded-xl border-2 border-indigo-100"
+                        className="flex items-center justify-between p-2.5 bg-[#282828] rounded-xl border border-[#282828]"
                       >
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500 text-yellow-900' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' :
-                            index === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-orange-800' :
-                            'bg-gradient-to-br from-indigo-400 to-indigo-500 text-white'
+                            index === 0 ? 'bg-[#ffa42b] text-[#121212]' :
+                            index === 1 ? 'bg-[#535353] text-white' :
+                            index === 2 ? 'bg-[#cd7f32] text-white' :
+                            'bg-[#282828] text-[#b3b3b3]'
                           }`}>
                             {index + 1}
                           </div>
-                          <span className="text-sm font-medium text-indigo-900">{user.user_name}</span>
+                          <span className="text-sm font-medium text-white">{user.user_name}</span>
                         </div>
-                        <span className="text-sm font-bold text-indigo-600">
+                        <span className="text-sm font-bold text-[#b3b3b3]">
                           {user.consumed_tokens.toLocaleString()}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-48 text-indigo-300 text-sm">
+                  <div className="flex items-center justify-center h-48 text-[#535353] text-sm">
                     {t('noData')}
                   </div>
                 )}

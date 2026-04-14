@@ -12,18 +12,18 @@ interface OverviewPieChartProps {
   modelUsage: ModelUsageData[];
 }
 
-// Color palette for pie chart segments
+// Color palette for pie chart segments (hex colors for conic-gradient and legend)
 const COLORS = [
-  'from-indigo-400 to-indigo-500',
-  'from-purple-400 to-purple-500',
-  'from-pink-400 to-pink-500',
-  'from-blue-400 to-blue-500',
-  'from-cyan-400 to-cyan-500',
-  'from-teal-400 to-teal-500',
-  'from-green-400 to-green-500',
-  'from-yellow-400 to-yellow-500',
-  'from-orange-400 to-orange-500',
-  'from-red-400 to-red-500',
+  '#1ed760',
+  '#b3b3b3',
+  '#4d4d4d',
+  '#1fdf64',
+  '#535353',
+  '#7c7c7c',
+  '#1abc9c',
+  '#3498db',
+  '#9b59b6',
+  '#e67e22',
 ];
 
 export function OverviewPieChart({ modelUsage }: OverviewPieChartProps) {
@@ -31,7 +31,7 @@ export function OverviewPieChart({ modelUsage }: OverviewPieChartProps) {
 
   if (!modelUsage || modelUsage.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-indigo-300 text-sm">
+      <div className="flex items-center justify-center h-full text-[#535353] text-sm">
         暂无数据
       </div>
     );
@@ -61,14 +61,14 @@ export function OverviewPieChart({ modelUsage }: OverviewPieChartProps) {
           className="w-40 h-40 rounded-full relative"
           style={{
             background: `conic-gradient(${gradientString})`,
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+            boxShadow: '0 4px 16px rgba(0,0,0,0.5)'
           }}
         >
           {/* Center hole for donut effect */}
-          <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center">
+          <div className="absolute inset-4 bg-[#181818] rounded-full flex items-center justify-center">
             <div className="text-center">
-              <div className="text-xs text-indigo-400">总计</div>
-              <div className="text-lg font-bold text-indigo-600">{totalTokens.toLocaleString()}</div>
+              <div className="text-xs text-[#535353]">总计</div>
+              <div className="text-lg font-bold text-[#b3b3b3]">{totalTokens.toLocaleString()}</div>
             </div>
           </div>
         </div>
@@ -76,12 +76,12 @@ export function OverviewPieChart({ modelUsage }: OverviewPieChartProps) {
         {/* Tooltip */}
         {hoverIndex !== null && modelUsage[hoverIndex] && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="clay-tooltip">
+            <div className="bg-[#282828] text-white rounded-lg px-3 py-2 shadow-[0_4px_16px_rgba(0,0,0,0.5)] text-sm">
               <div className="font-semibold text-sm">{modelUsage[hoverIndex].model_name}</div>
-              <div className="text-indigo-200 text-xs">
+              <div className="text-[#535353] text-xs">
                 {modelUsage[hoverIndex].total_tokens.toLocaleString()} tokens
               </div>
-              <div className="text-indigo-200 text-xs">
+              <div className="text-[#535353] text-xs">
                 {modelUsage[hoverIndex].percentage.toFixed(1)}%
               </div>
             </div>
@@ -96,19 +96,20 @@ export function OverviewPieChart({ modelUsage }: OverviewPieChartProps) {
             key={index}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs cursor-pointer transition-all ${
               hoverIndex === index
-                ? 'bg-indigo-100 scale-105'
-                : 'hover:bg-indigo-50'
+                ? 'bg-[#282828] scale-105'
+                : 'hover:bg-[#1f1f1f]'
             }`}
             onMouseEnter={() => setHoverIndex(index)}
             onMouseLeave={() => setHoverIndex(null)}
           >
             <div
-              className={`w-3 h-3 rounded-full bg-gradient-to-br ${COLORS[index % COLORS.length]}`}
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: COLORS[index % COLORS.length] }}
             />
-            <span className="text-gray-700 max-w-20 truncate" title={item.model_name}>
+            <span className="text-[#b3b3b3] max-w-20 truncate" title={item.model_name}>
               {item.model_name}
             </span>
-            <span className="text-indigo-500 font-medium ml-1">
+            <span className="text-[#b3b3b3] font-medium ml-1">
               {item.percentage.toFixed(1)}%
             </span>
           </div>

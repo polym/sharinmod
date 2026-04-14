@@ -158,7 +158,7 @@ function ChatPageContent() {
                     className={`max-w-[70%] rounded-lg px-4 py-2 ${
                       message.role === 'user'
                         ? 'bg-purple-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-[#282828] text-white'
                     }`}
                   >
                     {message.content}
@@ -167,7 +167,7 @@ function ChatPageContent() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
+                  <div className="bg-[#282828] text-white rounded-lg px-4 py-2">
                     {t('thinking')}
                   </div>
                 </div>
@@ -200,7 +200,7 @@ function ChatPageContent() {
 export default function ChatPage() {
   const tCommon = useTranslations('common');
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="text-gray-500">{tCommon('loading')}</div></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="text-[#b3b3b3]">{tCommon('loading')}</div></div>}>
       <ChatPageContent />
     </Suspense>
   );

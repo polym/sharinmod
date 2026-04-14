@@ -198,7 +198,7 @@ export function AdminSettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#b3b3b3]" />
       </div>
     );
   }

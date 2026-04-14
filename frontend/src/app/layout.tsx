@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toast'
 import { LoginDialog } from '@/components/LoginDialog'
@@ -10,8 +9,6 @@ import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog'
 import { ProfileDialog } from '@/components/ProfileDialog'
 import { I18nProvider } from '@/lib/i18n-provider'
 import { MainLayoutWrapper } from '@/components/layout/MainLayoutWrapper'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'SharinMod - API Token Sharing Platform',
@@ -25,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className={inter.className}>
+      <body>
         <I18nProvider>
           <Toaster />
           <LoginDialog />

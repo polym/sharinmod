@@ -215,7 +215,7 @@ export default function MyTeamPage() {
   if (!isAuthenticated || !currentOrganization || myOrganizations === null) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-500">{tCommon('loading')}</div>
+        <div className="text-[#b3b3b3]">{tCommon('loading')}</div>
       </div>
     );
   }
@@ -229,7 +229,7 @@ export default function MyTeamPage() {
             <Button
               onClick={handleCreateInvite}
               disabled={inviteLoading}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+              className="flex items-center gap-2 bg-[#1ed760] hover:bg-[#1db954] text-black"
             >
               <Plus className="w-4 h-4" />
               {t('inviteUser')}
@@ -238,7 +238,7 @@ export default function MyTeamPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-gray-500">{tCommon('loading')}</div>
+            <div className="text-center py-8 text-[#b3b3b3]">{tCommon('loading')}</div>
           ) : (
             <Table>
               <TableHeader>
@@ -258,18 +258,18 @@ export default function MyTeamPage() {
                         <span className="font-medium flex items-center gap-1.5">
                           {member.name || member.email}
                           {member.role === 'owner' && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 flex-shrink-0">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[#1ed760]/10 text-[#1ed760] flex-shrink-0">
                               {t('role.owner')}
                             </span>
                           )}
                           {member.is_disabled && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-500 text-white flex-shrink-0">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[#535353] text-[#b3b3b3] flex-shrink-0">
                               {t('statusDisabled')}
                             </span>
                           )}
                         </span>
                         {member.name && (
-                          <span className="text-xs text-gray-500">{member.email}</span>
+                          <span className="text-xs text-[#b3b3b3]">{member.email}</span>
                         )}
                       </div>
                     </TableCell>
@@ -279,7 +279,7 @@ export default function MyTeamPage() {
                     <TableCell className="text-sm">
                       {formatTokens(member.org_total_tokens)}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-[#b3b3b3]">
                       {formatDate(member.last_used_at, locale || 'zh-CN')}
                     </TableCell>
                     <TableCell className="text-right">
@@ -319,7 +319,7 @@ export default function MyTeamPage() {
                 ))}
                 {members.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                    <TableCell colSpan={5} className="text-center text-[#535353] py-8">
                       {t('noMembers')}
                     </TableCell>
                   </TableRow>
@@ -393,8 +393,8 @@ export default function MyTeamPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 border">
-              <span className="text-sm text-gray-700 flex-1 break-all select-all">{inviteUrl}</span>
+            <div className="flex items-center gap-2 bg-[#1f1f1f] rounded-lg p-3 border border-[#4d4d4d]">
+              <span className="text-sm text-white flex-1 break-all select-all">{inviteUrl}</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -405,7 +405,7 @@ export default function MyTeamPage() {
                 {copied ? t('inviteDialog.copied') : t('inviteDialog.copy')}
               </Button>
             </div>
-            <p className="text-xs text-gray-400">{t('inviteDialog.hint')}</p>
+            <p className="text-xs text-[#535353]">{t('inviteDialog.hint')}</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>{t('inviteDialog.close')}</Button>

@@ -55,9 +55,9 @@ const getKindLabelKey = (kind: string): string => {
 const getKindLabelStyle = (kind: string): string => {
   const normalizedKind = kind.toLowerCase();
   if (normalizedKind === 'shared') {
-    return 'px-2 py-1 rounded text-sm bg-purple-100 text-purple-800';
+    return 'px-2 py-1 rounded text-sm bg-[#282828] text-[#b3b3b3]';
   } else if (normalizedKind === 'own') {
-    return 'px-2 py-1 rounded text-sm bg-gray-100 text-gray-800';
+    return 'px-2 py-1 rounded text-sm bg-[#282828] text-white';
   }
   // direct - no background style
   return '';
@@ -187,7 +187,7 @@ function ErrorDetailsDialog({ log, errorDetails, children }: { log: UsageLog; er
                               }}
                               aria-expanded={isExpanded}
                               aria-label={isExpanded ? t('collapse') : t('expand')}
-                              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-xs w-fit"
+                              className="flex items-center gap-1 text-[#b3b3b3] hover:text-[#b3b3b3] text-xs w-fit"
                             >
                               {isExpanded ? (
                                 <>
@@ -220,7 +220,7 @@ function ErrorDetailsDialog({ log, errorDetails, children }: { log: UsageLog; er
                       200
                     </TableCell>
                     <TableCell className="text-sm">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm bg-green-100 text-green-800">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-sm bg-[#1ed760]/10 text-[#1ed760]">
                         <CheckCircle className="w-3 h-3" />
                         {t('statusSuccess')}
                       </span>
@@ -230,7 +230,7 @@ function ErrorDetailsDialog({ log, errorDetails, children }: { log: UsageLog; er
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-[#b3b3b3] py-8">
               -
             </div>
           )}
@@ -261,7 +261,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
     return (
       <div>
         <div>{total.toLocaleString()}</div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-[#b3b3b3]">
           {input.toLocaleString()} + {output.toLocaleString()}
         </div>
       </div>
@@ -274,7 +274,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
       <div>
         <div>{total.toFixed(2)}s</div>
         {ttft !== null && ttft !== undefined && (
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-[#b3b3b3]">
             TTFT: {ttft.toFixed(2)}s
           </div>
         )}
@@ -308,7 +308,7 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                 <TableCell className="text-sm">
                   <div>
                     <div>{log.model_name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[#b3b3b3]">
                       {log.provider || '-'}
                     </div>
                   </div>
@@ -316,8 +316,8 @@ export function UsageLogsTable({ logs, hasMore, onLoadMore, loading, userTimezon
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-sm ${
                     log.status === 'success'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-[#1ed760]/10 text-[#1ed760]'
+                      : 'bg-[#f3727f]/10 text-[#f3727f]'
                   }`}>
                     {log.status === 'success' ? t('statusSuccess') : t('statusFailed')}
                   </span>

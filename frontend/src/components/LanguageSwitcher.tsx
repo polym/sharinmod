@@ -18,7 +18,7 @@ export function LanguageSwitcher() {
 
   return (
     <div className="flex items-center gap-2">
-      <Globe className="w-4 h-4 text-gray-500" />
+      <Globe className="w-4 h-4 text-[#b3b3b3]" />
       <Select
         value={locale}
         onValueChange={(value: Locale) => setLocale(value)}

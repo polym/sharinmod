@@ -89,23 +89,23 @@ export function ModelDiscoveryPage() {
       <div className="space-y-6">
         {/* 搜索栏 */}
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-indigo-400 w-5 h-5" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#535353] w-5 h-5" />
           <input
             type="text"
             placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="clay-input w-full pl-12 pr-4 py-3 border-2 border-indigo-200/50 rounded-xl bg-gradient-to-br from-white to-indigo-50/30 text-indigo-900 placeholder-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-base"
+            className=" w-full pl-12 pr-4 py-3 border border-[#282828] rounded-xl bg-[#181818] text-white placeholder-[#535353] focus:outline-none focus:ring-2 focus:ring-[#1ed760] focus:border-transparent text-base"
           />
         </div>
 
         {/* 加载状态 */}
         {loading ? (
-          <div className="text-center py-12 text-indigo-600 font-medium">
+          <div className="text-center py-12 text-[#b3b3b3] font-medium">
             {t('loading')}
           </div>
         ) : filteredModels.length === 0 ? (
-          <div className="text-center py-12 text-indigo-600 font-medium">
+          <div className="text-center py-12 text-[#b3b3b3] font-medium">
             {searchQuery ? t('noMatches') : t('noModels')}
           </div>
         ) : (

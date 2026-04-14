@@ -45,7 +45,7 @@ export function ClawSettingsForm({
             value={maxCount}
             onChange={(e) => onChange('maxCount', e.target.value)}
           />
-          <p className="text-xs text-gray-500">{t('maxCountDescription')}</p>
+          <p className="text-xs text-[#b3b3b3]">{t('maxCountDescription')}</p>
         </div>
 
         <div className="space-y-2">
@@ -58,14 +58,14 @@ export function ClawSettingsForm({
             onChange={(e) => onChange('dailyTokenLimit', e.target.value)}
             placeholder={t('placeholder')}
           />
-          <p className="text-xs text-gray-500">{t('dailyTokenLimitDescription')}</p>
+          <p className="text-xs text-[#b3b3b3]">{t('dailyTokenLimitDescription')}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div>
           <Label htmlFor="archive-enabled">{t('archive.enabled')}</Label>
-          <p className="text-xs text-gray-500">{t('archive.description')}</p>
+          <p className="text-xs text-[#b3b3b3]">{t('archive.description')}</p>
         </div>
         <Switch
           id="archive-enabled"

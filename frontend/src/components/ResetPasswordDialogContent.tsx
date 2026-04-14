@@ -148,7 +148,7 @@ export function ResetPasswordDialogContent({ token, onSuccess, onCancel }: Reset
   if (viewState === 'verifying') {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-gray-500">{tCommon('loading')}...</div>
+        <div className="text-[#b3b3b3]">{tCommon('loading')}...</div>
       </div>
     );
   }
@@ -175,7 +175,7 @@ export function ResetPasswordDialogContent({ token, onSuccess, onCancel }: Reset
           type="text"
           value={email}
           readOnly
-          className="bg-gray-100 cursor-not-allowed"
+          className="bg-[#282828] cursor-not-allowed"
           autoComplete="username"
         />
       </div>
@@ -216,7 +216,7 @@ export function ResetPasswordDialogContent({ token, onSuccess, onCancel }: Reset
       </div>
 
       {/* Password requirements hint */}
-      <div className="text-sm text-gray-500 space-y-1">
+      <div className="text-sm text-[#b3b3b3] space-y-1">
         <p className="font-medium">{tPassword('requirements')}:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li className={newPassword.length >= 8 && newPassword.length <= 72 ? 'text-green-600' : ''}>

@@ -323,7 +323,7 @@ export function AdminProviders() {
                     <Label htmlFor="logo">{t('logo')}</Label>
                     <div className="flex items-center gap-3">
                       {logoPreview && (
-                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#4d4d4d] dark:border-gray-700 flex-shrink-0">
                           <Image
                             src={logoPreview}
                             alt="Logo preview"
@@ -335,7 +335,7 @@ export function AdminProviders() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1 flex-1">
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-[#1f1f1f] dark:hover:bg-gray-800 transition-colors w-fit">
                           <Upload className="w-3.5 h-3.5" />
                           {t('logoUpload')}
                           <input
@@ -351,7 +351,7 @@ export function AdminProviders() {
                             }}
                           />
                         </label>
-                        <span className="text-xs text-gray-400">{t('logoHint')}</span>
+                        <span className="text-xs text-[#535353]">{t('logoHint')}</span>
                       </div>
                       {logoPreview && (
                         <Button
@@ -378,9 +378,9 @@ export function AdminProviders() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-gray-500">{t('loading')}</div>
+            <div className="text-center py-8 text-[#b3b3b3]">{t('loading')}</div>
           ) : providers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">{t('noProviders')}</div>
+            <div className="text-center py-8 text-[#b3b3b3]">{t('noProviders')}</div>
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -520,7 +520,7 @@ export function AdminProviders() {
               <Label htmlFor="edit-logo">{t('logo')}</Label>
               <div className="flex items-center gap-3">
                 {logoPreview && (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#4d4d4d] dark:border-gray-700 flex-shrink-0">
                     <Image
                       src={logoPreview}
                       alt="Logo preview"
@@ -532,7 +532,7 @@ export function AdminProviders() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-[#1f1f1f] dark:hover:bg-gray-800 transition-colors w-fit">
                     <Upload className="w-3.5 h-3.5" />
                     {logoPreview ? t('logoUpload') : t('logoUpload')}
                     <input
@@ -548,7 +548,7 @@ export function AdminProviders() {
                       }}
                     />
                   </label>
-                  <span className="text-xs text-gray-400">{t('logoHint')}</span>
+                  <span className="text-xs text-[#535353]">{t('logoHint')}</span>
                 </div>
                 {logoPreview && (
                   <Button

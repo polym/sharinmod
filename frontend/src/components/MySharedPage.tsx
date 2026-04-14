@@ -153,13 +153,13 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
   return (
     <div className="flex flex-col h-full py-1">
       {/* Chart bars */}
-      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-indigo-200 relative px-3 justify-between gap-px">
+      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-[#4d4d4d] relative px-3 justify-between gap-px">
         {chartData.map((value, idx) => {
           const timeInfo = parseLocalTime(data[idx].date);
           return (
             <div
               key={idx}
-              className="w-3 bg-gradient-to-t from-indigo-500 to-purple-400 hover:from-indigo-400 hover:to-purple-300 transition-all duration-200 cursor-pointer shrink-0 rounded-t-sm"
+              className="w-3 bg-[#1ed760] hover:bg-[#1ed760]/80 transition-all duration-200 cursor-pointer shrink-0 rounded-t-sm"
               style={{
                 height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
               }}
@@ -192,10 +192,10 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
               transform: getTooltipTransform(tooltipFlip)
             }}
           >
-            <div className="clay-tooltip text-xs rounded-lg py-1.5 px-3 whitespace-nowrap shadow-lg">
+            <div className="bg-[#282828] text-white text-xs rounded-lg py-1.5 px-3 whitespace-nowrap shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
               <span className="font-bold">{chartData[hoverIndex]} {tCommon('tokens')}</span>
               <br />
-              <span className="text-indigo-200 text-[10px]">
+              <span className="text-[#535353] text-[10px]">
                 {parseLocalTime(data[hoverIndex].date).month}/{parseLocalTime(data[hoverIndex].date).day} {parseLocalTime(data[hoverIndex].date).hour.toString().padStart(2, '0')}:00
               </span>
             </div>
@@ -203,7 +203,7 @@ function UsageBarChart({ data }: { data: ChartDataPoint[] }) {
         )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-indigo-400 mt-1 px-3 relative">
+      <div className="flex justify-between text-[10px] text-[#535353] mt-1 px-3 relative">
         {labelIndices.map((idx) => {
           const leftPercent = (idx / safeLength) * 100;
           return (
@@ -314,15 +314,15 @@ export function MySharedPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-8">
-      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+      <Card className=" border border-[#282828] bg-[#181818]">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">{t('title')}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</h3>
+              <p className="text-sm text-[#b3b3b3] font-medium">{t('description')}</p>
             </div>
             <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-              <Button className="clay-btn-primary">
+              <Button className="">
                 {t('bindNew')}
               </Button>
             </ShareAPIKeyDialog>
@@ -331,13 +331,13 @@ export function MySharedPage() {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-indigo-600 font-medium">{t('loading')}</div>
+              <div className="text-[#b3b3b3] font-medium">{t('loading')}</div>
             </div>
           ) : sharedAPIKeys.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-indigo-600 font-medium mb-6">{t('noBindings')}</div>
+              <div className="text-[#b3b3b3] font-medium mb-6">{t('noBindings')}</div>
               <ShareAPIKeyDialog onAPIKeyShared={loadSharedAPIKeys}>
-                <Button className="clay-btn-secondary">
+                <Button className="">
                   {t('bindFirst')}
                 </Button>
               </ShareAPIKeyDialog>
@@ -347,7 +347,7 @@ export function MySharedPage() {
               {sharedAPIKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className={`clay-card p-6 border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 space-y-4 rounded-2xl ${
+                  className={` p-6 border border-[#282828] bg-[#181818] space-y-4 rounded-2xl ${
                     apiKey.status !== 'active' ? 'opacity-50 grayscale-[0.5]' : ''
                   }`}
                 >
@@ -359,13 +359,13 @@ export function MySharedPage() {
                         <img
                           src={apiKey.provider_logo_path}
                           alt={apiKey.provider_display_name || apiKey.provider}
-                          className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-200 bg-white p-1 shadow-md"
+                          className="w-16 h-16 rounded-2xl object-cover border-2 border-[#4d4d4d] bg-[#181818] p-1 shadow-md"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
                       ) : (
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-700 font-bold text-2xl shadow-md border-2 border-indigo-200">
+                        <div className="w-16 h-16 rounded-2xl bg-[#282828] flex items-center justify-center text-[#b3b3b3] font-bold text-2xl border border-[#4d4d4d]">
                           {(apiKey.provider_display_name || apiKey.provider || 'A').charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -377,12 +377,12 @@ export function MySharedPage() {
                             href={apiKey.provider_website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-bold text-xl text-indigo-900 hover:text-indigo-600 transition-colors cursor-pointer"
+                            className="font-bold text-xl text-white hover:text-[#b3b3b3] transition-colors cursor-pointer"
                           >
                             {apiKey.provider_display_name || apiKey.provider}
                           </a>
                         ) : (
-                          <div className="font-bold text-xl text-indigo-900">
+                          <div className="font-bold text-xl text-white">
                             {apiKey.provider_display_name || apiKey.provider}
                           </div>
                         )}
@@ -392,7 +392,7 @@ export function MySharedPage() {
                             {apiKey.supported_models.map((model) => (
                               <span
                                 key={model}
-                                className="clay-badge clay-badge-secondary px-3 py-1 text-xs font-medium"
+                                className="  px-3 py-1 text-xs font-medium"
                               >
                                 {getModelDisplayName(model)}
                               </span>
@@ -419,8 +419,8 @@ export function MySharedPage() {
                       {/* Dropdown Menu for Delete */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-indigo-100">
-                            <MoreVertical className="h-5 w-5 text-indigo-600" />
+                          <Button variant="ghost" size="sm" className="h-10 w-10 p-0 rounded-xl hover:bg-[#282828]">
+                            <MoreVertical className="h-5 w-5 text-[#b3b3b3]" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -447,30 +447,30 @@ export function MySharedPage() {
                       {/* Statistics */}
                       <dl className="sm:flex-[1] flex flex-row gap-5 sm:gap-7 items-center">
                         <div className="flex flex-col">
-                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalTokens')}</dt>
-                          <dd className="text-2xl font-bold text-indigo-900">
+                          <dt className="text-xs font-semibold text-[#b3b3b3] mb-1">{tStats('totalTokens')}</dt>
+                          <dd className="text-2xl font-bold text-white">
                             {(() => {
                               const { value, unit } = formatTokens(metricsMap[apiKey.id].total_tokens, tStats('million'), tStats('tenThousand'));
-                              return <>{value}<span className="text-sm font-normal text-indigo-500 ml-1">{unit}</span></>;
+                              return <>{value}<span className="text-sm font-normal text-[#b3b3b3] ml-1">{unit}</span></>;
                             })()}
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalDuration')}</dt>
-                          <dd className="text-2xl font-bold text-indigo-900">
-                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-indigo-500 ml-1">{tStats('days')}</span>
+                          <dt className="text-xs font-semibold text-[#b3b3b3] mb-1">{tStats('totalDuration')}</dt>
+                          <dd className="text-2xl font-bold text-white">
+                            {metricsMap[apiKey.id].total_duration_days}<span className="text-sm font-normal text-[#b3b3b3] ml-1">{tStats('days')}</span>
                           </dd>
                         </div>
                         <div className="flex flex-col">
-                          <dt className="text-xs font-semibold text-indigo-600 mb-1">{tStats('totalRequests')}</dt>
-                          <dd className="text-2xl font-bold text-indigo-900">
-                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-indigo-500 ml-1">{tStats('times')}</span>
+                          <dt className="text-xs font-semibold text-[#b3b3b3] mb-1">{tStats('totalRequests')}</dt>
+                          <dd className="text-2xl font-bold text-white">
+                            {metricsMap[apiKey.id].total_requests}<span className="text-sm font-normal text-[#b3b3b3] ml-1">{tStats('times')}</span>
                           </dd>
                         </div>
                       </dl>
 
                       {/* 48-hour Bar Chart */}
-                      <div className="sm:flex-[3] clay-card border-2 border-indigo-200/50 rounded-2xl overflow-hidden h-44 bg-white shadow-sm">
+                      <div className="sm:flex-[3]  border border-[#282828] rounded-2xl overflow-hidden h-44 bg-[#181818] shadow-sm">
                         <div className="p-3 pt-2 pb-4 h-full">
                           <UsageBarChart data={metricsMap[apiKey.id].chart_data} />
                         </div>

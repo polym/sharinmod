@@ -133,7 +133,7 @@ export function ChangePasswordDialogContentFromMenu({ onSuccess }: ChangePasswor
       </div>
 
       {/* Password requirements hint */}
-      <div className="text-sm text-gray-500 space-y-1">
+      <div className="text-sm text-[#b3b3b3] space-y-1">
         <p className="font-medium">{t('requirements')}:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li className={newPassword.length >= 8 && newPassword.length <= 72 ? 'text-green-600' : ''}>

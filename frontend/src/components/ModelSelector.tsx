@@ -45,7 +45,7 @@ export function ModelSelector({
       <Label>{t('selectModels')} <span className="text-red-500">*</span></Label>
       <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
         {supportedModels.length === 0 ? (
-          <div className="text-sm text-gray-500">{t('noModelsAvailable')}</div>
+          <div className="text-sm text-[#b3b3b3]">{t('noModelsAvailable')}</div>
         ) : (
           supportedModels.map((model) => (
             <div key={model} className="flex items-center space-x-2">
@@ -67,7 +67,7 @@ export function ModelSelector({
       {error && (
         <p className="text-sm text-red-500">{error}</p>
       )}
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-[#b3b3b3]">
         {tToast('selectedCount', { count: selectedModels.length })}
       </p>
     </div>

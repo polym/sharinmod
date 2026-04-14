@@ -69,11 +69,11 @@ export function APIKeyUsage() {
 
   const getStatusBadgeClass = (statusCode: number): string => {
     if (statusCode >= 200 && statusCode < 300) {
-      return 'bg-green-100 text-green-800';
+      return 'bg-[#1ed760]/10 text-[#1ed760]';
     } else if (statusCode >= 400) {
-      return 'bg-red-100 text-red-800';
+      return 'bg-[#f3727f]/10 text-[#f3727f]';
     } else {
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-[#ffa42b]/10 text-[#ffa42b]';
     }
   };
 
@@ -89,7 +89,7 @@ export function APIKeyUsage() {
         {loading ? (
           <div className="text-center py-8">加载中...</div>
         ) : usage.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-[#b3b3b3]">
             暂无使用记录
           </div>
         ) : (
@@ -112,24 +112,24 @@ export function APIKeyUsage() {
                       <TableCell>
                         <div>
                           <span className="font-medium">{record.method}</span>
-                          <span className="text-gray-500 mx-1">→</span>
+                          <span className="text-[#b3b3b3] mx-1">→</span>
                           <span className="font-mono text-sm">{record.endpoint}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        {record.vendor || <span className="text-gray-400">-</span>}
+                        {record.vendor || <span className="text-[#535353]">-</span>}
                       </TableCell>
                       <TableCell>
-                        {record.unified_api_key_id || <span className="text-gray-400">-</span>}
+                        {record.unified_api_key_id || <span className="text-[#535353]">-</span>}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-500">{formatTime(record.created_at)}</span>
+                        <span className="text-sm text-[#b3b3b3]">{formatTime(record.created_at)}</span>
                       </TableCell>
                       <TableCell>
                         {record.response_time_ms ? (
-                          <span className="text-sm text-gray-500">{record.response_time_ms}ms</span>
+                          <span className="text-sm text-[#b3b3b3]">{record.response_time_ms}ms</span>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-[#535353]">-</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -146,7 +146,7 @@ export function APIKeyUsage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between gap-4 mt-6">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-[#b3b3b3]">
                   显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, total)} 条，共 {total} 条
                 </div>
                 <div className="flex items-center gap-2">

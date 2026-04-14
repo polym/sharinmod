@@ -160,9 +160,9 @@ export function ProfileSettings({ onSaveSuccess }: ProfileSettingsProps) {
             type="email"
             value={email}
             disabled
-            className="bg-gray-50"
+            className="bg-[#1f1f1f]"
           />
-          <p className="text-sm text-gray-500">{t('emailNotEditable')}</p>
+          <p className="text-sm text-[#b3b3b3]">{t('emailNotEditable')}</p>
         </div>
 
         <div className="space-y-2">

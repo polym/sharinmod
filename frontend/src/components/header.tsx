@@ -50,23 +50,20 @@ export function Header() {
 
   return (
     <header
-      className="bg-white/80 backdrop-blur-md px-8 py-3"
+      className="bg-[#121212]/90 backdrop-blur-md px-8 py-3"
       style={{
-        boxShadow: "0 1px 3px rgba(79, 70, 229, 0.06), 0 8px 24px rgba(79, 70, 229, 0.04)"
+        boxShadow: "0 1px 0 #282828"
       }}
     >
       <div className="flex items-center justify-between gap-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label={t('backToHome')}>
           <div
-            className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
-            style={{
-              boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
-            }}
+            className="w-7 h-7 bg-[#1ed760] rounded-xl flex items-center justify-center text-[#121212] font-bold text-xs"
           >
             SM
           </div>
-          <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
+          <span className="font-semibold text-white text-sm">SharinMod</span>
         </Link>
 
         {/* Token余额显示 + Account Avatar */}
@@ -74,12 +71,12 @@ export function Header() {
           {/* Token Balance Button */}
           <Button
             variant="ghost"
-            className="bg-indigo-50/80 hover:bg-indigo-100 gap-1.5 h-8 px-3 rounded-xl"
+            className="bg-[#1f1f1f] hover:bg-[#282828] gap-1.5 h-8 px-3 rounded-xl"
           >
-            <Zap className="h-3.5 w-3.5 text-indigo-600" />
+            <Zap className="h-3.5 w-3.5 text-[#b3b3b3]" />
             <span className={cn(
               "text-sm font-medium",
-              (user?.token_balance ?? 0) > 0 ? "text-indigo-600" : "text-orange-500"
+              (user?.token_balance ?? 0) > 0 ? "text-[#b3b3b3]" : "text-orange-500"
             )}>
               {user?.token_balance ?? 0}
             </span>
@@ -89,7 +86,7 @@ export function Header() {
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-indigo-50/80 hover:bg-indigo-100 transition-all"
+              className="focus:outline-none focus:ring-2 focus:ring-[#1ed760] focus:ring-offset-[#121212] rounded-full p-1 bg-[#1f1f1f] hover:bg-[#282828] transition-all"
               aria-label={t('userMenu')}
             >
               <UserAvatar

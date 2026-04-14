@@ -40,18 +40,18 @@ const PAGE_SIZE = 10;
 // 操作类型颜色映射
 const getOperationTypeStyle = (type: string): string => {
   const styles: Record<string, string> = {
-    create: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
-    update: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
-    delete: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
-    restart: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800',
-    enable: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800',
-    disable: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-    reset_password: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800',
-    grant_admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
-    revoke_admin: 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400 border border-violet-200 dark:border-violet-800',
-    reset_token: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800',
+    create: 'bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30',
+    update: 'bg-blue-500/10 text-blue-400 border border-blue-500/30',
+    delete: 'bg-red-500/10 text-[#f3727f] border border-red-500/30',
+    restart: 'bg-orange-500/10 text-orange-400 border border-orange-500/30',
+    enable: 'bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/30',
+    disable: 'bg-[#535353]/20 text-[#b3b3b3] border border-[#4d4d4d]',
+    reset_password: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
+    grant_admin: 'bg-purple-500/10 text-purple-400 border border-purple-500/30',
+    revoke_admin: 'bg-violet-500/10 text-violet-400 border border-violet-500/30',
+    reset_token: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
   };
-  return styles[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+  return styles[type] || 'bg-[#282828] text-[#b3b3b3] border border-[#4d4d4d]';
 };
 
 export default function AdminLogsPage() {

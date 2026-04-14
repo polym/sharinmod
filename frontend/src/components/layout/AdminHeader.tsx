@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, LogOut, Zap, Lock, Globe } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,54 +48,36 @@ export function AdminHeader() {
   };
 
   return (
-    <header
-      className="bg-white/80 backdrop-blur-md px-8 py-4"
-      style={{
-        boxShadow: "0 1px 3px rgba(79, 70, 229, 0.06), 0 8px 24px rgba(79, 70, 229, 0.04)"
-      }}
-    >
+    <header className="bg-[#121212] border-b border-[#282828] px-8 py-4">
       <div className="flex items-center justify-between gap-8">
         {/* Left - Logo + Admin badge */}
         <div className="flex items-center gap-3">
-          <Link href="/marketplace" className="flex items-center gap-2 hover:opacity-90 transition-opacity" aria-label={tLayout('backToApp')}>
-            <div
-              className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xs border-2 border-indigo-300"
-              style={{
-                boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
-              }}
-            >
+          <Link href="/marketplace" className="flex items-center gap-2 hover:opacity-80 transition-opacity" aria-label={tLayout('backToApp')}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-black font-bold text-xs" style={{ backgroundColor: '#1ed760' }}>
               SM
             </div>
-            <span className="font-semibold text-gray-900 text-sm">SharinMod</span>
+            <span className="font-bold text-white text-sm">SharinMod</span>
           </Link>
-          <span className="text-gray-300 text-sm">/</span>
-          <Button
-            variant="ghost"
-            className="bg-indigo-50/80 hover:bg-indigo-100 h-8 px-3 rounded-xl"
-          >
-            <span className="text-sm font-medium text-indigo-600">{tLayout('adminConsole')}</span>
-          </Button>
+          <span className="text-[#535353] text-sm">/</span>
+          <span className="text-sm font-bold text-[#1ed760]">{tLayout('adminConsole')}</span>
         </div>
 
         {/* Right - Token balance + user menu */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            className="bg-indigo-50/80 hover:bg-indigo-100 gap-1.5 h-8 px-3 rounded-xl"
-          >
-            <Zap className="h-3.5 w-3.5 text-indigo-600" />
+          <div className="flex items-center gap-1.5 rounded-full bg-[#1f1f1f] px-4 py-1.5 border border-[#4d4d4d]">
+            <Zap className="h-3.5 w-3.5 text-[#1ed760]" />
             <span className={cn(
-              "text-sm font-medium",
-              (user?.token_balance ?? 0) > 0 ? "text-indigo-600" : "text-orange-500"
+              "text-sm font-bold",
+              (user?.token_balance ?? 0) > 0 ? "text-white" : "text-[#ffa42b]"
             )}>
               {user?.token_balance ?? 0}
             </span>
-          </Button>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-indigo-50/80 hover:bg-indigo-100 transition-all cursor-pointer"
+                className="focus:outline-none focus:ring-2 focus:ring-[#1ed760] focus:ring-offset-2 focus:ring-offset-[#121212] rounded-full cursor-pointer hover:opacity-80 transition-opacity"
                 aria-label={tLayout('userMenu')}
               >
                 <UserAvatar
@@ -107,31 +88,31 @@ export function AdminHeader() {
                 />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48 bg-[#282828] border-[#4d4d4d] text-white">
               <DropdownMenuItem
-                className="cursor-pointer"
+                className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
                 onClick={() => setShowProfileDialog(true)}
               >
                 <User className="mr-2 h-4 w-4" />
                 {tTopbar('profile')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="cursor-pointer"
+                className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
                 onClick={() => setShowChangePasswordDialog(true)}
               >
                 <Lock className="mr-2 h-4 w-4" />
                 {tTopbar('changePassword')}
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="cursor-pointer"
+                className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
                 onClick={toggleLocale}
               >
                 <Globe className="mr-2 h-4 w-4" />
                 {locale === 'zh-CN' ? 'English' : '中文'}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-[#4d4d4d]" />
               <DropdownMenuItem
-                className="cursor-pointer text-red-600 focus:text-red-600"
+                className="cursor-pointer text-[#f3727f] focus:text-[#f3727f] focus:bg-[#3e3e3e]"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />

@@ -184,11 +184,11 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1, selectedDat
   return (
     <div className="flex flex-col h-full py-1">
       {/* Chart bars */}
-      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-indigo-200/50 relative px-3 justify-between gap-px">
+      <div ref={containerRef} className="flex items-end flex-1 border-b-2 border-[#4d4d4d]/50 relative px-3 justify-between gap-px">
         {chartData.map((value, idx) => (
           <div
             key={idx}
-            className="clay-chart-bar w-2 bg-gradient-to-t from-indigo-400 to-purple-400 hover:from-indigo-500 hover:to-purple-500 transition-all duration-200 cursor-pointer shrink-0"
+            className=" w-2 bg-[#1ed760] hover:bg-[#1ed760]/80 transition-all duration-200 cursor-pointer shrink-0"
             style={{
               height: value > 0 ? `${Math.max((value / maxValue) * 100, 3)}%` : '0%'
             }}
@@ -220,10 +220,10 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1, selectedDat
               transform: getTooltipTransform(tooltipFlip)
             }}
           >
-            <div className="clay-tooltip">
+            <div className="bg-[#282828] text-white rounded-lg px-3 py-2 shadow-[0_4px_16px_rgba(0,0,0,0.5)] text-sm">
               <span className="font-semibold text-sm">{chartData[hoverIndex]} tokens</span>
               <br />
-              <span className="text-indigo-200 text-xs">
+              <span className="text-[#535353] text-xs">
                 {formatTimeSlotTooltip(sortedData[hoverIndex].quarter_hour, days, selectedDate)}
               </span>
             </div>
@@ -231,7 +231,7 @@ export function UsageBarChart({ quarterHourlyDistribution, days = 1, selectedDat
         )}
       </div>
       {/* Hour axis */}
-      <div className="flex justify-between text-[10px] text-indigo-400 font-medium mt-1 px-3 relative">
+      <div className="flex justify-between text-[10px] text-[#535353] font-medium mt-1 px-3 relative">
         {labelIndices.map((idx) => {
           const isFirst = idx === 0;
 

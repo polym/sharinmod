@@ -372,55 +372,55 @@ export function UnifiedAPIKeys() {
 
   return (
     <div className="space-y-6">
-      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+      <Card className=" border border-[#282828] bg-[#181818]">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">{t('title')}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</h3>
+              <p className="text-sm text-[#b3b3b3] font-medium">{t('description')}</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="clay-btn-cta">
+                <Button variant="default">
                   {t('create')}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[560px] border-2 border-indigo-200/50 rounded-2xl">
+              <DialogContent className="sm:max-w-[560px] border border-[#282828] rounded-2xl">
                 <DialogHeader className="pb-2">
-                  <DialogTitle className="text-xl font-bold text-indigo-900">{t('create')}</DialogTitle>
+                  <DialogTitle className="text-xl font-bold text-white">{t('create')}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-5 py-5 px-1">
                   {/* Name Field */}
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-indigo-700 font-medium text-sm">
+                    <Label htmlFor="name" className="text-[#b3b3b3] font-medium text-sm">
                       {t('name')}
                     </Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="clay-input border-2 border-indigo-200/50 h-10"
+                      className=" border border-[#282828] h-10"
                       placeholder={t('namePlaceholder')}
                     />
                   </div>
 
                   {/* Description Field */}
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="text-indigo-700 font-medium text-sm">
+                    <Label htmlFor="description" className="text-[#b3b3b3] font-medium text-sm">
                       {t('description')}
                     </Label>
                     <Textarea
                       id="description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      className="clay-input border-2 border-indigo-200/50 resize-none"
+                      className=" border border-[#282828] resize-none"
                       placeholder={t('descriptionPlaceholder')}
                       rows={3}
                     />
                   </div>
                 </div>
                 <DialogFooter className="pt-2">
-                  <Button onClick={handleCreateUnifiedAPIKey} className="clay-btn-primary">
+                  <Button onClick={handleCreateUnifiedAPIKey} className="">
                     {tButtons('create')}
                   </Button>
                 </DialogFooter>
@@ -430,34 +430,34 @@ export function UnifiedAPIKeys() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-indigo-600 font-medium">{tCommon('loading')}</div>
+            <div className="text-center py-8 text-[#b3b3b3] font-medium">{tCommon('loading')}</div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-indigo-600 font-medium">
+            <div className="text-center py-8 text-[#b3b3b3] font-medium">
               {t('noKeys')}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="clay-table border-2 border-indigo-200/50 rounded-2xl overflow-hidden">
-                <TableHeader className="clay-table-header bg-gradient-to-br from-indigo-100 to-purple-100">
+              <Table className="border border-[#282828] rounded-2xl overflow-hidden">
+                <TableHeader className="bg-[#282828]">
                   <TableRow>
-                    <TableHead className="text-indigo-900 font-bold">{t('name')}</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">API Key</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">{t('status')}</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">{t('dailyUsage')}</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">{t('createdAt')}</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">{t('lastUsedAt')}</TableHead>
-                    <TableHead className="text-indigo-900 font-bold">{t('actions')}</TableHead>
+                    <TableHead className="text-white font-bold">{t('name')}</TableHead>
+                    <TableHead className="text-white font-bold">API Key</TableHead>
+                    <TableHead className="text-white font-bold">{t('status')}</TableHead>
+                    <TableHead className="text-white font-bold">{t('dailyUsage')}</TableHead>
+                    <TableHead className="text-white font-bold">{t('createdAt')}</TableHead>
+                    <TableHead className="text-white font-bold">{t('lastUsedAt')}</TableHead>
+                    <TableHead className="text-white font-bold">{t('actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {apiKeys.map((apiKey) => (
-                    <TableRow key={apiKey.id} className="clay-table-row hover:bg-indigo-50/50">
+                    <TableRow key={apiKey.id} className="hover:bg-[#1f1f1f]/50">
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-indigo-900">{apiKey.api_key_name || t('unnamed')}</span>
+                          <span className="font-semibold text-white">{apiKey.api_key_name || t('unnamed')}</span>
                           {apiKey.description && (
                             <span
-                              className="text-xs text-indigo-400 line-clamp-2 break-words"
+                              className="text-xs text-[#535353] line-clamp-2 break-words"
                               title={apiKey.description}
                             >
                               {apiKey.description}
@@ -469,7 +469,7 @@ export function UnifiedAPIKeys() {
                         <div className="flex items-center gap-2">
                           {apiKey.litellm_key ? (
                             <>
-                              <span className="font-mono bg-indigo-100 px-2 py-1 rounded-lg text-sm text-indigo-800 border border-indigo-200/50">
+                              <span className="font-mono bg-[#282828] px-2 py-1 rounded-lg text-sm text-white border border-[#4d4d4d]/50">
                                 {apiKey.litellm_key.length > 10
                                   ? `${apiKey.litellm_key.substring(0, 6)}***${apiKey.litellm_key.substring(apiKey.litellm_key.length - 4)}`
                                   : apiKey.litellm_key}
@@ -480,7 +480,7 @@ export function UnifiedAPIKeys() {
                                   size="sm"
                                   onClick={() => handleCopyAPIKey(apiKey.litellm_key!, apiKey.id)}
                                   aria-label={t('copied')}
-                                  className="h-7 w-7 p-0 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600"
+                                  className="h-7 w-7 p-0 rounded-xl bg-[#282828] hover:bg-[#282828] text-[#b3b3b3]"
                                 >
                                   {copiedKeyId === apiKey.id ? (
                                     <Check className="h-3.5 w-3.5" />
@@ -489,31 +489,31 @@ export function UnifiedAPIKeys() {
                                   )}
                                 </Button>
                                 {copiedKeyId === apiKey.id && (
-                                  <span className="text-xs text-indigo-600 ml-1 inline-block w-16 font-medium">
+                                  <span className="text-xs text-[#b3b3b3] ml-1 inline-block w-16 font-medium">
                                     {t('copied')}
                                   </span>
                                 )}
                               </div>
                             </>
                           ) : (
-                            <span className="text-indigo-400">{t('noKey')}</span>
+                            <span className="text-[#535353]">{t('noKey')}</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="min-w-[80px]">
                         {apiKey.status === 'daily_limit_exceeded' ? (
-                          <span className="clay-badge-warning">{t('statusDailyLimitExceeded')}</span>
+                          <span className="-warning">{t('statusDailyLimitExceeded')}</span>
                         ) : (
-                          <span className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
+                          <span className={` ${apiKey.status === 'active' ? '' : ''}`}>
                             {apiKey.status === 'active' ? t('statusActive') : t('statusRevoked')}
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-indigo-700">
+                      <TableCell className="text-[#b3b3b3]">
                         <div className="space-y-1.5 min-w-[120px]">
                           {apiKey.daily_token_limit ? (
                             <>
-                              <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                              <div className="h-1.5 bg-[#282828] rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full transition-all duration-300 ${
                                     apiKey.daily_tokens_used / apiKey.daily_token_limit >= 0.8
@@ -531,8 +531,8 @@ export function UnifiedAPIKeys() {
                                 <span className="text-xs font-medium tabular-nums">
                                   {apiKey.daily_tokens_used.toLocaleString()}
                                 </span>
-                                <span className="text-indigo-400 text-xs">/</span>
-                                <span className="text-xs text-indigo-400 tabular-nums">
+                                <span className="text-[#535353] text-xs">/</span>
+                                <span className="text-xs text-[#535353] tabular-nums">
                                   {apiKey.daily_token_limit.toLocaleString()}
                                 </span>
                                 {apiKey.status === 'daily_limit_exceeded' && (
@@ -544,24 +544,24 @@ export function UnifiedAPIKeys() {
                             </>
                           ) : (
                             <>
-                              <div className="h-1.5 bg-indigo-50 rounded-full overflow-hidden">
-                                <div className="h-full bg-indigo-200 rounded-full w-0" />
+                              <div className="h-1.5 bg-[#1f1f1f] rounded-full overflow-hidden">
+                                <div className="h-full bg-[#1ed760] rounded-full w-0" />
                               </div>
                               <div className="flex items-center gap-1">
                                 <span className="text-xs font-medium tabular-nums">
                                   {apiKey.daily_tokens_used.toLocaleString()}
                                 </span>
-                                <span className="text-indigo-400 text-xs">/</span>
-                                <span className="text-xs text-indigo-400 font-mono">+inf</span>
+                                <span className="text-[#535353] text-xs">/</span>
+                                <span className="text-xs text-[#535353] font-mono">+inf</span>
                               </div>
                             </>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-indigo-700">
+                      <TableCell className="text-[#b3b3b3]">
                         {formatDate(apiKey.created_at)}
                       </TableCell>
-                      <TableCell className="text-indigo-700">
+                      <TableCell className="text-[#b3b3b3]">
                         {apiKey.last_used_at
                           ? formatDate(apiKey.last_used_at)
                           : '-'}
@@ -574,7 +574,7 @@ export function UnifiedAPIKeys() {
                             onClick={() => handleEditAPIKey(apiKey)}
                             aria-label={t('edit')}
                             disabled={loadingKeys.has(apiKey.id)}
-                            className="h-8 w-8 p-0 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600"
+                            className="h-8 w-8 p-0 rounded-xl bg-[#282828] hover:bg-[#282828] text-[#b3b3b3]"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -611,35 +611,35 @@ export function UnifiedAPIKeys() {
           setEditDailyLimit('');
         }
       }}>
-        <DialogContent className="sm:max-w-[560px] border-2 border-indigo-200/50 rounded-2xl">
+        <DialogContent className="sm:max-w-[560px] border border-[#282828] rounded-2xl">
           <DialogHeader className="pb-2">
-            <DialogTitle className="text-xl font-bold text-indigo-900">{t('edit')}</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-white">{t('edit')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-5 py-5 px-1">
             {/* Name Field */}
             <div className="space-y-2">
-              <Label htmlFor="edit-name" className="text-indigo-700 font-medium text-sm">
+              <Label htmlFor="edit-name" className="text-[#b3b3b3] font-medium text-sm">
                 {t('name')}
               </Label>
               <Input
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="clay-input border-2 border-indigo-200/50 h-10"
+                className=" border border-[#282828] h-10"
                 placeholder={t('namePlaceholder')}
               />
             </div>
 
             {/* Description Field */}
             <div className="space-y-2">
-              <Label htmlFor="edit-description" className="text-indigo-700 font-medium text-sm">
+              <Label htmlFor="edit-description" className="text-[#b3b3b3] font-medium text-sm">
                 {t('description')}
               </Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                className="clay-input border-2 border-indigo-200/50 resize-none"
+                className=" border border-[#282828] resize-none"
                 placeholder={t('optionalDescription')}
                 rows={3}
               />
@@ -647,7 +647,7 @@ export function UnifiedAPIKeys() {
 
             {/* Status Field */}
             <div className="space-y-2">
-              <Label htmlFor="edit-enabled" className="text-indigo-700 font-medium text-sm">
+              <Label htmlFor="edit-enabled" className="text-[#b3b3b3] font-medium text-sm">
                 {t('status')}
               </Label>
               <div className="flex items-center gap-3 h-10">
@@ -656,7 +656,7 @@ export function UnifiedAPIKeys() {
                   checked={editEnabled}
                   onCheckedChange={setEditEnabled}
                 />
-                <span className="text-sm text-indigo-600 font-medium">
+                <span className="text-sm text-[#b3b3b3] font-medium">
                   {editEnabled ? t('statusEnabled') : t('statusDisabled')}
                 </span>
               </div>
@@ -664,7 +664,7 @@ export function UnifiedAPIKeys() {
 
             {/* Daily Limit Field */}
             <div className="space-y-2">
-              <Label htmlFor="edit-daily-limit" className="text-indigo-700 font-medium text-sm">
+              <Label htmlFor="edit-daily-limit" className="text-[#b3b3b3] font-medium text-sm">
                 {t('dailyLimitLabel')}
               </Label>
               <Input
@@ -675,10 +675,10 @@ export function UnifiedAPIKeys() {
                 step="1"
                 value={editDailyLimit}
                 onChange={(e) => setEditDailyLimit(e.target.value)}
-                className="clay-input border-2 border-indigo-200/50 h-10"
+                className=" border border-[#282828] h-10"
                 placeholder={t('dailyLimitPlaceholder')}
               />
-              <p className="text-xs text-indigo-500">
+              <p className="text-xs text-[#b3b3b3]">
                 {defaultDailyTokenLimit
                   ? t('dailyLimitHint', { max: defaultDailyTokenLimit })
                   : t('unlimited')}
@@ -686,10 +686,10 @@ export function UnifiedAPIKeys() {
             </div>
           </div>
           <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="clay-btn-secondary">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className="">
               {tButtons('cancel')}
             </Button>
-            <Button onClick={handleSaveEdit} className="clay-btn-primary">
+            <Button onClick={handleSaveEdit} className="">
               {tButtons('save')}
             </Button>
           </DialogFooter>

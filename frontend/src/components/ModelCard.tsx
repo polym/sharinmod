@@ -60,7 +60,7 @@ function ProviderLogoTooltip({ provider, children, providerName }: { provider: {
       {showTooltip && (
         <div className="clay-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none whitespace-nowrap">
           {providerName}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-indigo-900/90" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#282828]" />
         </div>
       )}
     </div>
@@ -81,7 +81,7 @@ function SharerAvatarTooltip({ name, children }: { name: string; children: React
       {showTooltip && (
         <div className="clay-tooltip absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50 pointer-events-none whitespace-nowrap">
           {name}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-indigo-900/90" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#282828]" />
         </div>
       )}
     </div>
@@ -166,10 +166,10 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
             <div
               key={type}
               title={TYPE_LABELS[type] || type}
-              className={`inline-flex items-center justify-center w-6 h-6 rounded-xl border-2 transition-all ${
+              className={`inline-flex items-center justify-center w-6 h-6 rounded-md border transition-all ${
                 isSupported
-                  ? 'border-indigo-300 bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 shadow-sm'
-                  : 'border-gray-200 bg-gray-50 text-gray-400 opacity-50'
+                  ? 'border-[#1ed760] bg-[#1ed760]/10 text-[#1ed760]'
+                  : 'border-[#4d4d4d] bg-[#282828] text-[#535353] opacity-50'
               }`}
             >
               <IconComponent className="w-3.5 h-3.5" />
@@ -198,18 +198,17 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
   };
 
   return (
-    <Card className="clay-card group relative overflow-hidden border-[3px] border-indigo-100">
-      <CardHeader className="pb-3 bg-gradient-to-br from-white/50 to-indigo-50/50">
+    <Card className="group relative overflow-hidden border border-[#282828]">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           {/* 左侧：头像 + 模型信息 */}
           <div className="flex items-center gap-3 min-w-0 flex-1">
             {imageError ? (
-              // 默认模型图标（首字母占位符）
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-lg border-2 border-white/50">
+              <div className="w-12 h-12 rounded-lg bg-[#282828] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 border border-[#4d4d4d]">
                 {model.model_name.charAt(0).toUpperCase()}
               </div>
             ) : (
-              <div className="w-12 h-12 rounded-2xl flex-shrink-0 overflow-hidden shadow-lg border-2 border-white/50 bg-white p-1">
+              <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden border border-[#4d4d4d] bg-[#1f1f1f] p-1">
                 <Image
                   src={model.model_logo_url || getModelLogo(model.model_name)}
                   alt={model.model_name}
@@ -221,19 +220,19 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-lg font-semibold text-indigo-900 truncate">{model.display_name}</CardTitle>
-              <div className="flex items-center gap-2 text-sm text-indigo-600 mt-1">
-                <span className="font-mono text-xs bg-indigo-100 px-2 py-0.5 rounded-lg">{model.model_name}</span>
+              <CardTitle className="text-base font-bold text-white truncate">{model.display_name}</CardTitle>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-mono text-xs bg-[#1f1f1f] text-[#b3b3b3] px-2 py-0.5 rounded-md">{model.model_name}</span>
                 <button
                   onClick={handleCopy}
-                  className="p-1.5 rounded-xl bg-indigo-100 hover:bg-indigo-200 text-indigo-600 transition-all hover:scale-110 active:scale-95"
+                  className="p-1 rounded-md bg-[#1f1f1f] hover:bg-[#282828] text-[#b3b3b3] hover:text-white transition-colors cursor-pointer"
                   aria-label={copied ? t('ariaLabels.copied') : t('ariaLabels.copyModelName')}
                   type="button"
                 >
                   {copied ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-3.5 h-3.5 text-[#1ed760]" />
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                   )}
                 </button>
               </div>
@@ -244,120 +243,113 @@ export function ModelCard({ model, onQuickCall }: ModelCardProps) {
           {onQuickCall && (
             <Button
               onClick={() => onQuickCall(model.model_name)}
-              className="clay-btn-primary h-11 w-11 p-0 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex-shrink-0"
+              size="sm"
+              className="h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0"
               aria-label={t('ariaLabels.apiCall')}
               type="button"
             >
-              <Code2 className="w-5 h-5" />
+              <Code2 className="w-4 h-4" />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 bg-gradient-to-br from-white to-indigo-50/30 pt-4">
-        {/* 已使用 Token 和 Coding 评分 - 合并为同一行，两列布局 */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* 已使用 Token */}
-          <div className="py-3 px-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200/50 shadow-sm">
-            <div className="text-xs font-medium text-indigo-600 mb-1">{t('tokensUsed')}</div>
-            <div className="text-xl font-bold text-indigo-900">
+      <CardContent className="space-y-3 pt-3">
+        {/* Token 使用 和 Coding 评分 */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="py-2 px-3 rounded-lg bg-[#282828]">
+            <div className="text-xs text-[#b3b3b3] mb-1">{t('tokensUsed')}</div>
+            <div className="text-lg font-bold text-white">
               {model.used_tokens?.toLocaleString() || '0'}
             </div>
           </div>
-          {/* Coding 评分 */}
-          <div className="py-3 px-4 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200/50 shadow-sm">
-            <div className="text-xs font-medium text-purple-600 mb-1">{t('codingScore')}</div>
-            <div className="text-xl font-bold text-purple-900">
+          <div className="py-2 px-3 rounded-lg bg-[#282828]">
+            <div className="text-xs text-[#b3b3b3] mb-1">{t('codingScore')}</div>
+            <div className="text-lg font-bold text-white">
               {model.coding_score || t('noScore')}
             </div>
           </div>
         </div>
 
         {/* 模型规格 */}
-        <div className="grid grid-cols-2 gap-3 text-xs">
-          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
-            <span className="font-medium text-indigo-900">{t('inputSupport')}</span>
-            <span className="flex items-center gap-1.5">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="flex items-center gap-1.5 bg-[#282828] rounded-lg p-2">
+            <span className="text-[#b3b3b3] shrink-0">{t('inputSupport')}</span>
+            <span className="flex items-center gap-1">
               {renderTypeIcons(model.input_types)}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
-            <span className="font-medium text-indigo-900">{t('outputSupport')}</span>
-            <span className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 bg-[#282828] rounded-lg p-2">
+            <span className="text-[#b3b3b3] shrink-0">{t('outputSupport')}</span>
+            <span className="flex items-center gap-1">
               {renderTypeIcons(model.output_types)}
             </span>
           </div>
-          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
-            <span className="font-medium text-indigo-900">{t('context')}</span>
-            <span className="font-semibold text-indigo-700">{model.context_length}</span>
+          <div className="flex items-center gap-1.5 bg-[#282828] rounded-lg p-2">
+            <span className="text-[#b3b3b3]">{t('context')}</span>
+            <span className="font-semibold text-white">{model.context_length}</span>
           </div>
-          <div className="flex items-center gap-2 bg-white/50 rounded-xl p-2 border border-indigo-100/50">
-            <span className="font-medium text-indigo-900">{t('maxOutput')}</span>
-            <span className="font-semibold text-indigo-700">{model.max_output_length}</span>
+          <div className="flex items-center gap-1.5 bg-[#282828] rounded-lg p-2">
+            <span className="text-[#b3b3b3]">{t('maxOutput')}</span>
+            <span className="font-semibold text-white">{model.max_output_length}</span>
           </div>
         </div>
 
-        {/* 订阅信息 - 2行2列布局 */}
-        <div className="grid grid-cols-2 gap-3 pt-3 border-t-2 border-indigo-100/50 text-xs">
-          {/* 左侧：订阅平台 */}
+        {/* 订阅信息 */}
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#282828] text-xs">
+          {/* 订阅平台 */}
           <div>
-            <div className="font-medium text-indigo-600 mb-2.5">
-              {t('subscriptionPlatforms')} <span className="text-indigo-900">{model.subscription_platform_count || 0}</span>
+            <div className="text-[#b3b3b3] mb-2">
+              {t('subscriptionPlatforms')} <span className="text-white font-bold">{model.subscription_platform_count || 0}</span>
             </div>
-            <div className="flex justify-start">
-              <div className="flex -space-x-1.5">
-                {visibleProviders.map((provider) => (
-                  <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider)}>
-                    <div className="w-7 h-7 rounded-full border-2 border-white shadow-md overflow-hidden bg-white hover:scale-110 hover:z-10 transition-all cursor-default">
-                      <Image
-                        src={provider.logo_path}
-                        alt={provider.code}
-                        width={28}
-                        height={28}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </ProviderLogoTooltip>
-                ))}
-                {extraProvidersCount > 0 && (
-                  <div
-                    className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-white shadow-md flex items-center justify-center text-[10px] font-semibold text-indigo-700"
-                    title={t('moreProviders', { count: extraProvidersCount })}
-                  >
-                    +{extraProvidersCount}
+            <div className="flex -space-x-1.5">
+              {visibleProviders.map((provider) => (
+                <ProviderLogoTooltip key={provider.code} provider={provider} providerName={getProviderDisplayName(provider)}>
+                  <div className="w-7 h-7 rounded-full border-2 border-[#121212] overflow-hidden bg-[#1f1f1f] hover:scale-110 hover:z-10 transition-all cursor-default">
+                    <Image
+                      src={provider.logo_path}
+                      alt={provider.code}
+                      width={28}
+                      height={28}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                )}
-              </div>
+                </ProviderLogoTooltip>
+              ))}
+              {extraProvidersCount > 0 && (
+                <div
+                  className="w-7 h-7 rounded-full bg-[#282828] border-2 border-[#121212] flex items-center justify-center text-[10px] font-semibold text-[#b3b3b3]"
+                  title={t('moreProviders', { count: extraProvidersCount })}
+                >
+                  +{extraProvidersCount}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 右侧：可用订阅 */}
+          {/* 可用订阅 */}
           <div>
-            <div className="font-medium text-indigo-600 mb-2.5">
-              {t('availableSubscriptions')} <span className="text-indigo-900">{model.available_subscriptions}</span>
+            <div className="text-[#b3b3b3] mb-2">
+              {t('availableSubscriptions')} <span className="text-white font-bold">{model.available_subscriptions}</span>
             </div>
-            <div className="flex justify-start">
-              <div className="flex -space-x-1.5">
-                {visibleSharers.map((sharer, idx) => (
-                  <SharerAvatarTooltip key={`${sharer.user_id}-${idx}`} name={sharer.name || tCommon('unknown')}>
-                    <Avatar
-                      className="w-7 h-7 border-2 border-white shadow-md hover:scale-110 hover:z-10 transition-all cursor-default"
-                    >
-                      <AvatarImage src={sharer.avatar_url} alt={sharer.name} />
-                      <AvatarFallback className="text-[10px] font-semibold bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-700">
-                        {getUserInitial(sharer.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </SharerAvatarTooltip>
-                ))}
-                {extraSharersCount > 0 && (
-                  <div
-                    className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-white shadow-md flex items-center justify-center text-[10px] font-semibold text-indigo-700"
-                    title={t('moreSubscriptions', { count: extraSharersCount })}
-                  >
-                    +{extraSharersCount}
-                  </div>
-                )}
-              </div>
+            <div className="flex -space-x-1.5">
+              {visibleSharers.map((sharer, idx) => (
+                <SharerAvatarTooltip key={`${sharer.user_id}-${idx}`} name={sharer.name || tCommon('unknown')}>
+                  <Avatar className="w-7 h-7 border-2 border-[#121212] hover:scale-110 hover:z-10 transition-all cursor-default">
+                    <AvatarImage src={sharer.avatar_url} alt={sharer.name} />
+                    <AvatarFallback className="text-[10px] font-semibold bg-[#282828] text-[#b3b3b3]">
+                      {getUserInitial(sharer.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </SharerAvatarTooltip>
+              ))}
+              {extraSharersCount > 0 && (
+                <div
+                  className="w-7 h-7 rounded-full bg-[#282828] border-2 border-[#121212] flex items-center justify-center text-[10px] font-semibold text-[#b3b3b3]"
+                  title={t('moreSubscriptions', { count: extraSharersCount })}
+                >
+                  +{extraSharersCount}
+                </div>
+              )}
             </div>
           </div>
         </div>

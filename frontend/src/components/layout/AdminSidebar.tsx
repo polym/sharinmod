@@ -20,10 +20,10 @@ export function AdminSidebar() {
   ];
 
   return (
-    <aside className="w-56 bg-white/60 backdrop-blur-sm flex flex-col h-full">
+    <aside className="w-56 bg-[#121212] flex flex-col h-full border-r border-[#282828]">
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-0.5">
+        <ul className="space-y-1">
           {adminNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -32,16 +32,13 @@ export function AdminSidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-full text-sm transition-colors duration-200',
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-indigo-50/80 hover:text-indigo-700'
+                      ? 'bg-[#1f1f1f] text-white font-bold'
+                      : 'text-[#b3b3b3] hover:text-white hover:bg-[#1f1f1f] font-normal'
                   )}
-                  style={isActive ? {
-                    boxShadow: "0 2px 8px rgba(79, 70, 229, 0.15)"
-                  } : {}}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <Icon className={cn('w-4 h-4 flex-shrink-0', isActive && 'text-[#1ed760]')} />
                   {item.label}
                 </Link>
               </li>
@@ -52,7 +49,7 @@ export function AdminSidebar() {
 
       {/* Footer */}
       <div className="p-4">
-        <p className="text-xs text-gray-400 text-center">© 2026 SharinMod</p>
+        <p className="text-xs text-[#535353] text-center">© 2026 SharinMod</p>
       </div>
     </aside>
   );

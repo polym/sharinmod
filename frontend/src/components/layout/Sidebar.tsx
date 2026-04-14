@@ -49,29 +49,24 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
 
   return (
     <aside
-      className="w-60 bg-white/60 backdrop-blur-sm flex flex-col h-full"
-      style={{
-        boxShadow: "inset -1px 0 0 rgba(79, 70, 229, 0.06)"
-      }}
+      className="w-60 bg-[#121212] flex flex-col h-full border-r border-[#282828]"
     >
-      {/* Logo - Claymorphism Style */}
+      {/* Logo */}
       <div className="h-16 flex items-center px-6">
         <div className="flex items-center gap-2">
           <div
-            className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center border-2 border-indigo-300"
-            style={{
-              boxShadow: "0 3px 0 rgba(79, 70, 229, 0.25), 0 6px 12px rgba(79, 70, 229, 0.15)"
-            }}
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#1ed760' }}
           >
-            <span className="text-white font-bold text-sm">SM</span>
+            <span className="text-black font-bold text-xs">SM</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">SharinMod</span>
+          <span className="text-xl font-bold text-white tracking-tight">SharinMod</span>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
@@ -80,16 +75,13 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                 <button
                   onClick={() => onPageChange(item.id)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                    'w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm transition-all duration-200 cursor-pointer',
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'
+                      ? 'bg-[#1f1f1f] text-white font-bold'
+                      : 'text-[#b3b3b3] hover:text-white hover:bg-[#1f1f1f] font-normal'
                   )}
-                  style={isActive ? {
-                    boxShadow: "0 2px 8px rgba(79, 70, 229, 0.2), 0 8px 16px rgba(79, 70, 229, 0.12)"
-                  } : {}}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className={cn('w-5 h-5', isActive && 'text-[#1ed760]')} />
                   {t(item.labelKey)}
                 </button>
               </li>
@@ -98,11 +90,9 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Footer - Claymorphism Style */}
+      {/* Footer */}
       <div className="p-4">
-        <div
-          className="text-xs text-indigo-400 text-center bg-indigo-50/50 rounded-xl p-2"
-        >
+        <div className="text-xs text-[#535353] text-center">
           © 2026 SharinMod
         </div>
       </div>

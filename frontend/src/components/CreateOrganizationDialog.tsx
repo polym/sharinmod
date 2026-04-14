@@ -70,11 +70,11 @@ export function CreateOrganizationDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="org-name" className="text-sm font-medium text-gray-700">
+            <label htmlFor="org-name" className="text-sm font-medium text-[#b3b3b3]">
               私服名称
             </label>
             <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#535353]" />
               <Input
                 id="org-name"
                 type="text"
@@ -103,7 +103,7 @@ export function CreateOrganizationDialog() {
             <Button
               type="submit"
               disabled={loading || !name.trim()}
-              className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700"
+              
             >
               {loading ? '创建中...' : '创建'}
             </Button>
