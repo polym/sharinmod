@@ -6,6 +6,7 @@ providers:
   - provider_key: "bigmodel"
     name: "智谱 AI Coding Plan"
     website: "https://bigmodel.cn"
+    logo_path: "/providers/bigmodel-logo.png"
     base_url: "https://open.bigmodel.cn/api/anthropic"
     custom_llm_provider: "anthropic"
     models:
@@ -43,6 +44,7 @@ providers:
   - provider_key: "z.ai"
     name: "Z.AI Coding Plan"
     website: "https://z.ai"
+    logo_path: "/providers/zai-logo.png"
     base_url: "https://z.ai/api/anthropic"
     custom_llm_provider: "anthropic"
     models:
@@ -80,6 +82,7 @@ providers:
   - provider_key: "volcengine"
     name: "火山引擎 Coding Plan"
     website: "https://volcengine.com"
+    logo_path: "/providers/volcengine-logo.png"
     base_url: "https://ark.cn-beijing.volces.com/api/coding"
     custom_llm_provider: "anthropic"
     models:
@@ -149,6 +152,7 @@ providers:
   - provider_key: "moonshot"
     name: "月之暗面 Coding Plan"
     website: "https://kimi.com"
+    logo_path: "/providers/moonshot-logo.png"
     base_url: "https://api.kimi.com/coding"
     custom_llm_provider: "anthropic"
     models:
@@ -164,6 +168,7 @@ providers:
   - provider_key: "minimax"
     name: "MiniMax Coding Plan"
     website: "https://www.minimaxi.com"
+    logo_path: "/providers/minimax-logo.png"
     base_url: "https://api.minimaxi.com/anthropic"
     custom_llm_provider: "anthropic"
     validation_endpoint: "/../v1/files/list"
@@ -180,6 +185,7 @@ providers:
   - provider_key: "openrouter"
     name: "OpenRouter"
     website: "https://openrouter.ai"
+    logo_path: "/providers/openrouter-logo.png"
     base_url: "https://openrouter.ai/api"
     custom_llm_provider: "openrouter"
     models: []

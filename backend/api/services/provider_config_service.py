@@ -793,6 +793,10 @@ def import_providers_from_yaml(db: Session, yaml_path: str) -> dict:
             provider = existing_provider
         else:
             # Create new provider
+            logo_path = provider_data.get("logo_path")
+            if not logo_path:  # Handle None and empty string
+                logo_path = f"/providers/{provider_key}-logo.png"
+
             provider = ProviderConfig(
                 provider_key=provider_key,
                 name=provider_data.get("name", provider_key),
@@ -800,6 +804,7 @@ def import_providers_from_yaml(db: Session, yaml_path: str) -> dict:
                 base_url=provider_data.get("base_url"),
                 custom_llm_provider=provider_data.get("custom_llm_provider"),
                 validation_endpoint=provider_data.get("validation_endpoint"),
+                logo_path=logo_path,
                 is_enabled=True
             )
             db.add(provider)
