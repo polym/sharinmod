@@ -14,7 +14,10 @@
     "adminModels": "Model Config",
     "adminLogs": "Operation Logs",
     "adminSettings": "System Settings",
-    "createOrganization": "Create Private Server"
+    "createOrganization": "Create Private Server",
+    "privateServerTitle": "Share with your team?",
+    "privateServerDesc": "Create a private space and invite friends to share APIs together!",
+    "createNow": "Create Now"
   },
   "dashboard": {
     "closeMenu": "Close menu",

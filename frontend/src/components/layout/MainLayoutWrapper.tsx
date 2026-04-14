@@ -24,7 +24,7 @@ export function MainLayoutWrapper({ children }: MainLayoutWrapperProps) {
       </div>
 
       {/* Fixed Sidebar on desktop */}
-      <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40">
+      <aside className="hidden lg:flex fixed top-16 left-0 bottom-0 w-56 flex-shrink-0 z-40 bg-white border-r border-indigo-100/80">
         <div className="w-full">
           <Sidebar />
         </div>

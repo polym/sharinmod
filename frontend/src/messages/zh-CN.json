@@ -14,7 +14,10 @@
     "adminModels": "模型配置",
     "adminLogs": "操作日志",
     "adminSettings": "系统设置",
-    "createOrganization": "创建专属私服"
+    "createOrganization": "创建专属私服",
+    "privateServerTitle": "和小伙伴一起玩？",
+    "privateServerDesc": "创建专属私服，邀请好友共享 API，一起嗨！",
+    "createNow": "立即创建"
   },
   "dashboard": {
     "closeMenu": "关闭菜单",
