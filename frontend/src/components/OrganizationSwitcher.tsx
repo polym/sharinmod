@@ -15,17 +15,11 @@ import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useToast } from '@/components/ui/toast';
 
-interface MyOrganizations {
-  owned: Organization[];
-  joined: Organization[];
-}
-
 export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header' | 'sidebar' }) {
   const t = useTranslations('sidebar');
   const tCommon = useTranslations('common');
   const { toast } = useToast();
-  const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated, setMyOrganizations } = useAuthStore();
-  const [organizations, setOrganizations] = useState<MyOrganizations>({ owned: [], joined: [] });
+  const { currentOrganization, setCurrentOrganization, setShowCreateOrganizationDialog, isAuthenticated, myOrganizations, setMyOrganizations } = useAuthStore();
   const [isSwitching, setIsSwitching] = useState(false);
 
   // Keep a ref in sync with currentOrganization so that loadOrganizations (a stable
@@ -41,7 +35,6 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
     try {
       const response = await organizationAPI.getMyOrganizations();
       const data = response.data;
-      setOrganizations(data);
       setMyOrganizations(data);
 
       // 静默回退：若当前私服不在最新列表中，切换回默认（无 toast，因用户未主动发起切换）
@@ -77,7 +70,6 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
     try {
       const response = await organizationAPI.getMyOrganizations();
       const data = response.data;
-      setOrganizations(data);
       setMyOrganizations(data);
 
       const allOrgs = [...data.owned, ...data.joined];
@@ -105,7 +97,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
     }
   };
 
-  const allOrganizations = [...organizations.owned, ...organizations.joined];
+  const allOrganizations = [...(myOrganizations?.owned ?? []), ...(myOrganizations?.joined ?? [])];
   const isPublic = !currentOrganization;
 
   return (

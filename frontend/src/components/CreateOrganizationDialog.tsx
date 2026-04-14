@@ -15,7 +15,7 @@ import { organizationAPI } from '@/lib/services';
 import { Building2 } from 'lucide-react';
 
 export function CreateOrganizationDialog() {
-  const { showCreateOrganizationDialog, setShowCreateOrganizationDialog, setCurrentOrganization } = useAuthStore();
+  const { showCreateOrganizationDialog, setShowCreateOrganizationDialog, setCurrentOrganization, setMyOrganizations } = useAuthStore();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +38,14 @@ export function CreateOrganizationDialog() {
     try {
       const response = await organizationAPI.createOrganization({ name: name.trim() });
       const newOrganization = response.data;
+
+      // Refresh org list so OrganizationSwitcher shows the newly created org
+      try {
+        const orgsResponse = await organizationAPI.getMyOrganizations();
+        setMyOrganizations(orgsResponse.data);
+      } catch {
+        // Non-fatal: list will refresh on next load
+      }
 
       // Auto-switch to the newly created organization
       setCurrentOrganization(newOrganization);
