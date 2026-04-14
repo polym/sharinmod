@@ -377,7 +377,7 @@ export function UnifiedAPIKeys() {
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-2">
               <h3 className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</h3>
-              <p className="text-sm text-[#b3b3b3] font-medium">{t('description')}</p>
+              <p className="text-sm text-[#b3b3b3] font-medium">{t('pageDescription')}</p>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
