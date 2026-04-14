@@ -27,8 +27,8 @@ export default function MarketplaceRoute() {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-indigo-600 font-medium">{t('loading')}</div>
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <div className="text-[#b3b3b3]">{t('loading')}</div>
       </div>
     );
   }

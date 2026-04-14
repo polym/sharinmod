@@ -12,22 +12,10 @@ export interface UserAvatarProps extends Omit<React.ComponentProps<typeof Avatar
 }
 
 /**
- * Preset color palette coordinated with brand purple theme.
- * Each email will consistently map to the same color based on hash.
+ * Single neutral color for dark theme avatar fallbacks.
  */
 const AVATAR_COLORS = [
-  "bg-purple-500",    // Brand primary
-  "bg-purple-600",    // Deep purple
-  "bg-indigo-500",    // Indigo
-  "bg-indigo-600",    // Deep indigo
-  "bg-violet-500",    // Violet
-  "bg-fuchsia-500",   // Fuchsia
-  "bg-pink-500",      // Pink
-  "bg-rose-500",      // Rose
-  "bg-sky-500",       // Sky blue
-  "bg-cyan-500",      // Cyan
-  "bg-teal-500",      // Teal
-  "bg-emerald-500",   // Emerald
+  "bg-[#282828]",
 ] as const
 
 /**
@@ -110,7 +98,7 @@ export const UserAvatar = React.forwardRef<
 
   // Use name for both display and color if available, otherwise email
   const identifier = name || email
-  const bgColor = identifier ? getAvatarColor(identifier) : "bg-gray-500"
+  const bgColor = identifier ? getAvatarColor(identifier) : "bg-[#282828]"
 
   // Validate and check avatar_url
   const hasValidAvatarUrl = !imageLoadFailed && avatar_url && isValidAvatarUrl(avatar_url)
@@ -136,7 +124,7 @@ export const UserAvatar = React.forwardRef<
           }}
         />
       )}
-      <AvatarFallback className={cn(bgColor, "text-white font-medium")}>
+      <AvatarFallback className={cn(bgColor, "text-[#b3b3b3] font-medium")}>
         {initial}
       </AvatarFallback>
     </Avatar>

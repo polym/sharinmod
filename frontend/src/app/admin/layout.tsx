@@ -27,14 +27,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!canAccess) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-indigo-50">
-        <div className="text-indigo-400">{t('loading')}</div>
+      <div className="flex h-screen items-center justify-center bg-[#121212]">
+        <div className="text-[#b3b3b3]">{t('loading')}</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-clay-background overflow-hidden">
+    <div className="flex h-screen bg-[#121212] overflow-hidden">
       {/* Admin Header - fixed at top */}
       <div className="fixed top-0 left-0 right-0 z-50 w-full">
         <AdminHeader />

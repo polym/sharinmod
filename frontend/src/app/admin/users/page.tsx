@@ -490,7 +490,7 @@ export default function AdminUsersPage() {
   if (!currentUser?.is_admin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Access denied</div>
+        <div className="text-[#b3b3b3]">Access denied</div>
       </div>
     );
   }
@@ -505,7 +505,7 @@ export default function AdminUsersPage() {
               <CardDescription>{t('description')}</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">{t('role')}:</span>
+              <span className="text-sm text-[#b3b3b3]">{t('role')}:</span>
               <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
@@ -557,7 +557,7 @@ export default function AdminUsersPage() {
           {loading ? (
             <div className="text-center py-8">{tCommon('loading')}</div>
           ) : users.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">{t('noUsers')}</div>
+            <div className="text-center py-8 text-[#b3b3b3]">{t('noUsers')}</div>
           ) : (
             <div className="space-y-4">
               <div className="overflow-x-auto">
@@ -592,7 +592,7 @@ export default function AdminUsersPage() {
                               )}
                             </span>
                             {u.name && (
-                              <span className="text-xs text-gray-500">{u.email}</span>
+                              <span className="text-xs text-[#b3b3b3]">{u.email}</span>
                             )}
                           </div>
                         </TableCell>
@@ -817,7 +817,7 @@ export default function AdminUsersPage() {
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#b3b3b3]">
               {t('resetLinkHint')}
             </p>
           </div>

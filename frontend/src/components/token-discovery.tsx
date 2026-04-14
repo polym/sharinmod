@@ -81,15 +81,15 @@ export function APIKeyDiscovery() {
 
   return (
     <div className="space-y-6">
-      <Card className="clay-card border-[3px] border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
+      <Card className=" border border-[#282828] bg-[#181818]">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold leading-none tracking-tight text-indigo-900">{t('title')}</h3>
-              <p className="text-sm text-indigo-600 font-medium">{t('description')}</p>
+              <h3 className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</h3>
+              <p className="text-sm text-[#b3b3b3] font-medium">{t('description')}</p>
             </div>
             <Select value={providerFilter} onValueChange={handleProviderFilter}>
-              <SelectTrigger className="clay-input w-[200px] border-2 border-indigo-200/50">
+              <SelectTrigger className=" w-[200px] border border-[#282828]">
                 {providerFilter === 'all' ? (
                   <SelectValue placeholder={t('selectProvider')} />
                 ) : (
@@ -116,42 +116,42 @@ export function APIKeyDiscovery() {
         <CardContent>
 
           {loading && apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-indigo-600 font-medium">{t('loading')}</div>
+            <div className="text-center py-8 text-[#b3b3b3] font-medium">{t('loading')}</div>
           ) : apiKeys.length === 0 ? (
-            <div className="text-center py-8 text-indigo-600 font-medium">
+            <div className="text-center py-8 text-[#b3b3b3] font-medium">
               {t('noKeys')}
             </div>
           ) : (
             <div className="space-y-4">
               {apiKeys.map((apiKey) => (
-                <Card key={apiKey.id} className="clay-card border-2 border-indigo-200/50 bg-gradient-to-br from-white to-indigo-50/50">
+                <Card key={apiKey.id} className=" border border-[#282828] bg-[#181818]">
                   <CardContent className="pt-5">
                     <div className="flex items-center justify-between">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md border-2 border-white bg-white p-1">
+                          <div className="w-12 h-12 rounded-xl overflow-hidden shadow-md border-2 border-white bg-[#181818] p-1">
                             <Image src={getProviderLogo(apiKey.provider)} alt={getProviderBrandName(apiKey.provider)} width={40} height={40} className="w-full h-full object-contain" />
                           </div>
-                          <div className="font-bold text-lg text-indigo-900">{getProviderBrandName(apiKey.provider)}</div>
+                          <div className="font-bold text-lg text-white">{getProviderBrandName(apiKey.provider)}</div>
                         </div>
-                        <div className="text-sm text-indigo-600">
+                        <div className="text-sm text-[#b3b3b3]">
                           {t('provider')}: <span className="font-medium">{apiKey.provider_username}</span>
                         </div>
-                        <div className="text-sm text-indigo-600">
-                          {t('uses')}: <span className="font-semibold text-indigo-900">{apiKey.total_uses}</span>
+                        <div className="text-sm text-[#b3b3b3]">
+                          {t('uses')}: <span className="font-semibold text-white">{apiKey.total_uses}</span>
                         </div>
-                        <div className="text-sm text-indigo-600">
+                        <div className="text-sm text-[#b3b3b3]">
                           {t('createdAt')}: <span className="font-medium">{new Date(apiKey.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className={`clay-badge ${apiKey.status === 'active' ? 'clay-badge-success' : 'clay-badge-secondary'}`}>
+                        <div className={` ${apiKey.status === 'active' ? '' : ''}`}>
                           {apiKey.status}
                         </div>
                         <Button
                           onClick={() => handleUseAPIKey(apiKey.id)}
                           disabled={apiKey.status !== 'active'}
-                          className="clay-btn-primary"
+                          className=""
                         >
                           {t('use')}
                         </Button>
@@ -163,7 +163,7 @@ export function APIKeyDiscovery() {
 
               {hasMore && (
                 <div className="text-center pt-4">
-                  <Button onClick={handleLoadMore} className="clay-btn-secondary">
+                  <Button onClick={handleLoadMore} className="">
                     {t('loadMore')}
                   </Button>
                 </div>

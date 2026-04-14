@@ -72,11 +72,11 @@ const CHAT_TOOLS = [
 
 // 状态样式配置（不包含标签文本，仅样式）
 const STATUS_STYLES: Record<string, string> = {
-  PENDING:  'bg-yellow-100 text-yellow-700 border border-yellow-200',
-  RUNNING:  'bg-green-100  text-green-700  border border-green-200',
-  FAILED:   'bg-red-100    text-red-700    border border-red-200',
-  STOPPED:  'bg-gray-100   text-gray-700   border border-gray-200',
-  UNHEALTHY: 'bg-orange-100 text-orange-700 border border-orange-200',
+  PENDING:  'bg-[#ffa42b]/10 text-[#ffa42b] border border-[#ffa42b]/20',
+  RUNNING:  'bg-green-100  text-green-700  border border-[#1ed760]/20',
+  FAILED:   'bg-red-100    text-red-700    border border-[#f3727f]/20',
+  STOPPED:  'bg-[#282828]   text-[#b3b3b3]   border border-[#4d4d4d]',
+  UNHEALTHY: 'bg-[#ffa42b]/10 text-[#ffa42b] border border-[#ffa42b]/20',
 };
 
 // 获取状态显示配置
@@ -91,7 +91,7 @@ function getStatusConfig(status: string, t: (key: string) => string): { label: s
   const key = statusKeyMap[status] || 'status.failed';
   return {
     label: t(key),
-    className: STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700'
+    className: STATUS_STYLES[status] ?? 'bg-[#282828] text-[#b3b3b3]'
   };
 }
 
@@ -157,10 +157,10 @@ function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config
           <div key={step.key} className="flex items-center">
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
               status === 'completed'
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-[#1ed760]/10 text-[#1ed760]'
                 : status === 'current'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-400'
+                ? 'bg-[#1ed760] text-white'
+                : 'bg-[#282828] text-[#535353]'
             }`}>
               {status === 'completed' ? (
                 <CheckCircle2 className="w-4 h-4" />
@@ -170,7 +170,7 @@ function CreateStepIndicator({ currentPhase, chatTool }: { currentPhase: 'config
               <span>{step.label}</span>
             </div>
             {!isLast && (
-              <div className={`w-8 h-0.5 mx-1 ${status === 'completed' ? 'bg-green-300' : 'bg-gray-200'}`} />
+              <div className={`w-8 h-0.5 mx-1 ${status === 'completed' ? 'bg-green-300' : 'bg-[#282828]'}`} />
             )}
           </div>
         );
@@ -1082,34 +1082,34 @@ export function ClawsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-[3px] border-indigo-100 shadow-md rounded-2xl bg-gradient-to-br from-white to-indigo-50/30">
+      <Card className="border border-[#282828] shadow-md rounded-2xl bg-[#181818]">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-bold text-gray-900">{t('title')}</CardTitle>
-            <CardDescription className="text-gray-500 mt-1">
+            <CardTitle className="text-xl font-bold text-white">{t('title')}</CardTitle>
+            <CardDescription className="text-[#b3b3b3] mt-1">
               {t('description', { max: maxClawsPerUser })}
             </CardDescription>
           </div>
           {!clawCreationDisabled && (
             <Button
               onClick={() => setCreateOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center gap-2"
+              className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               {t('createButton')}
             </Button>
           )}
           {clawCreationDisabled && (
-            <div className="text-sm text-gray-400 bg-gray-100 px-3 py-1.5 rounded-lg">
+            <div className="text-sm text-[#535353] bg-[#282828] px-3 py-1.5 rounded-lg">
               {t('disabledMessage')}
             </div>
           )}
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-indigo-400 font-medium">{t('loading')}</div>
+            <div className="text-center py-8 text-[#535353] font-medium">{t('loading')}</div>
           ) : claws.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-[#535353]">
               <div className="text-4xl mb-3">🦞</div>
               <p className="font-medium">{t('emptyState.title')}</p>
             </div>
@@ -1131,7 +1131,7 @@ export function ClawsPage() {
                   <TableRow key={claw.id}>
                     <TableCell className="font-medium">{claw.name}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#282828] text-[#b3b3b3] border border-[#4d4d4d]">
                         {getTypeLabel(claw.type, t)}
                       </span>
                     </TableCell>
@@ -1145,7 +1145,7 @@ export function ClawsPage() {
                       ) : null}
                     </TableCell>
                     <TableCell><StatusBadge status={claw.status} t={t} /></TableCell>
-                    <TableCell className="text-indigo-700">
+                    <TableCell className="text-[#b3b3b3]">
                       <div className="space-y-1.5 min-w-[120px]">
                         {claw.daily_token_limit && claw.daily_token_limit > 0 ? (
                           (() => {
@@ -1154,7 +1154,7 @@ export function ClawsPage() {
                             const barColor = usageRatio >= 0.8 ? 'bg-red-500' : usageRatio >= 0.5 ? 'bg-amber-500' : 'bg-emerald-500';
                             return (
                               <>
-                                <div className="h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-[#282828] rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                                     style={{ width: `${barWidth}%` }}
@@ -1164,8 +1164,8 @@ export function ClawsPage() {
                                   <span className="text-xs font-medium tabular-nums">
                                     {claw.daily_tokens_used.toLocaleString()}
                                   </span>
-                                  <span className="text-indigo-400 text-xs">/</span>
-                                  <span className="text-xs text-indigo-400 tabular-nums">
+                                  <span className="text-[#535353] text-xs">/</span>
+                                  <span className="text-xs text-[#535353] tabular-nums">
                                     {claw.daily_token_limit.toLocaleString()}
                                   </span>
                                 </div>
@@ -1174,28 +1174,28 @@ export function ClawsPage() {
                           })()
                         ) : (
                           <>
-                            <div className="h-1.5 bg-indigo-50 rounded-full overflow-hidden">
-                              <div className="h-full bg-indigo-200 rounded-full w-0" />
+                            <div className="h-1.5 bg-[#1f1f1f] rounded-full overflow-hidden">
+                              <div className="h-full bg-[#1ed760] rounded-full w-0" />
                             </div>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-medium tabular-nums">
                                 {claw.daily_tokens_used.toLocaleString()}
                               </span>
-                              <span className="text-indigo-400 text-xs">/</span>
-                              <span className="text-xs text-indigo-400 font-mono">+inf</span>
+                              <span className="text-[#535353] text-xs">/</span>
+                              <span className="text-xs text-[#535353] font-mono">+inf</span>
                             </div>
                           </>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">{formatDate(claw.created_at)}</TableCell>
+                    <TableCell className="text-sm text-[#b3b3b3]">{formatDate(claw.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openFilebrowser(claw.id)}
-                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          className="rounded-lg border-[#4d4d4d] hover:bg-[#1f1f1f] hover:border-[#4d4d4d]"
                           title={t('tooltip.filebrowser')}
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
@@ -1204,7 +1204,7 @@ export function ClawsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openOpenClawWeb(claw.id)}
-                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          className="rounded-lg border-[#4d4d4d] hover:bg-[#1f1f1f] hover:border-[#4d4d4d]"
                           title={t('tooltip.openclawweb')}
                         >
                           <Globe className="w-3.5 h-3.5" />
@@ -1214,7 +1214,7 @@ export function ClawsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => openArchive(claw)}
-                            className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                            className="rounded-lg border-[#4d4d4d] hover:bg-[#1f1f1f] hover:border-[#4d4d4d]"
                             title="后悔药"
                           >
                             <CapsuleIcon className="w-3.5 h-3.5" />
@@ -1224,7 +1224,7 @@ export function ClawsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => openRestart(claw)}
-                          className="rounded-lg border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300"
+                          className="rounded-lg border-[#4d4d4d] hover:bg-[#1f1f1f] hover:border-[#4d4d4d]"
                           title={t('tooltip.restart')}
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
@@ -1338,18 +1338,18 @@ export function ClawsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectLabel className="text-xs text-indigo-600 font-semibold">✨ 主流模型</SelectLabel>
+                    <SelectLabel className="text-xs text-[#b3b3b3] font-semibold">✨ 主流模型</SelectLabel>
                     {featuredBrainModels.map((m) => (
                       <SelectItem key={m} value={m}>{m}</SelectItem>
                     ))}
                   </SelectGroup>
                   {plazaModels.filter((m) => !featuredBrainModels.includes(m.model_name)).length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="text-xs text-gray-400 font-normal">广场中的其他模型</SelectLabel>
+                      <SelectLabel className="text-xs text-[#535353] font-normal">广场中的其他模型</SelectLabel>
                       {plazaModels
                         .filter((m) => !featuredBrainModels.includes(m.model_name))
                         .map((m) => (
-                          <SelectItem key={m.model_name} value={m.model_name} className="text-gray-400">
+                          <SelectItem key={m.model_name} value={m.model_name} className="text-[#535353]">
                             {m.display_name || m.model_name}
                           </SelectItem>
                         ))}
@@ -1368,8 +1368,8 @@ export function ClawsPage() {
                     onClick={() => setNewChatTool(tool.value)}
                     className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all ${
                       newChatTool === tool.value
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
+                        ? 'border-[#1ed760] bg-[#1f1f1f]'
+                        : 'border-[#4d4d4d] hover:border-[#4d4d4d]'
                     }`}
                   >
                     {tool.value === 'QQ' ? (
@@ -1393,7 +1393,7 @@ export function ClawsPage() {
                   href="https://q.qq.com/qqbot/openclaw/login.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-indigo-500 hover:underline"
+                  className="text-xs text-[#b3b3b3] hover:underline"
                 >
                   获取 ID 和 Secret
                 </a>
@@ -1427,21 +1427,21 @@ export function ClawsPage() {
             <div className="py-8 space-y-4">
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="w-20 h-20 border-4 border-indigo-200 rounded-full"></div>
-                  <div className="absolute top-0 left-0 w-20 h-20 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                  <div className="w-20 h-20 border-4 border-[#4d4d4d] rounded-full"></div>
+                  <div className="absolute top-0 left-0 w-20 h-20 border-4 border-[#1ed760] rounded-full border-t-transparent animate-spin"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-2xl">🦞</span>
                   </div>
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <h3 className="text-lg font-semibold text-gray-900">正在启动龙虾...</h3>
-                <p className="text-sm text-gray-500">预计需要 1-2 分钟，请耐心等待</p>
+                <h3 className="text-lg font-semibold text-white">正在启动龙虾...</h3>
+                <p className="text-sm text-[#b3b3b3]">预计需要 1-2 分钟，请耐心等待</p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-indigo-700 font-medium">启动进度</span>
-                  <span className="text-gray-500">
+                  <span className="text-[#b3b3b3] font-medium">启动进度</span>
+                  <span className="text-[#b3b3b3]">
                     {Math.min((Date.now() - pollingStartTimeRef.current) / 1000 / 60 * 100 / 5, 100).toFixed(0)}%
                   </span>
                 </div>
@@ -1453,13 +1453,13 @@ export function ClawsPage() {
           {/* Phase 3: Feishu Authorization */}
           {createPhase === 'feishu' && (
             <div className="space-y-4 py-2">
-              <div className="flex items-center gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+              <div className="flex items-center gap-3 p-4 bg-[#1f1f1f] border border-[#4d4d4d] rounded-xl">
                 <img src="/icons/feishu.png" alt="飞书" className="w-8 h-8" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-indigo-900">
+                  <p className="text-sm font-medium text-white">
                     {larkPhase === 'installing' ? '正在获取授权二维码...' : '请用飞书扫描二维码完成授权'}
                   </p>
-                  <p className="text-xs text-indigo-600 mt-1">推荐使用个人飞书账号</p>
+                  <p className="text-xs text-[#b3b3b3] mt-1">推荐使用个人飞书账号</p>
                 </div>
               </div>
 
@@ -1481,8 +1481,8 @@ export function ClawsPage() {
 
               {larkOutput.length === 0 && larkPhase === 'installing' && (
                 <div className="text-center py-4">
-                  <div className="inline-block w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-gray-500 mt-2">正在生成二维码...</p>
+                  <div className="inline-block w-8 h-8 border-2 border-[#1ed760] border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-[#b3b3b3] mt-2">正在生成二维码...</p>
                 </div>
               )}
             </div>
@@ -1491,7 +1491,7 @@ export function ClawsPage() {
           {/* Phase 3: Weixin Authorization */}
           {createPhase === 'weixin' && (
             <div className="space-y-4 py-2">
-              <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+              <div className="flex items-center gap-3 p-4 bg-green-50 border border-[#1ed760]/20 rounded-xl">
                 <img src="/icons/weixin.png" alt="微信" className="w-8 h-8" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-green-900">
@@ -1520,7 +1520,7 @@ export function ClawsPage() {
               {weixinOutput.length === 0 && weixinPhase === 'installing' && (
                 <div className="text-center py-4">
                   <div className="inline-block w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-gray-500 mt-2">正在生成二维码...</p>
+                  <p className="text-sm text-[#b3b3b3] mt-2">正在生成二维码...</p>
                 </div>
               )}
             </div>
@@ -1533,11 +1533,11 @@ export function ClawsPage() {
                 <Check className="w-10 h-10 text-green-600" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">龙虾创建成功！</h3>
-                <p className="text-sm text-gray-500 mt-2">龙虾「{newName}」已准备就绪</p>
+                <h3 className="text-xl font-semibold text-white">龙虾创建成功！</h3>
+                <p className="text-sm text-[#b3b3b3] mt-2">龙虾「{newName}」已准备就绪</p>
               </div>
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                <span className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-700">
+              <div className="flex items-center justify-center gap-2 text-sm text-[#b3b3b3]">
+                <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#282828] text-[#b3b3b3]">
                   {getTypeLabel(newType, t)}
                 </span>
                 <span>•</span>
@@ -1554,7 +1554,7 @@ export function ClawsPage() {
                   loadClaws();
                   toast({ title: '成功', description: '龙虾创建成功！' });
                 }}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                className="w-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl"
               >
                 完成
               </Button>
@@ -1585,7 +1585,7 @@ export function ClawsPage() {
                     loadClaws();
                     toast({ title: '成功', description: '龙虾创建成功！' });
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                  className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl"
                 >
                   已完成扫码
                 </Button>
@@ -1632,7 +1632,7 @@ export function ClawsPage() {
                 <Button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+                  className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl"
                 >
                   {creating ? '创建中...' : '创建'}
                 </Button>
@@ -1676,7 +1676,7 @@ export function ClawsPage() {
               className="rounded-xl"
               placeholder={t('dailyLimitPlaceholder')}
             />
-            <p className="text-xs text-indigo-500">
+            <p className="text-xs text-[#b3b3b3]">
               {clawApikeyDailyLimit
                 ? t('dailyLimitHint', { max: clawApikeyDailyLimit })
                 : t('unlimited')}
@@ -1687,7 +1687,7 @@ export function ClawsPage() {
             <Button
               onClick={handleSaveEdit}
               disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl"
             >
               {saving ? '保存中...' : '保存'}
             </Button>
@@ -1732,7 +1732,7 @@ export function ClawsPage() {
             <Button
               onClick={handleRestart}
               disabled={restarting}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
+              className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl"
             >
               {restarting ? '重启中...' : '确认重启'}
             </Button>
@@ -1745,14 +1745,14 @@ export function ClawsPage() {
         <DialogContent className="sm:max-w-5xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ScrollText className="w-4 h-4 text-indigo-500" />
+              <ScrollText className="w-4 h-4 text-[#b3b3b3]" />
               龙虾「{logsClawName}」实时日志
-              {logsLoading && <span className="text-xs font-normal text-indigo-400">连接中...</span>}
+              {logsLoading && <span className="text-xs font-normal text-[#535353]">连接中...</span>}
               <button
                 onClick={() => setLogsAutoFollow((v) => !v)}
                 className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-md transition-colors ${
                   logsAutoFollow
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-[#1ed760] text-white'
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
@@ -1772,7 +1772,7 @@ export function ClawsPage() {
                 {logLines.map((line, idx) => (
                   <div key={`line-${idx}`} className="flex">
                     {/* 行号 */}
-                    <div className="w-12 flex-shrink-0 text-right text-gray-500 text-xs select-none pl-2 pr-[2px] leading-5">
+                    <div className="w-12 flex-shrink-0 text-right text-[#b3b3b3] text-xs select-none pl-2 pr-[2px] leading-5">
                       {idx + 1}
                     </div>
                     {/* 日志内容 */}
@@ -1817,7 +1817,7 @@ export function ClawsPage() {
               <Button
                 onClick={handleCreateArchive}
                 disabled={creatingArchive || archiveClaw?.status !== 'RUNNING'}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex-shrink-0"
+                className="bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl flex-shrink-0"
               >
                 {creatingArchive ? '创建中...' : '创建存档'}
               </Button>
@@ -1825,18 +1825,18 @@ export function ClawsPage() {
 
             {/* Archives List */}
             {archivesLoading ? (
-              <div className="text-center py-8 text-indigo-400 font-medium">加载中...</div>
+              <div className="text-center py-8 text-[#535353] font-medium">加载中...</div>
             ) : archives.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-[#535353]">
                 <div className="text-3xl mb-2">💾</div>
                 <p className="text-sm">暂无存档</p>
               </div>
             ) : (
               <>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="border border-[#4d4d4d] rounded-xl overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-50">
+                      <TableRow className="bg-[#1f1f1f]">
                         <TableHead className="w-48">版本时间</TableHead>
                         <TableHead className="w-20 text-center">类型</TableHead>
                         <TableHead className="w-24 text-center">是否可用</TableHead>
@@ -1857,18 +1857,18 @@ export function ClawsPage() {
                                   自动
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-xs">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#282828] text-[#b3b3b3] border border-[#4d4d4d] text-xs">
                                   手动
                                 </span>
                               )}
                             </TableCell>
                             <TableCell className="text-center">
                               {archive.ready_to_use === true ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-green-100 text-green-700 border border-green-200 text-xs">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#1ed760]/10 text-[#1ed760] border border-[#1ed760]/20 text-xs">
                                   可用
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#ffa42b]/10 text-[#ffa42b] border border-[#ffa42b]/20 text-xs">
                                   准备中
                                 </span>
                               )}
@@ -1880,7 +1880,7 @@ export function ClawsPage() {
                                   size="sm"
                                   onClick={() => handleRestoreArchive(archive.timestamp)}
                                   disabled={restoringArchive || !archive.ready_to_use}
-                                  className="hover:bg-indigo-50 text-indigo-600"
+                                  className="hover:bg-[#1f1f1f] text-[#b3b3b3]"
                                   title="恢复存档"
                                 >
                                   <Undo className="w-3.5 h-3.5" />
@@ -1905,8 +1905,8 @@ export function ClawsPage() {
 
                 {/* Pagination */}
                 {archives.length > ARCHIVES_PER_PAGE && (
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-                    <span className="text-sm text-gray-600">
+                  <div className="flex items-center justify-between px-4 py-3 bg-[#1f1f1f] border-t border-[#4d4d4d]">
+                    <span className="text-sm text-[#b3b3b3]">
                       第 {archivePage} / {Math.ceil(archives.length / ARCHIVES_PER_PAGE)} 页
                     </span>
                     <div className="flex items-center gap-2">
@@ -1989,8 +1989,8 @@ export function ClawsPage() {
                   onClick={() => setSelectedChatTool(tool.value)}
                   className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all cursor-pointer ${
                     selectedChatTool === tool.value
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-indigo-300'
+                      ? 'border-[#1ed760] bg-[#1f1f1f]'
+                      : 'border-[#4d4d4d] hover:border-[#4d4d4d]'
                   } ${chatToolSetting ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {tool.value === 'LARK' ? (
@@ -2004,11 +2004,11 @@ export function ClawsPage() {
               {/* QQ - 灰掉 */}
               <button
                 disabled
-                className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-[#282828] bg-[#1f1f1f] opacity-50 cursor-not-allowed"
                 title="暂不支持"
               >
                 <img src="/icons/qq.svg" alt="QQ" className="w-5 h-5 grayscale" />
-                <span className="text-sm font-medium text-gray-400">QQ</span>
+                <span className="text-sm font-medium text-[#535353]">QQ</span>
               </button>
             </div>
 
@@ -2016,7 +2016,7 @@ export function ClawsPage() {
             {selectedChatTool && !chatToolSetting && (
               <Button
                 onClick={startSetChatTool}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer"
+                className="w-full bg-[#1ed760] hover:bg-[#1ed760]/90 text-white rounded-xl cursor-pointer"
               >
                 确认切换到 {CHAT_TOOLS.find(t => t.value === selectedChatTool)?.label}
               </Button>
@@ -2029,7 +2029,7 @@ export function ClawsPage() {
                 className="max-h-96 overflow-y-auto bg-gray-950 rounded-lg p-3 w-full"
               >
                 {chatToolSetting && chatToolOutput.length === 0 && (
-                  <div className="text-xs text-gray-400">正在重连对话工具...</div>
+                  <div className="text-xs text-[#535353]">正在重连对话工具...</div>
                 )}
                 <div className="font-mono text-xs leading-tight text-gray-100 whitespace-pre-wrap break-all">
                   {chatToolOutput.map((line, i) => (

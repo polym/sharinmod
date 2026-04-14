@@ -107,6 +107,7 @@
   },
   "apiKeys": {
     "title": "My API Keys",
+    "pageDescription": "Create and manage your API keys to securely call AI models on the platform",
     "description": "Description",
     "create": "Create API Key",
     "edit": "Edit API Key",
@@ -463,7 +464,7 @@
   },
   "adminProviders": {
     "title": "Provider Configuration",
-    "description": "Description",
+    "description": "Manage AI model providers and subscriptions, configure the list of models available to users",
     "create": "Add Provider",
     "edit": "Edit Provider",
     "manageModels": "Manage Models",

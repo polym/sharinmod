@@ -2,128 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Claymorphism Design System - Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
-
-/* Dark mode support removed: @media (prefers-color-scheme: dark) was deleted to keep styles fixed to light theme, ignoring browser dark mode setting. */
+/* Spotify-Inspired Dark Design System */
 
 :root {
-  /* Claymorphism Color Scheme */
-  --foreground-rgb: 30, 27, 75;
-  --background-start-rgb: 238, 242, 255;
-  --background-end-rgb: 238, 242, 255;
+  /* Spotify Dark Color Palette */
+  --foreground-rgb: 255, 255, 255;
+  --background-rgb: 18, 18, 18;
 
-  /* Theme Colors - Vibrant Indigo + Orange */
-  --background: 229 100% 96%;
-  --foreground: 252.2 60% 10%;
-  --card: 0 0% 100%;
-  --card-foreground: 252.2 60% 10%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 252.2 60% 10%;
+  /* shadcn/ui CSS variables — Spotify dark theme */
+  --background: 0 0% 7%;          /* #121212 near-black */
+  --foreground: 0 0% 100%;        /* #ffffff white */
+  --card: 0 0% 9.4%;              /* #181818 dark surface */
+  --card-foreground: 0 0% 100%;
+  --popover: 0 0% 12.2%;         /* #1f1f1f interactive surface */
+  --popover-foreground: 0 0% 100%;
 
-  /* Primary - Indigo-600 (#4F46E5) */
-  --primary: 239 82% 60%;
-  --primary-foreground: 0 0% 100%;
+  /* Primary — Spotify Green #1ed760 */
+  --primary: 141 69% 48%;
+  --primary-foreground: 0 0% 0%;
 
-  /* Secondary - Indigo-400 (#818CF8) */
-  --secondary: 239 88% 75%;
-  --secondary-foreground: 252.2 60% 10%;
+  /* Secondary — dark pill */
+  --secondary: 0 0% 12.2%;       /* #1f1f1f */
+  --secondary-foreground: 0 0% 100%;
 
   /* Muted */
-  --muted: 229 100% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 0 0% 14.5%;           /* #252525 */
+  --muted-foreground: 0 0% 70%;  /* #b3b3b3 silver */
 
-  /* Accent - Orange-500 (#F97316) */
-  --accent: 25 95% 53%;
-  --accent-foreground: 0 0% 100%;
+  /* Accent — Spotify Green for active states */
+  --accent: 141 69% 48%;
+  --accent-foreground: 0 0% 0%;
 
-  /* Destructive */
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  /* Destructive — Negative Red #f3727f */
+  --destructive: 354 85% 70%;
+  --destructive-foreground: 0 0% 100%;
 
-  /* Border - Soft indigo */
-  --border: 239 82% 80%;
-  --input: 239 82% 80%;
-  --ring: 239 82% 60%;
+  /* Border — dark gray #4d4d4d */
+  --border: 0 0% 30%;
+  --input: 0 0% 12.2%;
+  --ring: 141 69% 48%;
 
-  /* Claymorphism larger radius for chunky feel */
-  --radius: 1rem;
+  /* Border radius — Spotify uses subtle 6-8px on cards */
+  --radius: 0.5rem;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  font-family: 'Nunito', sans-serif;
+  color: #ffffff;
+  background-color: #121212;
+  font-family: 'SpotifyMixUI', 'CircularSp-Arab', 'CircularSp-Hebr', 'CircularSp-Cyrl',
+    'CircularSp-Grek', 'CircularSp-Deva', 'Helvetica Neue', helvetica, arial,
+    'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC',
+    'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, 'MS Gothic', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Fredoka', sans-serif;
-}
-
-/* Claymorphism Utilities */
-.clay-card {
-  background: white;
-  border-radius: 1.25rem;
-  border: 3px solid #E0E7FF;
-  box-shadow:
-    8px 8px 16px rgba(79, 70, 229, 0.1),
-    -4px -4px 12px rgba(255, 255, 255, 0.9),
-    inset 2px 2px 4px rgba(79, 70, 229, 0.05);
-  transition: all 200ms ease-out;
-}
-
-.clay-card:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    12px 12px 20px rgba(79, 70, 229, 0.15),
-    -6px -6px 16px rgba(255, 255, 255, 0.95),
-    inset 2px 2px 4px rgba(79, 70, 229, 0.05);
-}
-
-.clay-button {
-  background: linear-gradient(145deg, #6366F1, #4F46E5);
-  border: 3px solid #4338CA;
-  border-radius: 1rem;
-  box-shadow:
-    6px 6px 12px rgba(79, 70, 229, 0.3),
-    inset -2px -2px 6px rgba(0, 0, 0, 0.1),
-    inset 2px 2px 6px rgba(255, 255, 255, 0.2);
-  transition: all 200ms ease-out;
-}
-
-.clay-button:hover {
-  background: linear-gradient(145deg, #7C3AED, #6D28D9);
-  transform: translateY(-1px);
-}
-
-.clay-button:active {
-  transform: translateY(2px);
-  box-shadow:
-    2px 2px 6px rgba(79, 70, 229, 0.4),
-    inset 2px 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.clay-input {
-  background: #F8FAFC;
-  border: 3px solid #E0E7FF;
-  border-radius: 1rem;
-  box-shadow:
-    inset 4px 4px 8px rgba(79, 70, 229, 0.08),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.9);
-  transition: all 200ms ease-out;
-}
-
-.clay-input:focus {
-  border-color: #818CF8;
-  box-shadow:
-    inset 4px 4px 8px rgba(79, 70, 229, 0.08),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.9),
-    0 0 0 4px rgba(129, 140, 248, 0.2);
+  font-family: 'SpotifyMixUITitle', 'SpotifyMixUI', 'CircularSp-Arab', 'CircularSp-Hebr',
+    'CircularSp-Cyrl', 'CircularSp-Grek', 'CircularSp-Deva', 'Helvetica Neue',
+    helvetica, arial, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  font-weight: 700;
 }
 
 /* Tooltip transition animation for bar charts */
@@ -131,16 +69,96 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform 0.1s ease-out;
 }
 
-/* Claymorphism Tooltip */
-.clay-tooltip {
-  background: linear-gradient(145deg, #1E1B4B, #312E81);
-  color: white;
+/* Spotify Tooltip */
+.spotify-tooltip {
+  background-color: #282828;
+  color: #ffffff;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 500;
-  box-shadow:
-    0 4px 12px rgba(79, 70, 229, 0.3),
-    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  box-shadow: rgba(0, 0, 0, 0.5) 0px 8px 24px;
   white-space: nowrap;
+}
+
+/* Keep clay-tooltip as alias for backward compatibility */
+.clay-tooltip {
+  background-color: #282828;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: rgba(0, 0, 0, 0.5) 0px 8px 24px;
+  white-space: nowrap;
+}
+
+/* Spotify Card */
+.spotify-card {
+  background-color: #181818;
+  border-radius: 8px;
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 8px 8px;
+  transition: background-color 200ms ease;
+}
+
+.spotify-card:hover {
+  background-color: #282828;
+}
+
+/* Spotify Pill Button */
+.spotify-pill-btn {
+  background-color: #1f1f1f;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  transition: all 200ms ease;
+  border: none;
+  cursor: pointer;
+}
+
+.spotify-pill-btn:hover {
+  background-color: #282828;
+}
+
+/* Spotify Green Pill Button (primary CTA) */
+.spotify-pill-btn-green {
+  background-color: #1ed760;
+  color: #000000;
+  border-radius: 9999px;
+  padding: 8px 32px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 200ms ease;
+  border: none;
+  cursor: pointer;
+}
+
+.spotify-pill-btn-green:hover {
+  background-color: #1fdf64;
+  transform: scale(1.02);
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #535353;
+  border-radius: 6px;
+  border: 3px solid #121212;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #7c7c7c;
 }

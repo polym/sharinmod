@@ -179,7 +179,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
           <div className="w-full border-t border-gray-300"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white text-gray-500">{t('or')}</span>
+          <span className="px-2 bg-[#181818] text-[#b3b3b3]">{t('or')}</span>
         </div>
       </div>
 
@@ -213,7 +213,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
           </Button>
         ))
       ) : (
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-sm text-[#b3b3b3]">
           {t('noLoginMethods')}
         </div>
       )}

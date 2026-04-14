@@ -505,7 +505,7 @@ function ProviderModelTab() {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-gray-500">{t('loading')}</div>
+          <div className="text-center py-8 text-[#b3b3b3]">{t('loading')}</div>
         ) : (
           <div className="space-y-4">
             <Table>
@@ -566,8 +566,8 @@ function ProviderModelTab() {
                           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                         />
                         <div>
-                          <div className="font-mono text-sm"><span className="text-gray-500">{model.provider_key}/</span><span className="font-medium">{model.model_key}</span></div>
-                          <div className="text-xs text-gray-500">{model.display_name}</div>
+                          <div className="font-mono text-sm"><span className="text-[#b3b3b3]">{model.provider_key}/</span><span className="font-medium">{model.model_key}</span></div>
+                          <div className="text-xs text-[#b3b3b3]">{model.display_name}</div>
                         </div>
                       </div>
                     </TableCell>
@@ -599,7 +599,7 @@ function ProviderModelTab() {
               })}
               {paginatedModels.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                  <TableCell colSpan={7} className="text-center text-[#b3b3b3] py-8">
                     —
                   </TableCell>
                 </TableRow>
@@ -610,7 +610,7 @@ function ProviderModelTab() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-[#b3b3b3]">
                 显示 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredModels.length)} 条，共 {filteredModels.length} 条
               </div>
               <div className="flex items-center gap-2">
@@ -670,7 +670,7 @@ function ProviderModelTab() {
                 onChange={(e) => setEditForm((f) => ({ ...f, real_model: e.target.value }))}
                 placeholder={t('editDialog.realModelPlaceholder')}
               />
-              <p className="text-xs text-muted-foreground">{t('editDialog.realModelHint')}</p>
+              <p className="text-xs text-[#b3b3b3]">{t('editDialog.realModelHint')}</p>
               {!editTarget && conflictFields.has('real_model') && (
                 <p className="text-xs text-amber-600">{t('editDialog.conflictHint')}</p>
               )}
@@ -830,7 +830,7 @@ function ProviderModelTab() {
                 onOpenChange={(open) => { if (open) loadGlobalModels(); }}
                 disabled={!!editModelTarget}
               >
-                <SelectTrigger className={editModelTarget ? 'bg-gray-50 cursor-not-allowed' : ''}>
+                <SelectTrigger className={editModelTarget ? 'bg-[#1f1f1f] cursor-not-allowed' : ''}>
                   <SelectValue placeholder={t('addDialog.modelKeyPlaceholder') || '选择模型'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -852,7 +852,7 @@ function ProviderModelTab() {
                 onChange={(e) => setModelForm({ ...modelForm, realModel: e.target.value })}
                 placeholder={t('addDialog.realModelPlaceholder') || '如 anthropic/claude-3-sonet'}
               />
-              <p className="text-xs text-muted-foreground">只有供应商模型名称不一致才需要填写</p>
+              <p className="text-xs text-[#b3b3b3]">只有供应商模型名称不一致才需要填写</p>
             </div>
 
             {/* Display Name */}
@@ -1117,7 +1117,7 @@ function GlobalModelTab() {
         </div>
 
         {loading ? (
-          <div className="text-center py-8 text-gray-500">{t('loading')}</div>
+          <div className="text-center py-8 text-[#b3b3b3]">{t('loading')}</div>
         ) : (
           <Table>
             <TableHeader>
@@ -1136,7 +1136,7 @@ function GlobalModelTab() {
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-md overflow-hidden flex-shrink-0 bg-[#1f1f1f] dark:bg-gray-800 flex items-center justify-center">
                         <Image
                           src={item.logo_url || getModelLogo(item.model_key)}
                           alt={item.display_name}
@@ -1147,26 +1147,26 @@ function GlobalModelTab() {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             if (target.parentElement) {
-                              target.parentElement.innerHTML = `<span class="text-xs font-bold text-gray-400">${item.model_key.charAt(0).toUpperCase()}</span>`;
+                              target.parentElement.innerHTML = `<span class="text-xs font-bold text-[#535353]">${item.model_key.charAt(0).toUpperCase()}</span>`;
                             }
                           }}
                         />
                       </div>
                       <div>
                         <div className="font-medium text-sm">{item.display_name}</div>
-                        <div className="font-mono text-xs text-gray-500">{item.model_key}</div>
+                        <div className="font-mono text-xs text-[#b3b3b3]">{item.model_key}</div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     {item.supported_providers.length === 0 ? (
-                      <span className="text-xs text-gray-400">{t('noProviders')}</span>
+                      <span className="text-xs text-[#535353]">{t('noProviders')}</span>
                     ) : (
                       <div className="flex items-center">
                         {item.supported_providers.slice(0, 5).map((p, i) => (
                           <div
                             key={p.provider_key}
-                            className={cn('w-6 h-6 rounded-full border border-white overflow-hidden bg-white', i > 0 && '-ml-2')}
+                            className={cn('w-6 h-6 rounded-full border border-[#282828] overflow-hidden bg-[#181818]', i > 0 && '-ml-2')}
                             title={p.name}
                           >
                             <Image
@@ -1180,7 +1180,7 @@ function GlobalModelTab() {
                           </div>
                         ))}
                         {item.supported_providers.length > 5 && (
-                          <span className="ml-1 text-xs text-gray-500">+{item.supported_providers.length - 5}</span>
+                          <span className="ml-1 text-xs text-[#b3b3b3]">+{item.supported_providers.length - 5}</span>
                         )}
                       </div>
                     )}
@@ -1192,7 +1192,7 @@ function GlobalModelTab() {
                     {item.coding_score != null ? (
                       <span className="text-sm font-mono">{item.coding_score}</span>
                     ) : (
-                      <span className="text-xs text-gray-400">-</span>
+                      <span className="text-xs text-[#535353]">-</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -1200,7 +1200,7 @@ function GlobalModelTab() {
                       {(item.input_types || []).map((type) => {
                         const Icon = TYPE_ICONS[type];
                         return Icon ? (
-                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300">
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-[#4d4d4d] text-[#b3b3b3]">
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                         ) : null;
@@ -1212,7 +1212,7 @@ function GlobalModelTab() {
                       {(item.output_types || []).map((type) => {
                         const Icon = TYPE_ICONS[type];
                         return Icon ? (
-                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300">
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-[#4d4d4d] text-[#b3b3b3]">
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                         ) : null;
@@ -1240,7 +1240,7 @@ function GlobalModelTab() {
               ))}
               {filteredModels.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">—</TableCell>
+                  <TableCell colSpan={8} className="text-center text-[#b3b3b3] py-8">—</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -1262,14 +1262,14 @@ function GlobalModelTab() {
                 onChange={(e) => setForm((f) => ({ ...f, model_key: e.target.value }))}
                 placeholder={t('dialog.modelKeyPlaceholder')}
                 readOnly={!!editTarget}
-                className={editTarget ? 'bg-gray-50 cursor-not-allowed' : ''}
+                className={editTarget ? 'bg-[#1f1f1f] cursor-not-allowed' : ''}
               />
             </div>
             <div className="grid gap-2">
               <Label>{t('dialog.logo')}</Label>
               <div className="flex items-center gap-3">
                 {form.logo_preview && (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#4d4d4d] dark:border-gray-700 flex-shrink-0">
                     <Image
                       src={form.logo_preview}
                       alt="Logo preview"
@@ -1281,7 +1281,7 @@ function GlobalModelTab() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-fit">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#4d4d4d] text-[#b3b3b3] text-sm cursor-pointer hover:bg-[#1f1f1f] transition-colors w-fit">
                     <Upload className="w-3.5 h-3.5" />
                     {t('dialog.logoUpload')}
                     <input
@@ -1300,7 +1300,7 @@ function GlobalModelTab() {
                       }}
                     />
                   </label>
-                  <span className="text-xs text-gray-400">{t('dialog.logoHint')}</span>
+                  <span className="text-xs text-[#535353]">{t('dialog.logoHint')}</span>
                 </div>
                 {form.logo_preview && (
                   <Button

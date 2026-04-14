@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { Settings, Key, LogOut, Zap, Shield } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,61 +51,49 @@ export function TopBar({ onPageChange }: TopBarProps) {
   useIntervalOnVisible(refreshTokenBalance, isAuthenticated ? 20000 : null);
 
   return (
-    <header
-      className="h-16 bg-gradient-to-r from-white via-indigo-50/30 to-white border-b-2 border-indigo-100 flex items-center justify-between px-6"
-      style={{
-        boxShadow: "0 4px 0 rgba(79, 70, 229, 0.08), 0 8px 16px rgba(79, 70, 229, 0.05)"
-      }}
-    >
+    <header className="h-16 bg-[#121212] border-b border-[#282828] flex items-center justify-between px-6">
       {/* Left side - Organization switcher */}
       <OrganizationSwitcher />
 
       {/* Right side - User menu */}
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          className="bg-gradient-to-r from-indigo-100 to-indigo-50 gap-1.5 rounded-xl border-2 border-indigo-200 shadow-sm hover:shadow-md"
-          style={{
-            boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-          }}
+        <button
+          className="flex items-center gap-1.5 rounded-full bg-[#1f1f1f] px-4 py-2 text-sm font-bold cursor-default border border-[#4d4d4d] transition-colors hover:bg-[#282828]"
         >
-          <Zap className="h-4 w-4 text-indigo-600" />
+          <Zap className="h-4 w-4 text-[#1ed760]" />
           <span className={cn(
-            "text-sm font-medium",
-            (user?.token_balance ?? 0) > 0 ? "text-indigo-600" : "text-orange-500"
+            "text-sm font-bold",
+            (user?.token_balance ?? 0) > 0 ? "text-white" : "text-[#ffa42b]"
           )}>
             {user?.token_balance ?? 0}
           </span>
-        </Button>
-        <span className="text-sm text-gray-600 hidden sm:block">
+        </button>
+        <span className="text-sm text-[#b3b3b3] hidden sm:block">
           {user?.email}
         </span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-full p-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border-2 border-indigo-200 hover:shadow-md transition-all"
-              style={{
-                boxShadow: "0 2px 0 rgba(79, 70, 229, 0.15), 0 4px 8px rgba(79, 70, 229, 0.1)"
-              }}
+              className="focus:outline-none focus:ring-2 focus:ring-[#1ed760] focus:ring-offset-2 focus:ring-offset-[#121212] rounded-full cursor-pointer hover:opacity-80 transition-opacity"
             >
               <UserAvatar
                 email={user?.email}
                 name={user?.name}
                 avatar_url={user?.avatar_url}
-                className="h-10 w-10 cursor-pointer"
+                className="h-9 w-9"
               />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48 bg-[#282828] border-[#4d4d4d] text-white">
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
               onClick={() => onPageChange('settings')}
             >
               <Settings className="mr-2 h-4 w-4" />
               设置
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="cursor-pointer"
+              className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
               onClick={() => onPageChange('api-keys')}
             >
               <Key className="mr-2 h-4 w-4" />
@@ -115,18 +102,18 @@ export function TopBar({ onPageChange }: TopBarProps) {
             {user?.is_admin && (
               <>
                 <DropdownMenuItem
-                  className="cursor-pointer"
+                  className="cursor-pointer text-[#b3b3b3] hover:text-white focus:text-white focus:bg-[#3e3e3e]"
                   onClick={() => onPageChange('admin-users')}
                 >
                   <Shield className="mr-2 h-4 w-4" />
                   Admin 看板
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-[#4d4d4d]" />
               </>
             )}
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator className="bg-[#4d4d4d]" />
             <DropdownMenuItem
-              className="cursor-pointer text-red-600 focus:text-red-600"
+              className="cursor-pointer text-[#f3727f] focus:text-[#f3727f] focus:bg-[#3e3e3e]"
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />

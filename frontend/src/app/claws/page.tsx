@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/lib/store';
 import { ClawsPage } from '@/components/claws';
 
 export default function ClawsRoute() {
   const [isHydrated, setIsHydrated] = useState(false);
   const { isAuthenticated, setShowLoginDialog } = useAuthStore();
+  const t = useTranslations('common');
 
   useEffect(() => {
     setIsHydrated(true);
@@ -23,8 +25,8 @@ export default function ClawsRoute() {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-indigo-600 font-medium">加载中...</div>
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+        <div className="text-[#b3b3b3]" role="status">{t('loading')}</div>
       </div>
     );
   }

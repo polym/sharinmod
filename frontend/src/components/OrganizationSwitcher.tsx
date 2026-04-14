@@ -107,18 +107,16 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           className={cn(
             'transition-colors cursor-pointer group',
             variant === 'sidebar'
-              ? 'w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+              ? 'w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium bg-[#1f1f1f] hover:bg-[#282828] text-[#b3b3b3] border border-[#4d4d4d]'
               : cn(
                   'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border-2 transition-all duration-200 min-w-[80px] max-w-[160px] overflow-hidden',
                   isPublic
-                    ? 'bg-gradient-to-r from-indigo-50 to-indigo-100/60 border-indigo-200 hover:border-indigo-300 hover:shadow-sm'
-                    : 'bg-gradient-to-r from-violet-50 to-violet-100/60 border-violet-200 hover:border-violet-300 hover:shadow-sm'
+                    ? 'bg-[#1f1f1f] border-[#4d4d4d] hover:border-[#4d4d4d]'
+                    : 'bg-[#282828] border-[#4d4d4d] hover:border-[#4d4d4d]'
                 )
           )}
           style={variant === 'header' ? {
-            boxShadow: isPublic
-              ? '0 1px 0 rgba(79,70,229,0.1), 0 2px 6px rgba(79,70,229,0.08)'
-              : '0 1px 0 rgba(139,92,246,0.1), 0 2px 6px rgba(139,92,246,0.08)',
+            boxShadow: '0 1px 0 rgba(0,0,0,0.3)',
           } : undefined}
         >
           {variant === 'sidebar' ? (
@@ -126,19 +124,19 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
               <span className="truncate">
                 {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
               </span>
-              <ChevronDown className="w-4 h-4 flex-shrink-0 text-indigo-400 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              <ChevronDown className="w-4 h-4 flex-shrink-0 text-[#535353] transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </>
           ) : (
             <>
               <span className={cn(
                 'text-sm font-semibold truncate',
-                isPublic ? 'text-indigo-700' : 'text-violet-700'
+                isPublic ? 'text-[#b3b3b3]' : 'text-violet-700'
               )}>
                 {isPublic ? t('sharedSpace') : currentOrganization?.name || tCommon('unnamed')}
               </span>
               <ChevronDown className={cn(
                 'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
-                isPublic ? 'text-indigo-400' : 'text-violet-400'
+                isPublic ? 'text-[#535353]' : 'text-violet-400'
               )} />
             </>
           )}
@@ -151,8 +149,8 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           className="cursor-pointer flex items-center justify-between py-2"
           onClick={() => handleSelectOrganization(null)}
         >
-          <span className="text-sm font-medium text-gray-800">{t('sharedSpace')}</span>
-          {isPublic && <Check className="w-4 h-4 text-indigo-500 flex-shrink-0" />}
+          <span className="text-sm font-medium text-white">{t('sharedSpace')}</span>
+          {isPublic && <Check className="w-4 h-4 text-[#b3b3b3] flex-shrink-0" />}
         </DropdownMenuItem>
 
         {/* Private organizations */}
@@ -167,7 +165,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
                   className="cursor-pointer flex items-center justify-between py-2"
                   onClick={() => handleSelectOrganization(org)}
                 >
-                  <span className="text-sm font-medium text-gray-800 truncate">{org.name}</span>
+                  <span className="text-sm font-medium text-white truncate">{org.name}</span>
                   {isSelected && <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />}
                 </DropdownMenuItem>
               );
@@ -177,7 +175,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
 
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="cursor-pointer flex items-center py-2 text-indigo-600 focus:text-indigo-600"
+          className="cursor-pointer flex items-center py-2 text-[#b3b3b3] focus:text-[#b3b3b3]"
           onClick={() => setShowCreateOrganizationDialog(true)}
         >
           <span className="text-sm font-medium">{t('createOrganization')}</span>

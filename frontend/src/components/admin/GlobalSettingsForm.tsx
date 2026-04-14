@@ -23,7 +23,7 @@ export function GlobalSettingsForm({ dailyTokenLimit, onChange }: GlobalSettings
           value={dailyTokenLimit}
           onChange={(e) => onChange('dailyTokenLimit', e.target.value)}
         />
-        <p className="text-xs text-gray-500">{t('dailyTokenLimitDescription')}</p>
+        <p className="text-xs text-[#b3b3b3]">{t('dailyTokenLimitDescription')}</p>
       </div>
     </div>
   );

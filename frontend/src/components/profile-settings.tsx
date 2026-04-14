@@ -60,7 +60,7 @@ function LanguageSelector() {
     <select
       value={locale}
       onChange={(e) => setLocale(e.target.value as 'zh-CN' | 'en')}
-      className="border rounded-md px-3 py-2 text-sm"
+      className="border border-[#4d4d4d] bg-[#1f1f1f] text-white rounded-md px-3 py-2 text-sm"
     >
       {languageOptions.map((option) => (
         <option key={option.value} value={option.value}>
@@ -160,9 +160,9 @@ export function ProfileSettings({ onSaveSuccess }: ProfileSettingsProps) {
             type="email"
             value={email}
             disabled
-            className="bg-gray-50"
+            className="bg-[#1f1f1f]"
           />
-          <p className="text-sm text-gray-500">{t('emailNotEditable')}</p>
+          <p className="text-sm text-[#b3b3b3]">{t('emailNotEditable')}</p>
         </div>
 
         <div className="space-y-2">

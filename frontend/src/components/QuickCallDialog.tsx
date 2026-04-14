@@ -332,13 +332,13 @@ print(message.content[0].text)`,
     tabId: string;
   }): JSX.Element => (
     <div className="relative">
-      <div className="relative bg-gray-100 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-        <pre className="font-mono text-sm text-gray-800 dark:text-gray-200">
+      <div className="relative bg-[#282828] dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
+        <pre className="font-mono text-sm text-white dark:text-gray-200">
           <code>{code}</code>
         </pre>
         <button
           onClick={() => handleCopy(code, tabId)}
-          className="absolute top-2 right-2 p-2 rounded-md bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          className="absolute top-2 right-2 p-2 rounded-md bg-[#181818] dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-[#1f1f1f] dark:hover:bg-gray-600 transition-colors"
           aria-label={copiedTab === tabId ? tAria('copied') : tAria('copyCode')}
           role="button"
           type="button"
@@ -346,7 +346,7 @@ print(message.content[0].text)`,
           {copiedTab === tabId ? (
             <Check className="w-4 h-4 text-green-600" />
           ) : (
-            <Copy className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            <Copy className="w-4 h-4 text-[#b3b3b3] dark:text-gray-300" />
           )}
         </button>
       </div>
@@ -410,13 +410,13 @@ print(message.content[0].text)`,
 
           <TabsContent value="claude-code" className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold mb-2 text-white dark:text-gray-100">
                 {t('sections.claudeCode.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+              <p className="text-sm text-[#b3b3b3] dark:text-[#535353] mb-4"
                 dangerouslySetInnerHTML={{
                   __html: t('sections.claudeCode.description', {
-                    path: '<span className="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">~/.claude/settings.json</span>',
+                    path: '<span className="font-mono bg-[#282828] dark:bg-gray-700 px-1 rounded">~/.claude/settings.json</span>',
                     placeholder: '<span class="font-mono text-purple-600">&lt;API_KEY&gt;</span>'
                   }).replace(/<\/?span[^>]*>/g, (match) => match)
                 }}
@@ -427,14 +427,14 @@ print(message.content[0].text)`,
 
           <TabsContent value="openai-python" className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold mb-2 text-white dark:text-gray-100">
                 {t('sections.openaiPython.title')}
               </h3>
               <p
-                className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+                className="text-sm text-[#b3b3b3] dark:text-[#535353] mb-4"
                 dangerouslySetInnerHTML={{
                   __html: t('sections.openaiPython.description', {
-                    cmd: '<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install openai</span>'
+                    cmd: '<span class="font-mono bg-[#282828] dark:bg-gray-700 px-1 rounded">pip install openai</span>'
                   })
                 }}
               />
@@ -444,10 +444,10 @@ print(message.content[0].text)`,
 
           <TabsContent value="openai-curl" className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold mb-2 text-white dark:text-gray-100">
                 {t('sections.openaiCurl.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-sm text-[#b3b3b3] dark:text-[#535353] mb-4">
                 {t('sections.openaiCurl.description', { placeholder: '<API_KEY>' })}
               </p>
               <CodeBlock code={openaiCurlExample} tabId="openai-curl" />
@@ -456,14 +456,14 @@ print(message.content[0].text)`,
 
           <TabsContent value="anthropic-python" className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold mb-2 text-white dark:text-gray-100">
                 {t('sections.anthropicPython.title')}
               </h3>
               <p
-                className="text-sm text-gray-600 dark:text-gray-400 mb-4"
+                className="text-sm text-[#b3b3b3] dark:text-[#535353] mb-4"
                 dangerouslySetInnerHTML={{
                   __html: t('sections.anthropicPython.description', {
-                    cmd: '<span class="font-mono bg-gray-200 dark:bg-gray-700 px-1 rounded">pip install anthropic</span>'
+                    cmd: '<span class="font-mono bg-[#282828] dark:bg-gray-700 px-1 rounded">pip install anthropic</span>'
                   })
                 }}
               />
@@ -473,10 +473,10 @@ print(message.content[0].text)`,
 
           <TabsContent value="anthropic-curl" className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              <h3 className="text-sm font-semibold mb-2 text-white dark:text-gray-100">
                 {t('sections.anthropicCurl.title')}
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-sm text-[#b3b3b3] dark:text-[#535353] mb-4">
                 {t('sections.anthropicCurl.description', { placeholder: '<API_KEY>' })}
               </p>
               <CodeBlock code={anthropicCurlExample} tabId="anthropic-curl" />
