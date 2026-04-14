@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuthStore } from '@/lib/store';
 import { organizationAPI } from '@/lib/services';
-import { Building2, Mail, CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
@@ -115,12 +115,12 @@ export function InviteDialog() {
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <DialogHeader className="text-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <AlertCircle className="w-6 h-6 text-red-600" />
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <DialogTitle>邀请链接无效</DialogTitle>
             </div>
-            <DialogTitle className="text-red-600">邀请链接无效</DialogTitle>
-            <DialogDescription>{loadingError}</DialogDescription>
+            <DialogDescription className="ml-8">{loadingError}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-center">
             <Button onClick={handleClose}>关闭</Button>
@@ -138,12 +138,13 @@ export function InviteDialog() {
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
-          <DialogHeader className="text-center">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
-              <Loader2 className="w-6 h-6 text-indigo-600 animate-spin" />
-            </div>
+          <DialogHeader>
             <DialogTitle>加载邀请信息中...</DialogTitle>
+            <DialogDescription>请稍候</DialogDescription>
           </DialogHeader>
+          <div className="flex justify-center">
+            <Loader2 className="w-6 h-6 text-[#b3b3b3] animate-spin" />
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -160,37 +161,30 @@ export function InviteDialog() {
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader className="text-center">
-          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Building2 className="w-6 h-6 text-indigo-600" />
-          </div>
+        <DialogHeader>
           <DialogTitle>您被邀请加入私服：{inviteInfo.organization_name}</DialogTitle>
+          <DialogDescription>
+            {inviteInfo.inviter_email && `邀请者：${inviteInfo.inviter_email}`}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {inviteInfo.inviter_email && (
-            <div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 rounded-lg p-3 border border-indigo-100">
-              <Mail className="w-4 h-4" />
-              <span>邀请者：{inviteInfo.inviter_email}</span>
-            </div>
-          )}
-
           {!inviteInfo.is_valid && (
-            <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-lg p-3 border border-amber-200">
+            <div className="flex items-center gap-2 text-sm text-amber-500 bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
               <XCircle className="w-4 h-4" />
               <span>邀请链接已过期或已被使用</span>
             </div>
           )}
 
           {acceptSuccess && (
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 rounded-lg p-3 border border-green-200">
+            <div className="flex items-center gap-2 text-sm text-green-500 bg-green-500/10 rounded-lg p-3 border border-green-500/20">
               <CheckCircle2 className="w-4 h-4" />
               <span>加入成功！您现在可以在顶部切换到该私服。</span>
             </div>
           )}
 
           {acceptError && (
-            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
+            <div className="flex items-center gap-2 text-sm text-red-500 bg-red-500/10 rounded-lg p-3 border border-red-500/20">
               <XCircle className="w-4 h-4" />
               <span>{acceptError}</span>
             </div>
@@ -199,7 +193,7 @@ export function InviteDialog() {
           {inviteInfo.is_valid && !acceptSuccess ? (
             <>
               <Button
-                className="w-full bg-indigo-600 hover:bg-indigo-700"
+                className="w-full"
                 onClick={handleAccept}
                 disabled={accepting}
               >
@@ -215,7 +209,7 @@ export function InviteDialog() {
               </Button>
             </>
           ) : (
-            <Button className="w-full bg-indigo-600 hover:bg-indigo-700" onClick={handleClose}>
+            <Button className="w-full" onClick={handleClose}>
               前往首页
             </Button>
           )}

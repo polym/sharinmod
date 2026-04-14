@@ -150,7 +150,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           onClick={() => handleSelectOrganization(null)}
         >
           <span className="text-sm font-medium text-white">{t('sharedSpace')}</span>
-          {isPublic && <Check className="w-4 h-4 text-[#b3b3b3] flex-shrink-0" />}
+          {isPublic && <Check className="w-4 h-4 text-violet-500 flex-shrink-0" />}
         </DropdownMenuItem>
 
         {/* Private organizations */}

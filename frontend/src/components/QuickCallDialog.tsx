@@ -332,21 +332,21 @@ print(message.content[0].text)`,
     tabId: string;
   }): JSX.Element => (
     <div className="relative">
-      <div className="relative bg-[#282828] dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-        <pre className="font-mono text-sm text-white dark:text-gray-200">
+      <div className="relative bg-black dark:bg-gray-900 rounded-lg p-4 overflow-x-auto border border-[#4d4d4d]">
+        <pre className="font-mono text-sm text-white dark:text-gray-100">
           <code>{code}</code>
         </pre>
         <button
           onClick={() => handleCopy(code, tabId)}
-          className="absolute top-2 right-2 p-2 rounded-md bg-[#181818] dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-[#1f1f1f] dark:hover:bg-gray-600 transition-colors"
+          className="absolute top-2 right-2 p-2 rounded-md bg-[#1f1f1f] dark:bg-gray-800 border border-[#4d4d4d] dark:border-gray-700 hover:bg-[#282828] dark:hover:bg-gray-700 transition-colors"
           aria-label={copiedTab === tabId ? tAria('copied') : tAria('copyCode')}
           role="button"
           type="button"
         >
           {copiedTab === tabId ? (
-            <Check className="w-4 h-4 text-green-600" />
+            <Check className="w-4 h-4 text-green-500" />
           ) : (
-            <Copy className="w-4 h-4 text-[#b3b3b3] dark:text-gray-300" />
+            <Copy className="w-4 h-4 text-[#b3b3b3]" />
           )}
         </button>
       </div>
@@ -359,7 +359,7 @@ print(message.content[0].text)`,
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {dialogTrigger}
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto top-[15%] translate-y-0">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between pr-8">
             <div className="flex flex-col">
@@ -487,7 +487,6 @@ print(message.content[0].text)`,
         <DialogFooter>
           <Button
             onClick={handleCreateAPIKey}
-            className="bg-purple-500 hover:bg-purple-600 text-white border border-purple-600"
           >
             {t('createApiKey')}
           </Button>
