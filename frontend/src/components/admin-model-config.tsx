@@ -1166,7 +1166,7 @@ function GlobalModelTab() {
                         {item.supported_providers.slice(0, 5).map((p, i) => (
                           <div
                             key={p.provider_key}
-                            className={cn('w-6 h-6 rounded-full border border-white overflow-hidden bg-[#181818]', i > 0 && '-ml-2')}
+                            className={cn('w-6 h-6 rounded-full border border-[#282828] overflow-hidden bg-[#181818]', i > 0 && '-ml-2')}
                             title={p.name}
                           >
                             <Image
@@ -1200,7 +1200,7 @@ function GlobalModelTab() {
                       {(item.input_types || []).map((type) => {
                         const Icon = TYPE_ICONS[type];
                         return Icon ? (
-                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-[#b3b3b3] dark:text-gray-300">
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-[#4d4d4d] text-[#b3b3b3]">
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                         ) : null;
@@ -1212,7 +1212,7 @@ function GlobalModelTab() {
                       {(item.output_types || []).map((type) => {
                         const Icon = TYPE_ICONS[type];
                         return Icon ? (
-                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-gray-300 dark:border-gray-500 text-[#b3b3b3] dark:text-gray-300">
+                          <div key={type} title={type} className="inline-flex items-center justify-center w-6 h-6 rounded border border-[#4d4d4d] text-[#b3b3b3]">
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                         ) : null;
@@ -1281,7 +1281,7 @@ function GlobalModelTab() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-[#1f1f1f] dark:hover:bg-gray-800 transition-colors w-fit">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#4d4d4d] text-[#b3b3b3] text-sm cursor-pointer hover:bg-[#1f1f1f] transition-colors w-fit">
                     <Upload className="w-3.5 h-3.5" />
                     {t('dialog.logoUpload')}
                     <input

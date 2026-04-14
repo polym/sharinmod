@@ -294,7 +294,7 @@ export function AdminProviders() {
                       id="custom-llm-provider"
                       value={customLlmProvider}
                       onChange={(e) => setCustomLlmProvider(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="flex h-10 w-full rounded-md border border-[#4d4d4d] bg-[#1f1f1f] text-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1ed760]"
                     >
                       <option value="openai">openai</option>
                       <option value="anthropic">anthropic</option>
@@ -335,7 +335,7 @@ export function AdminProviders() {
                         </div>
                       )}
                       <div className="flex flex-col gap-1 flex-1">
-                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-[#1f1f1f] dark:hover:bg-gray-800 transition-colors w-fit">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#4d4d4d] text-[#b3b3b3] text-sm cursor-pointer hover:bg-[#1f1f1f] transition-colors w-fit">
                           <Upload className="w-3.5 h-3.5" />
                           {t('logoUpload')}
                           <input
@@ -382,7 +382,7 @@ export function AdminProviders() {
           ) : providers.length === 0 ? (
             <div className="text-center py-8 text-[#b3b3b3]">{t('noProviders')}</div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-[#282828]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -491,7 +491,7 @@ export function AdminProviders() {
                 id="edit-custom-llm-provider"
                 value={customLlmProvider}
                 onChange={(e) => setCustomLlmProvider(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-10 w-full rounded-md border border-[#4d4d4d] bg-[#1f1f1f] text-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1ed760]"
               >
                 <option value="openai">openai</option>
                 <option value="anthropic">anthropic</option>
@@ -532,7 +532,7 @@ export function AdminProviders() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1 flex-1">
-                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-gray-300 dark:border-gray-600 text-sm cursor-pointer hover:bg-[#1f1f1f] dark:hover:bg-gray-800 transition-colors w-fit">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-[#4d4d4d] text-[#b3b3b3] text-sm cursor-pointer hover:bg-[#1f1f1f] transition-colors w-fit">
                     <Upload className="w-3.5 h-3.5" />
                     {logoPreview ? t('logoUpload') : t('logoUpload')}
                     <input

@@ -43,7 +43,7 @@ export function ModelSelector({
   return (
     <div className="space-y-2">
       <Label>{t('selectModels')} <span className="text-red-500">*</span></Label>
-      <div className="border rounded-md p-3 space-y-2 max-h-48 overflow-y-auto">
+      <div className="border border-[#282828] rounded-md p-3 space-y-2 max-h-48 overflow-y-auto bg-[#1f1f1f]">
         {supportedModels.length === 0 ? (
           <div className="text-sm text-[#b3b3b3]">{t('noModelsAvailable')}</div>
         ) : (

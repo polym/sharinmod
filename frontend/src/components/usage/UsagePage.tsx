@@ -406,7 +406,7 @@ export function UsagePage() {
             {/* Hourly Distribution Chart */}
             <div className="space-y-2">
               <h4 className="text-lg font-semibold">{t('tokenDistribution')}</h4>
-              <div className="border rounded-lg overflow-hidden h-48 bg-[#181818] overflow-x-auto">
+              <div className="border border-[#282828] rounded-lg overflow-hidden h-48 bg-[#181818] overflow-x-auto">
                 <div className="p-2 pt-2 pb-5 h-full min-w-[850px]">
                   <UsageBarChart quarterHourlyDistribution={overviewData.quarter_hourly_distribution} selectedDate={selectedDate} />
                 </div>
