@@ -417,7 +417,7 @@ print(message.content[0].text)`,
                 dangerouslySetInnerHTML={{
                   __html: t('sections.claudeCode.description', {
                     path: '<span className="font-mono bg-[#282828] dark:bg-gray-700 px-1 rounded">~/.claude/settings.json</span>',
-                    placeholder: '<span class="font-mono text-purple-600">&lt;API_KEY&gt;</span>'
+                    placeholder: '<span class="font-mono text-[#1ed760]">&lt;API_KEY&gt;</span>'
                   }).replace(/<\/?span[^>]*>/g, (match) => match)
                 }}
               />

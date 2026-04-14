@@ -157,7 +157,7 @@ function ChatPageContent() {
                   <div
                     className={`max-w-[70%] rounded-lg px-4 py-2 ${
                       message.role === 'user'
-                        ? 'bg-purple-500 text-white'
+                        ? 'bg-[#1ed760] text-black'
                         : 'bg-[#282828] text-white'
                     }`}
                   >
