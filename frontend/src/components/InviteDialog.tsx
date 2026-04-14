@@ -164,10 +164,7 @@ export function InviteDialog() {
           <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-2">
             <Building2 className="w-6 h-6 text-indigo-600" />
           </div>
-          <DialogTitle>您被邀请加入私服</DialogTitle>
-          <DialogDescription>
-            <span className="font-semibold text-gray-700">{inviteInfo.organization_name}</span>
-          </DialogDescription>
+          <DialogTitle>您被邀请加入私服：{inviteInfo.organization_name}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
