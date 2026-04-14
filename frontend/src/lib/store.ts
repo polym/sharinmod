@@ -41,6 +41,7 @@ interface AuthState {
   showChangePasswordDialog: boolean;
   showResetPasswordDialog: boolean;
   showProfileDialog: boolean;
+  showInviteDialog: boolean;
   resetPasswordToken: string | null;
   redirectAfterLogin: string | null;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
@@ -55,6 +56,7 @@ interface AuthState {
   setShowChangePasswordDialog: (show: boolean) => void;
   setShowResetPasswordDialog: (show: boolean, token?: string) => void;
   setShowProfileDialog: (show: boolean) => void;
+  setShowInviteDialog: (show: boolean) => void;
   setRedirectAfterLogin: (path: string | null) => void;
   setCurrentOrganization: (org: Organization | null) => void;
   setMyOrganizations: (data: MyOrganizationsData | null) => void;
@@ -71,6 +73,7 @@ export const useAuthStore = create<AuthState>()(
       showChangePasswordDialog: false,
       showResetPasswordDialog: false,
       showProfileDialog: false,
+      showInviteDialog: false,
       resetPasswordToken: null,
       redirectAfterLogin: null,
       _isLoggingOut: false,
@@ -104,6 +107,9 @@ export const useAuthStore = create<AuthState>()(
       setShowProfileDialog: (show: boolean) => {
         set({ showProfileDialog: show });
       },
+      setShowInviteDialog: (show: boolean) => {
+        set({ showInviteDialog: show });
+      },
       setShowResetPasswordDialog: (show: boolean, token?: string) => {
         set({ showResetPasswordDialog: show, resetPasswordToken: token || null });
       },
@@ -127,7 +133,7 @@ export const useAuthStore = create<AuthState>()(
         user: state.user,
         token: state.token,
         currentOrganization: state.currentOrganization,
-        // showLoginDialog, showChangePasswordDialog, showResetPasswordDialog, showProfileDialog, redirectAfterLogin, _isLoggingOut and showCreateOrganizationDialog are NOT persisted
+        // showLoginDialog, showChangePasswordDialog, showResetPasswordDialog, showProfileDialog, showInviteDialog, redirectAfterLogin, _isLoggingOut and showCreateOrganizationDialog are NOT persisted
       }),
     }
   )

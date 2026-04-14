@@ -218,6 +218,10 @@ def get_invite_info(token: str, db: Session = Depends(get_db)):
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="组织不存在")
 
+    # Get inviter email (handle case where inviter was deleted)
+    inviter = db.get(User, invite.created_by_user_id)
+    inviter_email = inviter.email if inviter else None
+
     now = datetime.now(timezone.utc)
     expires_at = invite.expires_at
     if expires_at.tzinfo is None:
@@ -229,6 +233,7 @@ def get_invite_info(token: str, db: Session = Depends(get_db)):
         organization_slug=organization.slug,
         expires_at=invite.expires_at,
         is_valid=is_valid,
+        inviter_email=inviter_email,
     )
 
 

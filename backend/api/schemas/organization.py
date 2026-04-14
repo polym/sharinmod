@@ -78,6 +78,7 @@ class OrgInviteInfoResponse(BaseModel):
     organization_slug: str
     expires_at: datetime
     is_valid: bool
+    inviter_email: Optional[str] = None
 
     @field_serializer('expires_at')
     def serialize_dt(self, dt: datetime) -> str:
