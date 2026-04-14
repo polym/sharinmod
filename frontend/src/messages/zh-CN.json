@@ -927,6 +927,17 @@
       "hint": "邀请链接有效期 7 天，仅可使用一次。",
       "close": "关闭"
     },
+    "destroyServer": "销毁私服",
+    "destroyDialog": {
+      "title": "⚠️ 销毁私服",
+      "description": "此操作不可逆，将永久删除私服及其所有数据。",
+      "warning": "以下数据将被永久删除：",
+      "warningItem1": "私服下所有成员的 API Keys（包括 LiteLLM 配置）",
+      "warningItem2": "私服下所有已配置的提供商密钥及模型",
+      "warningItem3": "私服成员关系及邀请链接",
+      "confirmHint": "请输入私服名称「{name}」以确认销毁：",
+      "confirm": "确认销毁"
+    },
     "toast": {
       "loadFailed": "加载失败",
       "loadFailedDetail": "无法加载成员列表",
@@ -941,7 +952,10 @@
       "generateFailed": "生成失败",
       "generateFailedDetail": "无法生成邀请链接",
       "linkCopied": "链接已复制",
-      "linkCopiedHint": "邀请链接已复制到剪贴板"
+      "linkCopiedHint": "邀请链接已复制到剪贴板",
+      "destroySuccess": "私服已销毁",
+      "destroySuccessDetail": "私服及其所有资源已成功删除",
+      "destroyFailed": "销毁失败"
     }
   },
   "chat": {

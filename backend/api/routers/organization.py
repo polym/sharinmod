@@ -2,18 +2,24 @@
 Organization API routes for managing private workspaces
 """
 import uuid
+import httpx
+import json
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from api.config import settings
 from api.database import get_db
 from api.dependencies.auth import get_current_user
 from api.models.organization import Organization
 from api.models.organization_invite import OrganizationInvite
 from api.models.organization_member import OrganizationMember
+from api.models.shared_api_key import SharedAPIKey
+from api.models.unified_api_key import UnifiedAPIKey
 from api.models.usage_log import UsageLog
 from api.models.user import User
 from api.schemas.organization import (
@@ -469,6 +475,163 @@ def create_invite(
 
     logger.info(f"Invite created for org {org_id} by user {current_user.id}")
     return OrgInviteResponse(token=token, expires_at=expires_at)
+
+
+@router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def destroy_organization(
+    org_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Destroy an organization and clean up all associated resources (org owner only).
+
+    NOTE: Uses async def to await LiteLLM HTTP calls. The synchronous DB session
+    is a known project-wide pattern (FastAPI supports async routes + sync Sessions).
+
+    Cleanup order: LiteLLM resources first, then DB records. DB commit is last.
+    If the server crashes mid-way, LiteLLM resources may be orphaned but the DB
+    records remain intact (the org still "exists"), which is safer than the reverse.
+    """
+    # F9 fix: reuse org returned by _require_org_owner instead of fetching twice
+    organization = _require_org_owner(org_id, current_user, db)
+
+    # --- Step 1: LiteLLM cleanup for SharedAPIKeys ---
+    shared_keys = db.exec(
+        select(SharedAPIKey).where(SharedAPIKey.organization_id == org_id)
+    ).all()
+
+    # F8 fix: single httpx client for ALL LiteLLM calls (shared + unified keys)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for key in shared_keys:
+            try:
+                owner = db.get(User, key.user_id)
+                if not owner:
+                    # F6 fix: skip credential deletion if owner was already deleted
+                    logger.warning(
+                        f"[DESTROY] Owner user {key.user_id} not found for shared key {key.id}; "
+                        "skipping LiteLLM credential cleanup"
+                    )
+                else:
+                    credential_name = f"{key.provider}/{owner.email}/org-{org_id}"
+
+                    # Delete litellm models first (must precede credential deletion)
+                    model_ids: dict = {}
+                    if key.litellm_model_ids:
+                        try:
+                            parsed = json.loads(key.litellm_model_ids)
+                            # F5 fix: guard against non-dict JSON (list, string, etc.)
+                            if isinstance(parsed, dict):
+                                model_ids = parsed
+                            else:
+                                logger.warning(
+                                    f"[DESTROY] litellm_model_ids for shared key {key.id} "
+                                    f"is not a dict (got {type(parsed).__name__}), skipping"
+                                )
+                        except json.JSONDecodeError:
+                            logger.warning(f"[DESTROY] Failed to parse litellm_model_ids for shared key {key.id}")
+
+                    for model_name, litellm_model_id in model_ids.items():
+                        try:
+                            resp = await client.post(
+                                f"{settings.LITELLM_BASE_URL}/model/delete",
+                                json={"id": litellm_model_id},
+                                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                            )
+                            # F4 fix: log non-2xx responses as warnings
+                            if resp.status_code < 200 or resp.status_code >= 300:
+                                logger.warning(
+                                    f"[DESTROY] Delete model '{model_name}' returned {resp.status_code}: {resp.text}"
+                                )
+                            else:
+                                logger.info(f"[DESTROY] Deleted model '{model_name}' (org {org_id})")
+                        except Exception as e:
+                            logger.error(f"[DESTROY] Failed to delete model '{model_name}': {e}")
+
+                    # Handle legacy single litellm_model_id
+                    if key.litellm_model_id and key.litellm_model_id not in model_ids.values():
+                        try:
+                            resp = await client.post(
+                                f"{settings.LITELLM_BASE_URL}/model/delete",
+                                json={"id": key.litellm_model_id},
+                                headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                            )
+                            if resp.status_code < 200 or resp.status_code >= 300:
+                                logger.warning(
+                                    f"[DESTROY] Delete legacy model returned {resp.status_code}: {resp.text}"
+                                )
+                            else:
+                                logger.info(f"[DESTROY] Deleted legacy model for shared key {key.id}")
+                        except Exception as e:
+                            logger.error(f"[DESTROY] Failed to delete legacy model: {e}")
+
+                    # Delete credential
+                    try:
+                        encoded_name = urllib.parse.quote(credential_name, safe="/")
+                        resp = await client.delete(
+                            f"{settings.LITELLM_BASE_URL}/credentials/{encoded_name}",
+                            headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                        )
+                        if resp.status_code < 200 or resp.status_code >= 300:
+                            logger.warning(
+                                f"[DESTROY] Delete credential '{credential_name}' returned {resp.status_code}: {resp.text}"
+                            )
+                        else:
+                            logger.info(f"[DESTROY] Deleted credential '{credential_name}'")
+                    except Exception as e:
+                        logger.error(f"[DESTROY] Failed to delete credential '{credential_name}': {e}")
+
+            except Exception as e:
+                logger.error(f"[DESTROY] Unexpected error cleaning up shared key {key.id}: {e}")
+
+        # --- Step 2: LiteLLM cleanup for UnifiedAPIKeys ---
+        # F8 fix: inline deletion using the outer client instead of creating a new one
+        unified_keys = db.exec(
+            select(UnifiedAPIKey).where(UnifiedAPIKey.organization_id == org_id)
+        ).all()
+
+        for key in unified_keys:
+            if key.litellm_key:
+                try:
+                    resp = await client.post(
+                        f"{settings.LITELLM_BASE_URL}/key/delete",
+                        json={"keys": [key.litellm_key]},
+                        headers={"Authorization": f"Bearer {settings.LITELLM_MASTER_KEY}"}
+                    )
+                    if resp.status_code < 200 or resp.status_code >= 300:
+                        logger.warning(
+                            f"[DESTROY] Delete unified key {key.id} returned {resp.status_code}: {resp.text}"
+                        )
+                    else:
+                        logger.info(f"[DESTROY] Deleted LiteLLM unified key for user {key.user_id}")
+                except Exception as e:
+                    logger.error(f"[DESTROY] Failed to delete LiteLLM unified key {key.id}: {e}")
+
+    # F10 fix: all DB operations outside the httpx context manager
+    # --- Step 3: Delete SharedAPIKey DB records ---
+    for key in shared_keys:
+        db.delete(key)
+
+    # --- Step 4: Null usage_logs.unified_api_key_id and delete UnifiedAPIKey records ---
+    for key in unified_keys:
+        db.exec(
+            update(UsageLog)
+            .where(UsageLog.unified_api_key_id == key.id)
+            .values(unified_api_key_id=None)
+        )
+        db.delete(key)
+
+    # --- Step 5: Null usage_logs.organization_id ---
+    db.exec(
+        update(UsageLog)
+        .where(UsageLog.organization_id == org_id)
+        .values(organization_id=None)
+    )
+
+    # --- Step 6: Delete Organization (CASCADE cleans members, invites, subscriptions) ---
+    # F9 fix: reuse org fetched earlier, no second db.get()
+    db.delete(organization)
+    db.commit()
+    logger.info(f"Organization {org_id} destroyed by user {current_user.id}")
 
 
 @router.post("/{organization_id}/join", status_code=status.HTTP_200_OK)

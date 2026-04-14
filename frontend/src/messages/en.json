@@ -927,6 +927,17 @@
       "hint": "Invite link is valid for 7 days and can only be used once.",
       "close": "Close"
     },
+    "destroyServer": "Destroy Server",
+    "destroyDialog": {
+      "title": "⚠️ Destroy Private Server",
+      "description": "This action is irreversible. It will permanently delete the private server and all its data.",
+      "warning": "The following data will be permanently deleted:",
+      "warningItem1": "All members' API Keys (including LiteLLM configuration)",
+      "warningItem2": "All configured provider keys and models",
+      "warningItem3": "Member relationships and invite links",
+      "confirmHint": "Enter the private server name \"{name}\" to confirm:",
+      "confirm": "Confirm Destroy"
+    },
     "toast": {
       "loadFailed": "Load Failed",
       "loadFailedDetail": "Unable to load member list",
@@ -941,7 +952,10 @@
       "generateFailed": "Generate Failed",
       "generateFailedDetail": "Unable to generate invite link",
       "linkCopied": "Link Copied",
-      "linkCopiedHint": "Invite link copied to clipboard"
+      "linkCopiedHint": "Invite link copied to clipboard",
+      "destroySuccess": "Private server destroyed",
+      "destroySuccessDetail": "The private server and all its resources have been successfully deleted",
+      "destroyFailed": "Destroy failed"
     }
   },
   "chat": {

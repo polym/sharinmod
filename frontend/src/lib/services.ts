@@ -515,4 +515,7 @@ export const organizationAPI = {
 
   acceptInvite: (token: string) =>
     api.post(`/api/organizations/invite/${token}/accept`),
+
+  destroyOrganization: (orgId: number) =>
+    api.delete(`/api/organizations/${orgId}`),
 };

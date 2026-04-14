@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ban, Power, Trash2, Plus, Copy, Check } from 'lucide-react';
+import { Ban, Power, Trash2, Plus, Copy, Check, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -79,6 +79,11 @@ export default function MyTeamPage() {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Destroy organization dialog
+  const [showDestroyDialog, setShowDestroyDialog] = useState(false);
+  const [destroyConfirmName, setDestroyConfirmName] = useState('');
+  const [destroyLoading, setDestroyLoading] = useState(false);
 
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
@@ -181,6 +186,29 @@ export default function MyTeamPage() {
     }
   };
 
+  const handleDestroy = async () => {
+    if (!currentOrganization) return;
+    if (destroyConfirmName !== currentOrganization.name) return;
+    setDestroyLoading(true);
+    try {
+      await organizationAPI.destroyOrganization(currentOrganization.id);
+      toast({ title: t('toast.destroySuccess'), description: t('toast.destroySuccessDetail') });
+      // Navigate immediately on success; no state cleanup needed (page reloads)
+      window.location.href = '/overview';
+      return;
+    } catch (error: any) {
+      toast({
+        title: t('toast.actionFailed'),
+        description: error.response?.data?.detail || t('toast.destroyFailed'),
+        variant: 'destructive',
+      });
+    }
+    // Only reset state on failure (success path returns early above)
+    setDestroyLoading(false);
+    setShowDestroyDialog(false);
+    setDestroyConfirmName('');
+  };
+
   const handleCreateInvite = async () => {
     if (!currentOrganization) return;
     setInviteLoading(true);
@@ -226,14 +254,24 @@ export default function MyTeamPage() {
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
             <CardTitle>{t('title')}</CardTitle>
-            <Button
-              onClick={handleCreateInvite}
-              disabled={inviteLoading}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-            >
-              <Plus className="w-4 h-4" />
-              {t('inviteUser')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                onClick={() => { setDestroyConfirmName(''); setShowDestroyDialog(true); }}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+              >
+                <Flame className="w-4 h-4" />
+                {t('destroyServer')}
+              </Button>
+              <Button
+                onClick={handleCreateInvite}
+                disabled={inviteLoading}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Plus className="w-4 h-4" />
+                {t('inviteUser')}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -409,6 +447,58 @@ export default function MyTeamPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>{t('inviteDialog.close')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Destroy organization confirmation */}
+      <Dialog open={showDestroyDialog} onOpenChange={(open) => { if (!destroyLoading) setShowDestroyDialog(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">{t('destroyDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('destroyDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+              <p className="text-sm text-red-700 font-medium">{t('destroyDialog.warning')}</p>
+              <ul className="text-sm text-red-600 mt-1 list-disc list-inside space-y-0.5">
+                <li>{t('destroyDialog.warningItem1')}</li>
+                <li>{t('destroyDialog.warningItem2')}</li>
+                <li>{t('destroyDialog.warningItem3')}</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 mb-1.5">
+                {t('destroyDialog.confirmHint', { name: currentOrganization?.name || '' })}
+              </p>
+              <input
+                type="text"
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                placeholder={currentOrganization?.name || ''}
+                value={destroyConfirmName}
+                onChange={(e) => setDestroyConfirmName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !destroyLoading && destroyConfirmName === (currentOrganization?.name || '') && handleDestroy()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDestroyDialog(false)}
+              disabled={destroyLoading}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDestroy}
+              disabled={destroyLoading || destroyConfirmName !== (currentOrganization?.name || '')}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {destroyLoading ? tCommon('loading') : t('destroyDialog.confirm')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
