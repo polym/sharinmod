@@ -4,6 +4,8 @@ litellm_settings:
   telemetry: False
   success_callback: ["generic_api"]
   failure_callback: ["generic_api"]
+  callbacks:
+    - custom_callbacks.key_alias_model_router   # 注册自定义回调
 
 router_settings:
   routing_strategy: usage-based-routing-v2
