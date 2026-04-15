@@ -74,7 +74,7 @@ async def generate_litellm_key(
     email_prefix = user.email.lower()
     async with httpx.AsyncClient(timeout=10.0) as client:
         base_alias = f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.utcnow().isoformat()}'}"
-        key_alias = f"{base_alias}/org-{organization_id}" if organization_id else base_alias
+        key_alias = f"{base_alias}/org-{organization_id}" if organization_id else f"{base_alias}/public"
         payload = {
             "user_id": user.litellm_user_id,
             "key_alias": key_alias,

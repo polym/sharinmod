@@ -33,7 +33,7 @@ const TOOLTIP_PADDING = 12;
 
 // Helper function to remove organization suffix from model name
 function getModelDisplayName(modelName: string): string {
-  return modelName.replace(/@org-\d+$/, '');
+  return modelName.replace(/@(public|org-\d+)$/, '');
 }
 
 // 48-hour bar chart component with hour axis

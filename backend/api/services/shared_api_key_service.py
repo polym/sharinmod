@@ -24,14 +24,16 @@ logger = logging.getLogger(__name__)
 
 def _get_base_model_name(model_name: str) -> str:
     """
-    Remove @org-{id} suffix from model name if present
+    Remove @public or @org-{id} suffix from model name if present
 
     Args:
-        model_name: Model name that may contain @org-{id} suffix
+        model_name: Model name that may contain @public or @org-{id} suffix
 
     Returns:
         Base model name without the organization suffix
     """
+    if model_name.endswith('@public'):
+        return model_name[:-7]  # Remove '@public' suffix (7 chars)
     if '@org-' in model_name:
         return model_name.rsplit('@org-', 1)[0]
     return model_name
@@ -156,7 +158,7 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
     if organization_id:
         credential_name = f"{provider}/{user.email}/org-{organization_id}"
     else:
-        credential_name = f"{provider}/{user.email}"
+        credential_name = f"{provider}/{user.email}/public"
 
     # Look up provider configuration from database (dynamic providers only)
     from api.services.provider_config_service import get_provider_by_key
@@ -259,8 +261,8 @@ async def _sync_to_litellm(user: User, provider: str, api_key: str, selected_mod
             # 如果没有 real_model，使用 model_name
             actual_real_model = real_model_val if real_model_val else model_name
             litellm_model = f"openrouter/openrouter/{actual_real_model}" if provider == "openrouter" else actual_real_model
-            # Add organization suffix to model_name for private server scenarios
-            model_name_with_org = f"{model_name}@org-{organization_id}" if organization_id else model_name
+            # Add organization suffix to model_name for isolation
+            model_name_with_org = f"{model_name}@org-{organization_id}" if organization_id else f"{model_name}@public"
             model_payload = {
                 "model_name": model_name_with_org,
                 "litellm_params": {
@@ -436,7 +438,9 @@ async def create_shared_api_key(
 
             # Helper function to remove organization suffix from model name
             def get_base_model_name(model_name: str) -> str:
-                """Remove @org-{id} suffix from model name if present"""
+                """Remove @public or @org-{id} suffix from model name if present"""
+                if model_name.endswith('@public'):
+                    return model_name[:-7]  # Remove '@public' suffix (7 chars)
                 if '@org-' in model_name:
                     return model_name.rsplit('@org-', 1)[0]
                 return model_name
@@ -936,7 +940,7 @@ async def delete_shared_api_key(session: Session, api_key_id: int, user_id: int,
             if api_key.organization_id:
                 credential_name = f"{api_key.provider}/{user.email}/org-{api_key.organization_id}"
             else:
-                credential_name = f"{api_key.provider}/{user.email}"
+                credential_name = f"{api_key.provider}/{user.email}/public"
 
             async with httpx.AsyncClient(timeout=10.0) as client:
                 # Step 1: Delete all models FIRST
@@ -1252,7 +1256,7 @@ async def update_shared_api_key(
             if api_key_obj.organization_id:
                 credential_name = f"{api_key_obj.provider}/{user.email}/org-{api_key_obj.organization_id}"
             else:
-                credential_name = f"{api_key_obj.provider}/{user.email}"
+                credential_name = f"{api_key_obj.provider}/{user.email}/public"
             # URL encode the credential name to handle special characters like @
             encoded_credential_name = urllib.parse.quote(credential_name, safe="/")
 
@@ -1326,14 +1330,14 @@ async def update_shared_api_key(
                     if api_key_obj.organization_id:
                         credential_name = f"{api_key_obj.provider}/{user.email}/org-{api_key_obj.organization_id}"
                     else:
-                        credential_name = f"{api_key_obj.provider}/{user.email}"
+                        credential_name = f"{api_key_obj.provider}/{user.email}/public"
                     for model_name in models_to_add:
                         # 获取 real_model，如果没有则使用 model_name
                         real_model_val = real_model_map.get(model_name) or model_name
                         # OpenRouter 特殊处理：添加 openrouter/openrouter/ 前缀
                         litellm_model = f"openrouter/openrouter/{real_model_val}" if api_key_obj.provider == "openrouter" else real_model_val
-                        # Add organization suffix to model_name for private server scenarios
-                        model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else model_name
+                        # Add organization suffix to model_name for isolation
+                        model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else f"{model_name}@public"
                         model_payload = {
                             "model_name": model_name_with_org,
                             "litellm_params": {
@@ -1379,7 +1383,7 @@ async def update_shared_api_key(
         if models_to_add and api_key_obj.litellm_model_ids:
             updated_model_ids = json.loads(api_key_obj.litellm_model_ids)
             for model_name in models_to_add:
-                model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else model_name
+                model_name_with_org = f"{model_name}@org-{api_key_obj.organization_id}" if api_key_obj.organization_id else f"{model_name}@public"
                 if model_name_with_org in updated_model_ids:
                     subscription = Subscription(
                         model_id=updated_model_ids[model_name_with_org],
