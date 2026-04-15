@@ -9,7 +9,7 @@ from api.services.api_key_usage_service import log_api_key_usage
 from api.models.api_key_usage import APIKeyAction
 from api.config import settings
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from collections import defaultdict
 import httpx
@@ -657,7 +657,7 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
     
     # Update status to INACTIVE
     api_key.status = APIKeyStatus.INACTIVE
-    api_key.updated_at = datetime.utcnow()
+    api_key.updated_at = datetime.now(timezone.utc)
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
@@ -719,7 +719,7 @@ async def disable_shared_api_key(session: Session, api_key_id: int, user_id: int
             print(f"[DISABLE] Traceback: {traceback.format_exc()}")
             session.rollback()
             api_key.status = original_status
-            api_key.updated_at = datetime.utcnow()
+            api_key.updated_at = datetime.now(timezone.utc)
             session.add(api_key)
             session.commit()
             session.refresh(api_key)
@@ -792,7 +792,7 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int,
     
     # Update status to ACTIVE
     api_key.status = APIKeyStatus.ACTIVE
-    api_key.updated_at = datetime.utcnow()
+    api_key.updated_at = datetime.now(timezone.utc)
     session.add(api_key)
     session.commit()
     session.refresh(api_key)
@@ -869,7 +869,7 @@ async def enable_shared_api_key(session: Session, api_key_id: int, user_id: int,
             # Rollback status change if LiteLLM sync fails
             session.rollback()
             api_key.status = original_status
-            api_key.updated_at = datetime.utcnow()
+            api_key.updated_at = datetime.now(timezone.utc)
             session.add(api_key)
             session.commit()
             session.refresh(api_key)
@@ -1048,7 +1048,7 @@ def get_subscription_hourly_tokens(session: Session, shared_api_key_id: int, hou
             decode_responses=True
         )
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for i in range(hours):
             hour_dt = now - timedelta(hours=hours - 1 - i)
             hour_key = hour_dt.strftime("%Y%m%d%H")
@@ -1118,7 +1118,7 @@ def get_shared_api_key_metrics(session: Session, api_key_id: int, user_id: int) 
         )
 
     # Calculate duration from creation date (use UTC for consistency)
-    total_duration_days = (datetime.utcnow() - api_key.created_at).days
+    total_duration_days = (datetime.now(timezone.utc) - api_key.created_at).days
 
     # Get real hourly data from Redis
     chart_data = get_subscription_hourly_tokens(session, api_key.id)
@@ -1393,7 +1393,7 @@ async def update_shared_api_key(
         api_key_obj.user_selected_models = json.dumps(selected_models)
         logger.info(f"[UPDATE] Saved user_selected_models: {selected_models}")
         # Update timestamp
-        api_key_obj.updated_at = datetime.utcnow()
+        api_key_obj.updated_at = datetime.now(timezone.utc)
         session.add(api_key_obj)
         session.commit()
         session.refresh(api_key_obj)

@@ -16,6 +16,7 @@ services:
       - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
       - ./frontend/postcss.config.js:/app/postcss.config.js
       - ./frontend/tsconfig.json:/app/tsconfig.json
+      - /etc/localtime:/etc/localtime:ro
 
   backend:
     image: sharinmod-backend:${VERSION:-latest}
@@ -39,6 +40,7 @@ services:
       - ./etc/config.yaml:/srv/config.yaml:ro
       - ./etc/kubeconfig:/srv/kubeconfig:ro
       - ./etc/providers.yaml:/srv/providers.yaml:ro
+      - /etc/localtime:/etc/localtime:ro
 
   # Consumer for LiteLLM callback processing
   litellm-callback-consumer:
@@ -61,6 +63,7 @@ services:
     volumes:
       - ./backend:/app
       - ./etc/config.yaml:/srv/config.yaml:ro
+      - /etc/localtime:/etc/localtime:ro
 
   db:
     image: postgres:15-alpine
@@ -68,6 +71,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./etc/init-litellm-db.sh:/docker-entrypoint-initdb.d/init-litellm-db.sh:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - my-network
     expose:
@@ -87,6 +91,8 @@ services:
     restart: always
     networks:
       - my-network
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -94,7 +100,7 @@ services:
       retries: 5
 
   litellm:
-    image: hub.upyun.com/huixingyun/litellm:v1.80.8-dev.7
+    image: hub.upyun.com/holdcloud/litellm:v1.80.8-hx.hack-org
     restart: always
     depends_on:
       db:
@@ -113,6 +119,7 @@ services:
     command: ["--config", "/app/config.yaml", "--num_workers", "4"]
     volumes:
       - ./etc/litellm-config.yaml:/app/config.yaml:ro
+      - /etc/localtime:/etc/localtime:ro
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
       interval: 30s
@@ -126,6 +133,7 @@ services:
       - "${NGINX_EPORT:-10080}:80"
     volumes:
       - ./etc/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       - frontend
       - backend
