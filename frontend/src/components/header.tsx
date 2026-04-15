@@ -124,7 +124,7 @@ export function Header() {
               <>
                 <DropdownMenuItem
                   className="cursor-pointer"
-                  onClick={() => router.push('/admin/users')}
+                  onClick={() => router.push('/admin/overview')}
                 >
                   <Shield className="mr-2 h-4 w-4" />
                   {t('adminConsole')}

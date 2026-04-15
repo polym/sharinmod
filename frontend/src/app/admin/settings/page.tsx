@@ -28,7 +28,7 @@ export default function AdminSettingsPage() {
 
   if (!canAccess) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <div className="text-[#b3b3b3]">Access denied</div>
       </div>
     );

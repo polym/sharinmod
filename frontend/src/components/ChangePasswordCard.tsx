@@ -136,6 +136,7 @@ export function ChangePasswordCard({ forceChange = false }: ChangePasswordCardPr
               minLength={8}
               maxLength={72}
               placeholder={tPassword('newPasswordPlaceholder')}
+              autoComplete="new-password"
             />
           </div>
 
@@ -150,6 +151,7 @@ export function ChangePasswordCard({ forceChange = false }: ChangePasswordCardPr
               minLength={8}
               maxLength={72}
               placeholder={tPassword('confirmPasswordPlaceholder')}
+              autoComplete="new-password"
             />
           </div>
 

@@ -55,7 +55,7 @@ export default function AuthCallbackPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#121212]">
         <div className="max-w-md w-full p-8 bg-[#181818] rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
           <p className="text-[#b3b3b3] mb-6">{error}</p>
@@ -71,7 +71,7 @@ export default function AuthCallbackPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-[#121212]">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
         <p className="text-[#b3b3b3]">Logging you in...</p>

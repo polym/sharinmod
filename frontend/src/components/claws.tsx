@@ -1082,11 +1082,11 @@ export function ClawsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="border border-[#282828] shadow-md rounded-2xl bg-[#181818]">
+      <Card className="border border-[#282828] shadow-md bg-[#181818]">
         <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-bold text-white">{t('title')}</CardTitle>
-            <CardDescription className="text-[#b3b3b3] mt-1">
+          <div className="flex flex-col space-y-2">
+            <CardTitle className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</CardTitle>
+            <CardDescription className="text-sm text-[#b3b3b3] font-medium">
               {t('description', { max: maxClawsPerUser })}
             </CardDescription>
           </div>

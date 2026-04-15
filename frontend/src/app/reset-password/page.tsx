@@ -22,8 +22,8 @@ export default function ResetPasswordPage() {
 
   // Show loading while redirecting
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-gray-500">加载中...</div>
+    <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+      <div className="text-[#b3b3b3]">加载中...</div>
     </div>
   );
 }

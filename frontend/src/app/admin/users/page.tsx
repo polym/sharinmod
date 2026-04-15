@@ -489,7 +489,7 @@ export default function AdminUsersPage() {
 
   if (!currentUser?.is_admin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <div className="text-[#b3b3b3]">Access denied</div>
       </div>
     );
@@ -518,7 +518,7 @@ export default function AdminUsersPage() {
               </Select>
               <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
                 <DialogTrigger asChild>
-                  <Button size="sm">
+                  <Button>
                     <Plus className="w-4 h-4 mr-2" />
                     {t('createUser')}
                   </Button>
@@ -586,7 +586,7 @@ export default function AdminUsersPage() {
                                 </span>
                               )}
                               {u.is_disabled && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-500 text-white flex-shrink-0">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-[#121212]0 text-white flex-shrink-0">
                                   {t('statusDisabled')}
                                 </span>
                               )}

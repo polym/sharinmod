@@ -235,9 +235,9 @@ export function AdminProviders() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t('title')}</CardTitle>
-              <CardDescription>{t('description')}</CardDescription>
+            <div className="flex flex-col space-y-2">
+              <CardTitle className="text-white font-bold">{t('title')}</CardTitle>
+              <CardDescription className="font-medium">{t('description')}</CardDescription>
             </div>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>

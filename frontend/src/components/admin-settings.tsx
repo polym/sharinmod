@@ -209,9 +209,9 @@ export function AdminSettings() {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
+              <div className="flex flex-col space-y-2">
+                <CardTitle className="text-white font-bold">{t('title')}</CardTitle>
+                <CardDescription className="font-medium">{t('description')}</CardDescription>
               </div>
               <TabsList>
                 <TabsTrigger value="global">{t('tabs.global')}</TabsTrigger>

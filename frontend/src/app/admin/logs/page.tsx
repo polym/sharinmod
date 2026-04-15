@@ -278,8 +278,10 @@ export default function AdminLogsPage() {
     <div className="max-w-7xl mx-auto p-8 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+          <div className="flex flex-col space-y-2">
+            <CardTitle className="text-white font-bold">{t('title')}</CardTitle>
+            <CardDescription className="font-medium">{t('description')}</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Search & Filters */}
