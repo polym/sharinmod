@@ -1,7 +1,8 @@
 from sqlmodel import SQLModel, Field, Index
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+from sqlalchemy import Column, DateTime
 
 
 class APIKeyStatus(str, Enum):
@@ -36,9 +37,18 @@ class SharedAPIKey(SQLModel, table=True):
     organization_id: Optional[int] = Field(default=None, index=True, foreign_key="organizations.id")
     encrypted_api_key: str = Field(max_length=500)  # Encrypted value
     status: APIKeyStatus = Field(default=APIKeyStatus.ACTIVE, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    last_used_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    last_used_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None
+    )
     total_uses: int = Field(default=0)
     api_key_metadata: Optional[str] = Field(default=None, max_length=1000)  # JSON string
     litellm_model_id: Optional[str] = Field(default=None, max_length=100)  # Model ID from LiteLLM (deprecated, use litellm_model_ids)

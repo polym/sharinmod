@@ -2,8 +2,8 @@
 Unified API Key model for platform-generated API access keys
 """
 from sqlmodel import SQLModel, Field, Index, Relationship
-from sqlalchemy import BigInteger
-from datetime import datetime, date
+from sqlalchemy import BigInteger, Column, DateTime
+from datetime import datetime, date, timezone
 from typing import Optional, List
 from enum import Enum
 
@@ -34,9 +34,18 @@ class UnifiedAPIKey(SQLModel, table=True):
     description: Optional[str] = Field(default=None, max_length=500)
     litellm_key: Optional[str] = Field(default=None, max_length=255)  # Full LiteLLM API key
     api_key_hash: Optional[str] = Field(default=None, max_length=255, index=True)  # Token ID from LiteLLM for callback matching
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    revoked_at: Optional[datetime] = Field(default=None)
-    last_used_at: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    revoked_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None
+    )
+    last_used_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None
+    )
     is_auto_created: bool = Field(default=False, description="Auto-created for claw, not counted in user quota")
     organization_id: Optional[int] = Field(default=None, index=True, foreign_key="organizations.id", description="Organization ID for private server isolation. None = public area.")
 

@@ -6,6 +6,7 @@ in the database, allowing admin users to manage providers through the UI.
 from sqlmodel import SQLModel, Field, Index, Relationship, Column, JSON
 from datetime import datetime, timezone
 from typing import Optional, List
+from sqlalchemy import DateTime as SQLDateTime
 
 
 class ProviderConfig(SQLModel, table=True):
@@ -34,8 +35,14 @@ class ProviderConfig(SQLModel, table=True):
     custom_llm_provider: str = Field(default="openai", max_length=50, description="LiteLLM provider type: openai / anthropic / openrouter")
     validation_endpoint: Optional[str] = Field(default=None, max_length=500, description="API key validation endpoint (e.g. /v1/models). Defaults to /models if empty.")
     is_enabled: bool = Field(default=True, index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Relationship to models
     models: List["ProviderModel"] = Relationship(
@@ -78,8 +85,14 @@ class ProviderModel(SQLModel, table=True):
     output_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     coding_score: Optional[int] = Field(default=None)
     is_enabled: bool = Field(default=True, index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Unique constraint: one model per provider
     __table_args__ = (
@@ -119,5 +132,11 @@ class GlobalModel(SQLModel, table=True):
     output_types: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
     coding_score: Optional[int] = Field(default=None)
     logo_url: Optional[str] = Field(default=None, max_length=500)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(SQLDateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )

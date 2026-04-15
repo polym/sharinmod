@@ -30,8 +30,14 @@ class OrganizationInvite(SQLModel, table=True):
     organization_id: int = Field(index=True)
     token: str = Field(max_length=64, index=True)
     created_by_user_id: int
-    expires_at: datetime = Field(default_factory=_default_expires_at)
-    used_at: Optional[datetime] = Field(default=None)
+    expires_at: datetime = Field(
+        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False),
+        default_factory=_default_expires_at
+    )
+    used_at: Optional[datetime] = Field(
+        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=True),
+        default=None
+    )
     used_by_user_id: Optional[int] = Field(default=None)
 
     __table_args__ = (

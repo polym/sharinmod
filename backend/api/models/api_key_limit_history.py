@@ -2,8 +2,9 @@
 API Key Limit History model for tracking limit-related actions
 """
 from sqlmodel import SQLModel, Field, Relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
+from sqlalchemy import Column, DateTime
 
 
 class APIKeyLimitHistory(SQLModel, table=True):
@@ -23,7 +24,10 @@ class APIKeyLimitHistory(SQLModel, table=True):
     reason: Optional[str] = Field(default=None, max_length=500, description="Reason for the action")
     tokens_used: int = Field(default=0, description="Tokens used at the time of action")
     token_limit: int = Field(default=0, description="Token limit at the time of action")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Relationship
     unified_api_key: Optional["UnifiedAPIKey"] = Relationship(back_populates="limit_history")

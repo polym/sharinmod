@@ -2,7 +2,7 @@
 OrganizationMember model for managing user-organization relationships
 """
 from sqlmodel import SQLModel, Field, Index
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import sqlalchemy as sa
 
@@ -25,7 +25,10 @@ class OrganizationMember(SQLModel, table=True):
     user_id: int = Field(index=True)
     role: str = Field(max_length=20)  # 'owner' or 'member'
     is_disabled: bool = Field(default=False, description="Whether this member is disabled in the org")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Foreign keys with CASCADE delete and unique constraint
     __table_args__ = (

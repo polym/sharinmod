@@ -2,9 +2,10 @@
 API key usage history model for tracking user activity
 """
 from sqlmodel import SQLModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+from sqlalchemy import Column, DateTime
 
 
 class APIKeyAction(str, Enum):
@@ -34,5 +35,8 @@ class APIKeyUsageHistory(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", index=True)
     api_key_id: Optional[str] = Field(default=None, max_length=255, index=True)
     action: APIKeyAction = Field(index=True)
-    timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
+    timestamp: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     details: Optional[str] = Field(default=None)  # JSON string for flexibility

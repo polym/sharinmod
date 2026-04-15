@@ -2,8 +2,9 @@
 User model for authentication and user management
 """
 from sqlmodel import SQLModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
+from sqlalchemy import Column, DateTime
 
 
 class User(SQLModel, table=True):
@@ -30,14 +31,20 @@ class User(SQLModel, table=True):
     oauth_provider: Optional[str] = Field(default=None, max_length=50)  # 'github', 'google', etc.
     oauth_provider_user_id: Optional[str] = Field(default=None, max_length=255)  # GitHub user ID, etc.
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+
     # Profile fields
     name: Optional[str] = Field(default=None, max_length=100)
     avatar_url: Optional[str] = Field(default=None, max_length=500)
     bio: Optional[str] = Field(default=None, max_length=500)
-    
+
     # LiteLLM integration
     litellm_user_id: Optional[str] = Field(default=None, max_length=255)
 
@@ -53,4 +60,8 @@ class User(SQLModel, table=True):
 
     # User status
     is_disabled: bool = Field(default=False, description="Whether user is disabled")
-    deleted_at: Optional[datetime] = Field(default=None, description="Soft delete timestamp")
+    deleted_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        default=None,
+        description="Soft delete timestamp"
+    )

@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+from sqlalchemy import Column, DateTime
 
 
 class UsageLogStatus(str, Enum):
@@ -70,8 +71,14 @@ class UsageLog(SQLModel, table=True):
     input_tokens: int = Field(default=0)
     output_tokens: int = Field(default=0)
     total_tokens: int = Field(default=0)
-    request_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    request_time: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     trace_id: Optional[str] = Field(default=None, max_length=255, index=True)
     num_fails: int = Field(default=0)
     error_details: Optional[str] = Field(default=None, max_length=20000)

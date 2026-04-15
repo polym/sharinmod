@@ -2,9 +2,10 @@
 Claw model - QQ bot instances deployed on Kubernetes
 """
 from sqlmodel import SQLModel, Field, Index
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from enum import Enum
+from sqlalchemy import Column, DateTime
 
 
 class ClawType(str, Enum):
@@ -45,8 +46,14 @@ class Claw(SQLModel, table=True):
     k8s_namespace: Optional[str] = Field(default=None, max_length=255)
     chat_tool: Optional[str] = Field(default='QQ', max_length=50)
     status: ClawStatus = Field(default=ClawStatus.PENDING)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     __table_args__ = (
         Index("idx_claw_user_status", "user_id", "status"),

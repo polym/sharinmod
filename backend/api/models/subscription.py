@@ -2,7 +2,7 @@
 Subscription model for mapping model_id to SharedAPIKey and User
 """
 from sqlmodel import SQLModel, Field, Index
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 import sqlalchemy as sa
 
@@ -27,7 +27,10 @@ class Subscription(SQLModel, table=True):
     shared_api_key_id: int = Field(index=True)
     user_id: int = Field(index=True)
     organization_id: Optional[int] = Field(default=None, index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(
+        sa_column=sa.Column(sa.DateTime(timezone=True), nullable=False, index=True),
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
     # Unique constraint on model_id and foreign keys with CASCADE delete
     __table_args__ = (
