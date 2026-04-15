@@ -15,6 +15,7 @@ import {
   Bot,
   Building2,
   ArrowRight,
+  Blocks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,7 +61,7 @@ function SidebarContent() {
   const mainNavItems = [
     { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
     { icon: <Bot className="w-4 h-4" />, label: t('claws'), href: "/claws" },
-    { icon: <Users className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
+    { icon: <Blocks className="w-4 h-4" />, label: t('myShared'), href: "/shared" },
     { icon: <Key className="w-4 h-4" />, label: t('apiKeys'), href: "/api-keys" },
     { icon: <BarChart3 className="w-4 h-4" />, label: t('usage'), href: "/usage" },
   ];
