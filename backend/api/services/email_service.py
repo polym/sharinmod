@@ -18,6 +18,16 @@ def send_email(to_email: str, subject: str, html_body: str) -> bool:
     Returns True on success, False if SMTP is not configured or an error occurs.
     Failure is non-fatal: callers should log/handle gracefully.
     """
+    # If smtp_stdout is enabled, log email content instead of sending
+    # This takes priority over SMTP_HOST check for development/testing
+    if settings.SMTP_STDOUT:
+        logger.info("[Email] SMTP_STDOUT enabled - Email not sent. Details below:")
+        logger.info("[Email] To: %s", to_email)
+        logger.info("[Email] From: %s", settings.SMTP_FROM_EMAIL)
+        logger.info("[Email] Subject: %s", subject)
+        logger.info("[Email] Body:\n%s", html_body)
+        return True
+
     if not settings.SMTP_HOST:
         logger.warning("[Email] SMTP_HOST is not configured. Email not sent to %s.", to_email)
         return False

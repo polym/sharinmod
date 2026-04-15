@@ -33,7 +33,7 @@ async def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
 
-    verification_link = f"{settings.WEBSITE_BASE_URL}/verify-email?token={token.token}"
+    verification_link = f"{settings.WEBSITE_BASE_URL}/api/auth/verify-email?token={token.token}"
     email_service.send_verification_email(data.email, verification_link)
 
     return {"message": "注册成功，请查收验证邮件"}

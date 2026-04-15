@@ -228,6 +228,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = Field(default="")
     SMTP_FROM_EMAIL: str = Field(default="noreply@sharinmod.com")
     SMTP_USE_TLS: bool = Field(default=True)
+    SMTP_STDOUT: bool = Field(default=False)  # When true, log email content instead of sending
 
     # LiteLLM webhook IP whitelist (supports exact IPs and CIDR ranges)
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
