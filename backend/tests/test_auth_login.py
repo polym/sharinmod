@@ -48,7 +48,8 @@ def test_user_fixture(session: Session):
     user = User(
         email="logintest@example.com",
         hashed_password=hash_password("TestPass123!"),
-        litellm_user_id="logintest@example.com"
+        litellm_user_id="logintest@example.com",
+        email_verified=True,  # Pre-verified so login tests pass the email verification gate
     )
     session.add(user)
     session.commit()

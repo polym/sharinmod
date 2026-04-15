@@ -10,6 +10,9 @@ export const authAPI = {
   login: (data: { email: string; password: string }) =>
     api.post('/api/auth/login', data),
 
+  register: (data: { email: string; password: string; invitation_code: string }) =>
+    api.post('/api/auth/register', data),
+
   getProfile: () => api.get('/api/users/me'),
 
   // OAuth 相关方法

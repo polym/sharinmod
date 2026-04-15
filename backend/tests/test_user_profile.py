@@ -55,7 +55,8 @@ def auth_token_fixture(client: TestClient, session: Session):
     user = User(
         email="profiletest@example.com",
         hashed_password=hash_password("TestPass123!"),
-        litellm_user_id="profiletest@example.com"
+        litellm_user_id="profiletest@example.com",
+        email_verified=True,
     )
     session.add(user)
     session.commit()

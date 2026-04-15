@@ -146,7 +146,10 @@
   },
   "loginDialog": {
     "title": "登录 SharinMod",
-    "description": "输入您的凭据来访问平台"
+    "description": "输入您的凭据来访问平台",
+    "loginTab": "登录",
+    "registerTab": "注册",
+    "registerTitle": "注册 SharinMod"
   },
   "auth": {
     "email": "邮箱",
@@ -994,5 +997,42 @@
   },
   "adminUsersPagination": {
     "showing": "显示 {start} 到 {end}，共 {total} 条"
+  },
+  "register": {
+    "tab": "注册",
+    "title": "注册 SharinMod",
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "invitationCode": "邀请码",
+    "emailPlaceholder": "your@email.com",
+    "passwordPlaceholder": "••••••••",
+    "invitationCodePlaceholder": "如：A3F8C91D",
+    "submit": "注册",
+    "submitting": "注册中...",
+    "switchToLogin": "已有账户？登录",
+    "successTitle": "验证邮件已发送",
+    "successDescription": "请查收 {email} 中的验证邮件，点击链接激活账户后即可登录。",
+    "validation": {
+      "enterEmail": "请输入邮箱地址",
+      "enterValidEmail": "请输入有效的邮箱地址",
+      "enterPassword": "请输入密码",
+      "passwordMinLength": "密码长度至少为 8 位",
+      "enterConfirmPassword": "请确认密码",
+      "passwordsNotMatch": "两次密码不一致",
+      "enterInvitationCode": "请输入邀请码"
+    },
+    "errors": {
+      "registerFailed": "注册失败，请稍后重试",
+      "invalidCode": "邀请码无效或已被使用",
+      "emailTaken": "该邮箱已被注册"
+    }
+  },
+  "verifyEmail": {
+    "successTitle": "邮箱验证成功",
+    "successDescription": "您的邮箱已验证，现在可以登录了。",
+    "errorTitle": "验证失败",
+    "goToLogin": "去登录",
+    "backToHome": "返回首页"
   }
 }

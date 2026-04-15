@@ -21,6 +21,9 @@ _FALLBACK_CONFIG: Dict[str, Tuple[str, str]] = {
     "LITELLM_MASTER_KEY": ("LITELLM_MASTER_KEY", "sk-1234"),
     "SHARINMOD_ADMIN_EMAIL": ("SHARINMOD_ADMIN_EMAIL", "admin@sharin.mod"),
     "SHARINMOD_ADMIN_PASSWORD": ("SHARINMOD_ADMIN_PASSWORD", "Aha12345!"),
+    "SMTP_HOST": ("SMTP_HOST", ""),
+    "SMTP_USERNAME": ("SMTP_USERNAME", ""),
+    "SMTP_PASSWORD": ("SMTP_PASSWORD", ""),
 }
 
 
@@ -218,6 +221,14 @@ class Settings(BaseSettings):
     SHARINMOD_ADMIN_EMAIL: str = ""
     SHARINMOD_ADMIN_PASSWORD: str = ""
 
+    # SMTP Email Configuration (supports fallback env vars)
+    SMTP_HOST: str = Field(default="")
+    SMTP_PORT: int = Field(default=587)
+    SMTP_USERNAME: str = Field(default="")
+    SMTP_PASSWORD: str = Field(default="")
+    SMTP_FROM_EMAIL: str = Field(default="noreply@sharinmod.com")
+    SMTP_USE_TLS: bool = Field(default=True)
+
     # LiteLLM webhook IP whitelist (supports exact IPs and CIDR ranges)
     LITELLM_WEBHOOK_IP_WHITELIST: list[str] = []
 
@@ -327,6 +338,30 @@ class Settings(BaseSettings):
         """Fallback to SHARINMOD_ADMIN_PASSWORD environment variable if YAML value is empty."""
         if not v:
             return _get_fallback_value("SHARINMOD_ADMIN_PASSWORD")
+        return v
+
+    @field_validator("SMTP_HOST", mode="before")
+    @classmethod
+    def smtp_host_fallback(cls, v: str) -> str:
+        """Fallback to SMTP_HOST environment variable if YAML value is empty."""
+        if not v:
+            return _get_fallback_value("SMTP_HOST")
+        return v
+
+    @field_validator("SMTP_USERNAME", mode="before")
+    @classmethod
+    def smtp_username_fallback(cls, v: str) -> str:
+        """Fallback to SMTP_USERNAME environment variable if YAML value is empty."""
+        if not v:
+            return _get_fallback_value("SMTP_USERNAME")
+        return v
+
+    @field_validator("SMTP_PASSWORD", mode="before")
+    @classmethod
+    def smtp_password_fallback(cls, v: str) -> str:
+        """Fallback to SMTP_PASSWORD environment variable if YAML value is empty."""
+        if not v:
+            return _get_fallback_value("SMTP_PASSWORD")
         return v
 
     @field_validator("LITELLM_WEBHOOK_IP_WHITELIST", mode="before")

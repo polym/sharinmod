@@ -58,6 +58,9 @@ class User(SQLModel, table=True):
     # Password change requirement
     force_password_change: bool = Field(default=False, description="Whether user must change password on next login")
 
+    # Email verification (False for new registrations; existing users set to True via migration)
+    email_verified: bool = Field(default=False, description="Whether user has verified their email")
+
     # User status
     is_disabled: bool = Field(default=False, description="Whether user is disabled")
     deleted_at: Optional[datetime] = Field(

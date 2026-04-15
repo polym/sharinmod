@@ -49,7 +49,8 @@ def auth_setup_fixture(client: TestClient, session: Session):
     user = User(
         email="usagetest@example.com",
         hashed_password=hash_password("TestPass123!"),
-        litellm_user_id="usagetest@example.com"
+        litellm_user_id="usagetest@example.com",
+        email_verified=True,
     )
     session.add(user)
     session.commit()

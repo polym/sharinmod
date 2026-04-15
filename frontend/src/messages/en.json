@@ -210,7 +210,10 @@
   },
   "loginDialog": {
     "title": "Login to SharinMod",
-    "description": "Enter your credentials to access the platform"
+    "description": "Enter your credentials to access the platform",
+    "loginTab": "Log In",
+    "registerTab": "Register",
+    "registerTitle": "Register for SharinMod"
   },
   "auth": {
     "email": "Email",
@@ -994,5 +997,42 @@
   },
   "adminUsersPagination": {
     "showing": "Showing {start} to {end} of {total} entries"
+  },
+  "register": {
+    "tab": "Register",
+    "title": "Register for SharinMod",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "invitationCode": "Invitation Code",
+    "emailPlaceholder": "your@email.com",
+    "passwordPlaceholder": "••••••••",
+    "invitationCodePlaceholder": "e.g. A3F8C91D",
+    "submit": "Register",
+    "submitting": "Registering...",
+    "switchToLogin": "Already have an account? Log in",
+    "successTitle": "Verification Email Sent",
+    "successDescription": "Please check {email} for a verification email and click the link to activate your account.",
+    "validation": {
+      "enterEmail": "Please enter your email address",
+      "enterValidEmail": "Please enter a valid email address",
+      "enterPassword": "Please enter a password",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "enterConfirmPassword": "Please confirm your password",
+      "passwordsNotMatch": "Passwords do not match",
+      "enterInvitationCode": "Please enter an invitation code"
+    },
+    "errors": {
+      "registerFailed": "Registration failed. Please try again.",
+      "invalidCode": "Invalid or already-used invitation code",
+      "emailTaken": "This email is already registered"
+    }
+  },
+  "verifyEmail": {
+    "successTitle": "Email Verified",
+    "successDescription": "Your email has been verified. You can now log in.",
+    "errorTitle": "Verification Failed",
+    "goToLogin": "Go to Login",
+    "backToHome": "Back to Home"
   }
 }

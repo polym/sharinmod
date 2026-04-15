@@ -1325,3 +1325,55 @@ def get_operation_logs_endpoint(
         sort_by=sort_by,
         sort_order=sort_order
     )
+
+
+# ---------------------------------------------------------------------------
+# Invitation Codes
+# ---------------------------------------------------------------------------
+
+from api.services import registration_service as _reg_svc
+from api.models.invitation_code import InvitationCode as _InvitationCode
+
+
+@router.post("/invitation-codes", status_code=status.HTTP_201_CREATED)
+def create_invitation_codes(
+    count: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Create one or more invitation codes. Admin only.
+
+    Query param `count` (default 1) controls how many codes to generate.
+    """
+    if count < 1 or count > 100:
+        raise HTTPException(status_code=400, detail="count 必须在 1-100 之间")
+    codes = [
+        _reg_svc.create_invitation_code(db, current_user.id)
+        for _ in range(count)
+    ]
+    return {"codes": [c.code for c in codes]}
+
+
+@router.get("/invitation-codes")
+def list_invitation_codes(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """List all invitation codes with their usage status. Admin only."""
+    from sqlmodel import select as _select
+    items = db.exec(_select(_InvitationCode).order_by(_InvitationCode.created_at.desc())).all()
+    return {
+        "codes": [
+            {
+                "id": c.id,
+                "code": c.code,
+                "created_by_user_id": c.created_by_user_id,
+                "used_by_user_id": c.used_by_user_id,
+                "used_at": c.used_at.isoformat() if c.used_at else None,
+                "created_at": c.created_at.isoformat(),
+                "is_used": c.used_by_user_id is not None,
+            }
+            for c in items
+        ]
+    }

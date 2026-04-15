@@ -9,6 +9,8 @@ from .system_setting import SystemSetting
 from .api_key_limit_history import APIKeyLimitHistory
 from .password_reset_token import PasswordResetToken
 from .operation_log import OperationLog, OperationType, ResourceType
+from .invitation_code import InvitationCode
+from .email_verification_token import EmailVerificationToken
 
 __all__ = [
     "User",
@@ -29,4 +31,6 @@ __all__ = [
     "OperationLog",
     "OperationType",
     "ResourceType",
+    "InvitationCode",
+    "EmailVerificationToken",
 ]
