@@ -115,6 +115,7 @@ export function ChangePasswordDialogContentFromMenu({ onSuccess }: ChangePasswor
           minLength={8}
           maxLength={72}
           placeholder={t('newPasswordPlaceholder')}
+          autoComplete="new-password"
         />
       </div>
 
@@ -129,6 +130,7 @@ export function ChangePasswordDialogContentFromMenu({ onSuccess }: ChangePasswor
           minLength={8}
           maxLength={72}
           placeholder={t('confirmPasswordPlaceholder')}
+          autoComplete="new-password"
         />
       </div>
 

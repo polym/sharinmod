@@ -25,7 +25,7 @@ export default function SharedPage() {
 
   if (!isHydrated || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <div className="text-[#b3b3b3]">加载中...</div>
       </div>
     );
