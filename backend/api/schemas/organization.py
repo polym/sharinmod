@@ -87,6 +87,22 @@ class OrgInviteInfoResponse(BaseModel):
         return dt.isoformat()
 
 
+class OrganizationSettingsResponse(BaseModel):
+    """Schema for organization settings response"""
+    id: int
+    name: str
+    default_daily_token: Optional[int] = None
+
+
+class OrganizationSettingsUpdate(BaseModel):
+    """Schema for updating organization settings"""
+    default_daily_token: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Default daily token limit for new API keys. Leave empty (null) to use system default."
+    )
+
+
 def generate_slug(name: str) -> str:
     """
     Generate a slug from organization name

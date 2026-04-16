@@ -4,7 +4,7 @@ Organization model for private workspace management
 from sqlmodel import SQLModel, Field
 from datetime import datetime, timezone
 from typing import Optional
-from sqlalchemy import Column, DateTime
+from sqlalchemy import Column, DateTime, BigInteger
 
 
 class Organization(SQLModel, table=True):
@@ -30,4 +30,9 @@ class Organization(SQLModel, table=True):
     updated_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False),
         default_factory=lambda: datetime.now(timezone.utc)
+    )
+    default_daily_token_limit: Optional[int] = Field(
+        default=None,
+        sa_type=BigInteger(),
+        description="Default daily token limit for API keys in this organization"
     )

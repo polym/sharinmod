@@ -32,6 +32,8 @@ from api.schemas.organization import (
     OrganizationCreate,
     OrganizationMemberResponse,
     OrganizationResponse,
+    OrganizationSettingsResponse,
+    OrganizationSettingsUpdate,
     generate_slug,
 )
 import logging
@@ -481,6 +483,44 @@ def create_invite(
 
     logger.info(f"Invite created for org {org_id} by user {current_user.id}")
     return OrgInviteResponse(token=token, expires_at=expires_at)
+
+
+@router.get("/{org_id}/settings", response_model=OrganizationSettingsResponse)
+def get_org_settings(
+    org_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get organization settings (org owner only)"""
+    organization = _require_org_owner(org_id, current_user, db)
+    return OrganizationSettingsResponse(
+        id=organization.id,
+        name=organization.name,
+        default_daily_token=organization.default_daily_token_limit
+    )
+
+
+@router.put("/{org_id}/settings", response_model=OrganizationSettingsResponse)
+def update_org_settings(
+    org_id: int,
+    settings_data: OrganizationSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update organization settings (org owner only)"""
+    organization = _require_org_owner(org_id, current_user, db)
+    organization.default_daily_token_limit = settings_data.default_daily_token
+    organization.updated_at = datetime.now(timezone.utc)
+    db.add(organization)
+    db.commit()
+    db.refresh(organization)
+
+    logger.info(f"Organization {org_id} settings updated by user {current_user.id}")
+    return OrganizationSettingsResponse(
+        id=organization.id,
+        name=organization.name,
+        default_daily_token=organization.default_daily_token_limit
+    )
 
 
 @router.delete("/{org_id}", status_code=status.HTTP_204_NO_CONTENT)

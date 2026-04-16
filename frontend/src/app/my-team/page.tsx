@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Ban, Power, Trash2, Plus, Copy, Check, Flame } from 'lucide-react';
+import { Ban, Power, Trash2, Plus, Copy, Check, Flame, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
@@ -84,6 +85,12 @@ export default function MyTeamPage() {
   const [showDestroyDialog, setShowDestroyDialog] = useState(false);
   const [destroyConfirmName, setDestroyConfirmName] = useState('');
   const [destroyLoading, setDestroyLoading] = useState(false);
+
+  // Settings dialog
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [defaultDailyLimit, setDefaultDailyLimit] = useState<number | undefined>(undefined);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
 
@@ -240,6 +247,44 @@ export default function MyTeamPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleOpenSettings = async () => {
+    if (!currentOrganization) return;
+    setSettingsLoading(true);
+    try {
+      const response = await organizationAPI.getOrganizationSettings(currentOrganization.id);
+      setDefaultDailyLimit(response.data.default_daily_token ?? undefined);
+    } catch (error: any) {
+      toast({
+        title: t('toast.settingsLoadFailed'),
+        description: error.response?.data?.detail || t('toast.settingsLoadFailedDetail'),
+        variant: 'destructive',
+      });
+      setShowSettingsDialog(false);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!currentOrganization) return;
+    setSettingsSaving(true);
+    try {
+      await organizationAPI.updateOrganizationSettings(currentOrganization.id, {
+        default_daily_token: defaultDailyLimit ?? null,
+      });
+      toast({ title: t('toast.settingsSaved'), description: t('toast.settingsSavedDetail') });
+      setShowSettingsDialog(false);
+    } catch (error: any) {
+      toast({
+        title: t('toast.settingsSaveFailed'),
+        description: error.response?.data?.detail || t('toast.settingsSaveFailedDetail'),
+        variant: 'destructive',
+      });
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   if (!isAuthenticated || !currentOrganization || myOrganizations === null) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -262,6 +307,17 @@ export default function MyTeamPage() {
               >
                 <Flame className="w-4 h-4" />
                 {t('destroyServer')}
+              </Button>
+              <Button
+                onClick={async () => {
+                  setShowSettingsDialog(true);
+                  await handleOpenSettings();
+                }}
+                className="flex items-center gap-2"
+                disabled={settingsLoading}
+              >
+                <Settings className="w-4 h-4" />
+                {t('settings')}
               </Button>
               <Button
                 onClick={handleCreateInvite}
@@ -416,6 +472,60 @@ export default function MyTeamPage() {
             <Button variant="outline" onClick={() => setShowRemoveDialog(false)} disabled={actionLoading}>{tCommon('cancel')}</Button>
             <Button variant="destructive" onClick={handleRemove} disabled={actionLoading}>
               {actionLoading ? tCommon('loading') : tCommon('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={(open) => { if (!settingsSaving) setShowSettingsDialog(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('settingsDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('settingsDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {settingsLoading ? (
+              <div className="text-center py-4 text-[#b3b3b3]">{tCommon('loading')}</div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium">{t('settingsDialog.defaultDailyLimit')}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="mt-1"
+                  placeholder={t('settingsDialog.placeholder')}
+                  value={defaultDailyLimit ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Only allow non-negative integers
+                    if (val === '' || (/^\d+$/.test(val) && parseInt(val) >= 0)) {
+                      setDefaultDailyLimit(val ? parseInt(val) : undefined);
+                    }
+                  }}
+                  disabled={settingsLoading || settingsSaving}
+                />
+                <p className="text-xs text-gray-500 mt-1">{t('settingsDialog.hint')}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSettingsDialog(false)}
+              disabled={settingsSaving}
+            >
+              {tCommon('cancel')}
+            </Button>
+            <Button
+              onClick={handleSaveSettings}
+              disabled={settingsLoading || settingsSaving}
+              className="bg-[#1ed760] hover:bg-[#1db954] text-black"
+            >
+              {settingsSaving ? tCommon('loading') : t('settingsDialog.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
