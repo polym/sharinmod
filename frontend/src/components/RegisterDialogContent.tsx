@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +15,13 @@ interface RegisterDialogContentProps {
 
 // Simple email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Password validation regex
+const PASSWORD_REGEX = {
+  uppercase: /[A-Z]/,
+  lowercase: /[a-z]/,
+  digit: /\d/,
+};
 
 interface ApiError {
   detail?: string | { msg: string }[] | unknown;
@@ -40,11 +48,15 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
   const t = useTranslations('register');
   const tValidation = useTranslations('register.validation');
   const tErrors = useTranslations('register.errors');
+  const searchParams = useSearchParams();
+
+  // Initialize invitation code from URL params
+  const inviteCodeParam = searchParams.get('inviteCode');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [invitationCode, setInvitationCode] = useState('');
+  const [invitationCode, setInvitationCode] = useState(inviteCodeParam || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
@@ -64,6 +76,22 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
     }
     if (password.length < 8) {
       setError(tValidation('passwordMinLength'));
+      return false;
+    }
+    if (password.length > 72) {
+      setError(tValidation('passwordMaxLength'));
+      return false;
+    }
+    if (!PASSWORD_REGEX.uppercase.test(password)) {
+      setError(tValidation('passwordUppercase'));
+      return false;
+    }
+    if (!PASSWORD_REGEX.lowercase.test(password)) {
+      setError(tValidation('passwordLowercase'));
+      return false;
+    }
+    if (!PASSWORD_REGEX.digit.test(password)) {
+      setError(tValidation('passwordDigit'));
       return false;
     }
     if (!confirmPassword.trim()) {
@@ -120,45 +148,78 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
         <Label htmlFor="reg-email">{t('email')}</Label>
         <Input
           id="reg-email"
+          name="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t('emailPlaceholder')}
           required
+          autoComplete="username"
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-password">{t('password')}</Label>
         <Input
           id="reg-password"
+          name="new-password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setError('');
+          }}
           placeholder={t('passwordPlaceholder')}
           required
           minLength={8}
+          maxLength={72}
+          autoComplete="new-password"
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-confirm-password">{t('confirmPassword')}</Label>
         <Input
           id="reg-confirm-password"
+          name="confirm-password"
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder={t('passwordPlaceholder')}
           required
+          minLength={8}
+          maxLength={72}
+          autoComplete="new-password"
         />
+      </div>
+
+      {/* Password requirements hint */}
+      <div className="text-sm text-[#b3b3b3] space-y-1">
+        <p className="font-medium">{t('requirements')}:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li className={password.length >= 8 && password.length <= 72 ? 'text-green-600' : ''}>
+            {t('requirementsList.length')}
+          </li>
+          <li className={PASSWORD_REGEX.uppercase.test(password) ? 'text-green-600' : ''}>
+            {t('requirementsList.uppercase')}
+          </li>
+          <li className={PASSWORD_REGEX.lowercase.test(password) ? 'text-green-600' : ''}>
+            {t('requirementsList.lowercase')}
+          </li>
+          <li className={PASSWORD_REGEX.digit.test(password) ? 'text-green-600' : ''}>
+            {t('requirementsList.digit')}
+          </li>
+        </ul>
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-invite-code">{t('invitationCode')}</Label>
         <Input
           id="reg-invite-code"
+          name="invitation-code"
           type="text"
           value={invitationCode}
           onChange={(e) => setInvitationCode(e.target.value)}
           placeholder={t('invitationCodePlaceholder')}
           required
+          autoComplete="off"
         />
       </div>
       {error && (

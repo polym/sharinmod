@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,15 @@ export function LoginDialog() {
   const showLoginDialog = useAuthStore((state) => state.showLoginDialog);
   const setShowLoginDialog = useAuthStore((state) => state.setShowLoginDialog);
   const t = useTranslations('loginDialog');
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const searchParams = useSearchParams();
+
+  // Initialize tab from URL params
+  const getInitialTab = (): 'login' | 'register' => {
+    const tabParam = searchParams.get('tab');
+    return tabParam === 'register' ? 'register' : 'login';
+  };
+
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(getInitialTab());
 
   const handleOpenChange = (open: boolean) => {
     // Only allow opening; closing must happen via login success or cancel button
@@ -30,6 +39,22 @@ export function LoginDialog() {
       setShowLoginDialog(true);
     }
   };
+
+  // Check URL params on mount
+  useEffect(() => {
+    const showLoginParam = searchParams.get('showLogin');
+
+    // Auto-open dialog if showLogin=true
+    if (showLoginParam === 'true' && !showLoginDialog) {
+      setShowLoginDialog(true);
+    }
+
+    // Set tab based on URL param
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'register') {
+      setActiveTab('register');
+    }
+  }, []);
 
   const dialogTitle = activeTab === 'login' ? t('title') : t('registerTitle');
 

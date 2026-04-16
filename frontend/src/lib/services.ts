@@ -322,6 +322,16 @@ export const adminAPI = {
     start_time?: string;
     end_time?: string;
   }) => api.get('/api/admin/operation-logs', { params }),
+
+  // Invitation Codes API
+  getInvitationCodes: () =>
+    api.get('/api/admin/invitation-codes'),
+
+  createInvitationCodes: (count: number) =>
+    api.post('/api/admin/invitation-codes', null, { params: { count } }),
+
+  deleteInvitationCode: (id: number) =>
+    api.delete(`/api/admin/invitation-codes/${id}`),
 };
 
 // Model Config API - unified model catalog management

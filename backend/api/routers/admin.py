@@ -1362,7 +1362,19 @@ def list_invitation_codes(
 ):
     """List all invitation codes with their usage status. Admin only."""
     from sqlmodel import select as _select
-    items = db.exec(_select(_InvitationCode).order_by(_InvitationCode.created_at.desc())).all()
+    from sqlalchemy.orm import aliased
+
+    # 为 User 模型创建别名以避免 JOIN 冲突
+    Creator = aliased(User, name='creator')
+    UserAlias = aliased(User, name='user')
+
+    items = db.exec(
+        _select(_InvitationCode, Creator.email.label('creator_email'), UserAlias.email.label('user_email'))
+        .outerjoin(Creator, _InvitationCode.created_by_user_id == Creator.id)
+        .outerjoin(UserAlias, _InvitationCode.used_by_user_id == UserAlias.id)
+        .order_by(_InvitationCode.created_at.desc())
+    ).all()
+
     return {
         "codes": [
             {
@@ -1373,7 +1385,30 @@ def list_invitation_codes(
                 "used_at": c.used_at.isoformat() if c.used_at else None,
                 "created_at": c.created_at.isoformat(),
                 "is_used": c.used_by_user_id is not None,
+                "created_by_email": creator_email,
+                "used_by_email": user_email,
             }
-            for c in items
+            for c, creator_email, user_email in items
         ]
     }
+
+
+@router.delete("/invitation-codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_invitation_code(
+    code_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete an unused invitation code. Admin only."""
+    from sqlmodel import select as _select
+
+    code = db.exec(_select(_InvitationCode).where(_InvitationCode.id == code_id)).first()
+    if not code:
+        raise HTTPException(status_code=404, detail="Invitation code not found")
+
+    if code.used_by_user_id is not None:
+        raise HTTPException(status_code=400, detail="Cannot delete used invitation code")
+
+    db.delete(code)
+    db.commit()
+    return None
