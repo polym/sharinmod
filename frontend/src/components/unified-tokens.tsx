@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { Copy, Edit, Trash2, Check } from 'lucide-react';
-import { apiKeyAPI, adminAPI } from '@/lib/services';
+import { apiKeyAPI, adminAPI, organizationAPI } from '@/lib/services';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
@@ -72,16 +72,23 @@ export function UnifiedAPIKeys() {
   }, [orgId]);
 
   useEffect(() => {
-    const loadSystemSettings = async () => {
+    const loadDefaultLimit = async () => {
       try {
-        const configRes = await adminAPI.getSystemSettingsConfig();
-        setDefaultDailyTokenLimit(configRes.data.default_daily_token_limit);
+        // In organization context, use organization's default limit
+        if (orgId) {
+          const orgRes = await organizationAPI.getOrganizationSettings(orgId);
+          setDefaultDailyTokenLimit(orgRes.data.default_daily_token);
+        } else {
+          // In public area, use system default limit
+          const configRes = await adminAPI.getSystemSettingsConfig();
+          setDefaultDailyTokenLimit(configRes.data.default_daily_token_limit);
+        }
       } catch {
         setDefaultDailyTokenLimit(null);
       }
     };
-    loadSystemSettings();
-  }, []);
+    loadDefaultLimit();
+  }, [orgId]);
 
   const handleCreateUnifiedAPIKey = async () => {
     if (!name) {
