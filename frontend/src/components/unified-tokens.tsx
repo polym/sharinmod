@@ -382,10 +382,7 @@ export function UnifiedAPIKeys() {
       <Card className=" border border-[#282828] bg-[#181818]">
         <CardHeader className="p-6">
           <div className="flex justify-between items-center">
-            <div className="flex flex-col space-y-2">
-              <h3 className="text-2xl font-bold leading-none tracking-tight text-white">{t('title')}</h3>
-              <p className="text-sm text-[#b3b3b3] font-medium">{t('pageDescription')}</p>
-            </div>
+            <CardTitle>{t('title')}</CardTitle>
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="default">
@@ -444,7 +441,7 @@ export function UnifiedAPIKeys() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="border border-[#282828] rounded-2xl overflow-hidden">
+              <Table className="border border-[#282828]">
                 <TableHeader className="bg-[#282828]">
                   <TableRow>
                     <TableHead className="text-white font-bold">{t('name')}</TableHead>

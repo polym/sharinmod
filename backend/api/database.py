@@ -102,7 +102,8 @@ def initialize_admin_user(db: Session):
         hashed_password=hash_password(password),
         name=name,
         is_admin=True,
-        force_password_change=True
+        force_password_change=True,
+        email_verified=True  # Admin user doesn't need email verification
     )
 
     db.add(admin_user)
