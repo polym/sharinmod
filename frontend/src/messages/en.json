@@ -903,6 +903,7 @@
     "memberList": "Members ({count})",
     "noMembers": "No members yet. Click \"Invite User\" to add the first member",
     "inviteUser": "Invite User",
+    "settings": "Settings",
     "email": "Email",
     "roleLabel": "Role",
     "totalUsage": "Total Usage",
@@ -922,6 +923,14 @@
     "confirmDisableTitle": "Confirm Disable Member",
     "confirmEnableTitle": "Confirm Enable Member",
     "confirmRemoveTitle": "Confirm Remove Member",
+    "settingsDialog": {
+      "title": "Server Settings",
+      "description": "Set default daily token limit for new API Keys in private server",
+      "defaultDailyLimit": "Default Daily Token Limit",
+      "placeholder": "Leave empty to use system default",
+      "hint": "Leave empty to use system default limit, or set a value to use as default when members create new API Keys.",
+      "save": "Save"
+    },
     "inviteDialog": {
       "title": "Invite User to Private Server",
       "description": "Send the following link to the invited user. They can join the private server by logging in and clicking the link.",
@@ -959,7 +968,13 @@
       "linkCopiedHint": "Invite link copied to clipboard",
       "destroySuccess": "Private server destroyed",
       "destroySuccessDetail": "The private server and all its resources have been successfully deleted",
-      "destroyFailed": "Destroy failed"
+      "destroyFailed": "Destroy failed",
+      "settingsLoadFailed": "Settings Load Failed",
+      "settingsLoadFailedDetail": "Unable to load server settings",
+      "settingsSaved": "Settings Saved",
+      "settingsSavedDetail": "Server settings have been successfully updated",
+      "settingsSaveFailed": "Save Failed",
+      "settingsSaveFailedDetail": "Unable to save server settings"
     }
   },
   "chat": {

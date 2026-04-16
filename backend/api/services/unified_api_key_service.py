@@ -22,6 +22,18 @@ from api.utils.datetime import get_today_in_timezone
 MAX_API_KEYS_PER_USER = 5
 
 
+def _is_org_owner(session: Session, org_id: int, user_id: int) -> bool:
+    """Check if user is owner of given organization."""
+    membership = session.exec(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == user_id,
+            OrganizationMember.role == "owner",
+        )
+    ).first()
+    return membership is not None
+
+
 def _validate_org_membership(session: Session, user_id: int, organization_id: int) -> None:
     """Raise 403 if user is not a member/owner of the given organization."""
     membership = session.exec(
@@ -347,13 +359,22 @@ async def create_unified_api_key_async(
     litellm_key = litellm_result["key"]
     api_key_hash = litellm_result.get("token_id")
 
-    # Get daily token limit from system settings
+    # Get daily token limit from system settings or organization settings
     # For auto-created keys (claw), use claw-specific limit if set, otherwise use default
     if is_auto_created:
         claw_limit = get_claw_apikey_daily_token_limit(session)
         daily_limit = claw_limit if claw_limit is not None else get_default_daily_token_limit(session)
     else:
-        daily_limit = get_default_daily_token_limit(session)
+        # For organization keys, inherit organization's default limit if set
+        if organization_id is not None:
+            org = session.get(Organization, organization_id)
+            if org and org.default_daily_token_limit is not None:
+                daily_limit = org.default_daily_token_limit
+            else:
+                daily_limit = get_default_daily_token_limit(session)
+        else:
+            # For public area keys, use system default
+            daily_limit = get_default_daily_token_limit(session)
 
     # Create unified API key record with LiteLLM key and hash
     unified_api_key = UnifiedAPIKey(
@@ -862,20 +883,56 @@ async def update_unified_api_key_async(
                 status_code=400,
                 detail="Only administrators can set limit to 0 (unlimited)"
             )
-        # F3: Validate against system limit within transaction
+
+        # F3: Validate against system or organization limit
         # For auto-created keys (claws), use claw-specific limit if set, otherwise use default
         if api_key.is_auto_created:
             system_limit = get_claw_apikey_daily_token_limit(session)
             if system_limit is None:
                 system_limit = get_default_daily_token_limit(session)
+            if daily_token_limit > system_limit:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Limit cannot exceed system setting of {system_limit}"
+                )
         else:
-            system_limit = get_default_daily_token_limit(session)
-
-        if daily_token_limit > system_limit:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Limit cannot exceed system setting of {system_limit}"
-            )
+            # For organization keys, check if user is owner
+            if api_key.organization_id is not None:
+                is_owner = _is_org_owner(session, api_key.organization_id, user.id)
+                if is_owner:
+                    # Owner can set any value (within reason)
+                    # Still validate against system default as a sanity check
+                    system_limit = get_default_daily_token_limit(session)
+                    if daily_token_limit > system_limit * 2:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Limit exceeds reasonable maximum ({system_limit * 2})"
+                        )
+                else:
+                    # Member cannot exceed organization's default limit
+                    org = session.get(Organization, api_key.organization_id)
+                    if org and org.default_daily_token_limit is not None:
+                        if daily_token_limit > org.default_daily_token_limit:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Limit cannot exceed organization default of {org.default_daily_token_limit}"
+                            )
+                    else:
+                        # Fallback to system default if org has no default
+                        system_limit = get_default_daily_token_limit(session)
+                        if daily_token_limit > system_limit:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Limit cannot exceed system default of {system_limit}"
+                            )
+            else:
+                # For public area keys, validate against system limit
+                system_limit = get_default_daily_token_limit(session)
+                if daily_token_limit > system_limit:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Limit cannot exceed system setting of {system_limit}"
+                    )
         # F10: Log limit change for audit
         old_limit = api_key.daily_token_limit
         api_key.daily_token_limit = daily_token_limit

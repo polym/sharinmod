@@ -521,4 +521,10 @@ export const organizationAPI = {
 
   destroyOrganization: (orgId: number) =>
     api.delete(`/api/organizations/${orgId}`),
+
+  getOrganizationSettings: (orgId: number) =>
+    api.get(`/api/organizations/${orgId}/settings`),
+
+  updateOrganizationSettings: (orgId: number, data: { default_daily_token?: number | null }) =>
+    api.put(`/api/organizations/${orgId}/settings`, data),
 };

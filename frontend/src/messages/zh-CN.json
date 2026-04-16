@@ -903,6 +903,7 @@
     "memberList": "成员列表（{count} 人）",
     "noMembers": "暂无成员，点击「邀请用户」添加第一个成员",
     "inviteUser": "邀请用户",
+    "settings": "设置",
     "email": "用户名",
     "roleLabel": "角色",
     "totalUsage": "总使用",
@@ -922,6 +923,14 @@
     "confirmDisableTitle": "确认停用成员",
     "confirmEnableTitle": "确认启用成员",
     "confirmRemoveTitle": "确认移除成员",
+    "settingsDialog": {
+      "title": "私服设置",
+      "description": "设置私服内新建 API Keys 的默认每日 token 限额",
+      "defaultDailyLimit": "默认每日 token 限额",
+      "placeholder": "留空表示使用系统默认值",
+      "hint": "留空则使用系统默认限额；设置数值则使用该值作为成员创建新 API Key 的默认限额。",
+      "save": "保存"
+    },
     "inviteDialog": {
       "title": "邀请用户加入私服",
       "description": "将以下链接发送给受邀用户，对方登录后点击链接即可加入私服。",
@@ -959,7 +968,13 @@
       "linkCopiedHint": "邀请链接已复制到剪贴板",
       "destroySuccess": "私服已销毁",
       "destroySuccessDetail": "私服及其所有资源已成功删除",
-      "destroyFailed": "销毁失败"
+      "destroyFailed": "销毁失败",
+      "settingsLoadFailed": "加载设置失败",
+      "settingsLoadFailedDetail": "无法加载私服设置",
+      "settingsSaved": "设置已保存",
+      "settingsSavedDetail": "私服设置已成功更新",
+      "settingsSaveFailed": "保存失败",
+      "settingsSaveFailedDetail": "无法保存私服设置"
     }
   },
   "chat": {
