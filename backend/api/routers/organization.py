@@ -409,10 +409,7 @@ def create_invite(
     db: Session = Depends(get_db)
 ):
     """Generate an invite link for an organization (org owner only)"""
-    organization = _require_org_owner(org_id, current_user, db)
-
-    if organization.is_personal:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="个人组织不支持邀请成员")
+    _require_org_owner(org_id, current_user, db)
 
     token = str(uuid.uuid4())
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
