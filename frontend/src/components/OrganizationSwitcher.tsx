@@ -111,7 +111,10 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
   };
 
   const allOrganizations = [...(myOrganizations?.owned ?? []), ...(myOrganizations?.joined ?? [])];
-  const getOrgDisplayName = (org: Organization) => org.is_personal ? t('personalWorkspace') : org.name;
+  const ownedOrgIds = new Set((myOrganizations?.owned ?? []).map(o => o.id));
+  // Only show "个人工作区" for the current user's own personal org, not for personal orgs they joined
+  const getOrgDisplayName = (org: Organization) =>
+    org.is_personal && ownedOrgIds.has(org.id) ? t('personalWorkspace') : org.name;
 
   return (
     <DropdownMenu>
@@ -133,7 +136,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           {variant === 'sidebar' ? (
             <>
               <span className="truncate">
-                {currentOrganization?.is_personal ? t('personalWorkspace') : (currentOrganization?.name || tCommon('loading'))}
+                {currentOrganization ? getOrgDisplayName(currentOrganization) : tCommon('loading')}
               </span>
               <ChevronDown className="w-4 h-4 flex-shrink-0 text-[#535353] transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </>
@@ -143,7 +146,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
                 'text-sm font-semibold truncate',
                 'text-[#1ed760]'
               )}>
-                {currentOrganization?.is_personal ? t('personalWorkspace') : (currentOrganization?.name || tCommon('loading'))}
+                {currentOrganization ? getOrgDisplayName(currentOrganization) : tCommon('loading')}
               </span>
               <ChevronDown className={cn(
                 'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
