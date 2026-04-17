@@ -36,7 +36,7 @@ def create_personal_organization(db: Session, user: User) -> Organization:
             return existing_org
 
     base_name = user.name or user.email.split('@')[0]
-    org_name = f"{base_name}的个人工作区"
+    org_name = f"{base_name}'s 个人工作区"
     # Always include user_id in slug for guaranteed global uniqueness (no SELECT-then-INSERT race)
     slug = _sanitize_slug(base_name) + f'-personal-{user.id}'
 

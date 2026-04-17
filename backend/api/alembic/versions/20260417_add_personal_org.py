@@ -33,7 +33,7 @@ def upgrade() -> None:
     op.execute("""
         INSERT INTO organizations (name, slug, is_personal, created_at, updated_at, default_daily_token_limit)
         SELECT
-            COALESCE(NULLIF(u.name, ''), split_part(u.email, '@', 1)) || '的个人工作区',
+            COALESCE(NULLIF(u.name, ''), split_part(u.email, '@', 1)) || '''s 个人工作区',
             COALESCE(
                 NULLIF(regexp_replace(lower(COALESCE(NULLIF(u.name, ''), split_part(u.email, '@', 1))), '[^a-z0-9]+', '-', 'g'), ''),
                 'user'
