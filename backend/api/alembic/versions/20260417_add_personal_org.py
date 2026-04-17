@@ -19,7 +19,17 @@ def upgrade() -> None:
     # Add is_personal column with default False (existing orgs are not personal)
     op.add_column('organizations', sa.Column('is_personal', sa.Boolean(), nullable=False, server_default='false'))
 
-    # Step A: Create personal orgs for users who have no owner membership
+    # Step A: For users who already own an org, mark that org as their personal org.
+    # (Each user can own at most one org due to the unique constraint on (user_id, role).)
+    op.execute("""
+        UPDATE organizations o
+        SET is_personal = true
+        FROM organization_members m
+        WHERE m.organization_id = o.id
+          AND m.role = 'owner'
+    """)
+
+    # Step B: Create personal orgs for users who have NO owner membership at all.
     op.execute("""
         INSERT INTO organizations (name, slug, is_personal, created_at, updated_at, default_daily_token_limit)
         SELECT
@@ -38,7 +48,7 @@ def upgrade() -> None:
         )
     """)
 
-    # Step B: Create owner memberships for the newly created personal orgs
+    # Step C: Create owner memberships for the newly created personal orgs (Step B users only).
     op.execute("""
         INSERT INTO organization_members (organization_id, user_id, role, is_disabled, created_at)
         SELECT
@@ -49,7 +59,7 @@ def upgrade() -> None:
             NOW()
         FROM users u
         JOIN organizations o ON o.slug = COALESCE(
-                NULLIF(regexp_replace(lower(COALESCE(u.name, split_part(u.email, '@', 1))), '[^a-z0-9]+', '-', 'g'), ''),
+                NULLIF(regexp_replace(lower(COALESCE(NULLIF(u.name, ''), split_part(u.email, '@', 1))), '[^a-z0-9]+', '-', 'g'), ''),
                 'user'
             ) || '-personal-' || u.id::text
         WHERE o.is_personal = true
@@ -61,7 +71,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Delete personal org memberships first, then personal orgs, then drop column
-    op.execute("DELETE FROM organization_members WHERE organization_id IN (SELECT id FROM organizations WHERE is_personal = true)")
-    op.execute("DELETE FROM organizations WHERE is_personal = true")
+    # Revert Step C: delete memberships for orgs that were newly created (slug contains '-personal-')
+    op.execute("DELETE FROM organization_members WHERE organization_id IN (SELECT id FROM organizations WHERE is_personal = true AND slug LIKE '%-personal-%')")
+    # Revert Step B: delete newly created personal orgs
+    op.execute("DELETE FROM organizations WHERE is_personal = true AND slug LIKE '%-personal-%'")
+    # Revert Step A: un-mark orgs that were already owned (they existed before migration)
+    op.execute("UPDATE organizations SET is_personal = false WHERE is_personal = true")
     op.drop_column('organizations', 'is_personal')
