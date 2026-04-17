@@ -111,6 +111,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
   };
 
   const allOrganizations = [...(myOrganizations?.owned ?? []), ...(myOrganizations?.joined ?? [])];
+  const getOrgDisplayName = (org: Organization) => org.is_personal ? t('personalWorkspace') : org.name;
 
   return (
     <DropdownMenu>
@@ -132,7 +133,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
           {variant === 'sidebar' ? (
             <>
               <span className="truncate">
-                {currentOrganization?.name || tCommon('loading')}
+                {currentOrganization?.is_personal ? t('personalWorkspace') : (currentOrganization?.name || tCommon('loading'))}
               </span>
               <ChevronDown className="w-4 h-4 flex-shrink-0 text-[#535353] transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </>
@@ -142,7 +143,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
                 'text-sm font-semibold truncate',
                 'text-[#1ed760]'
               )}>
-                {currentOrganization?.name || tCommon('loading')}
+                {currentOrganization?.is_personal ? t('personalWorkspace') : (currentOrganization?.name || tCommon('loading'))}
               </span>
               <ChevronDown className={cn(
                 'w-3.5 h-3.5 flex-shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180',
@@ -163,7 +164,7 @@ export function OrganizationSwitcher({ variant = 'header' }: { variant?: 'header
               className="cursor-pointer flex items-center justify-between py-2"
               onClick={() => handleSelectOrganization(org)}
             >
-              <span className="text-sm font-medium text-white truncate">{org.name}</span>
+              <span className="text-sm font-medium text-white truncate">{getOrgDisplayName(org)}</span>
               {isSelected && <Check className="w-4 h-4 text-[#1ed760] flex-shrink-0" />}
             </DropdownMenuItem>
           );

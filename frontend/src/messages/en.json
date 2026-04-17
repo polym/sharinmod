@@ -16,6 +16,7 @@
     "adminSettings": "System Settings",
     "adminInvitationCodes": "Invitation Codes",
     "orgNotFound": "This private server no longer exists or you have been removed. Switched to default.",
+    "personalWorkspace": "Personal Workspace",
     "orgSwitchFailed": "Failed to switch private server. Please try again.",
     "createOrganization": "Create Private Server",
     "privateServerTitle": "Share with your team?",
