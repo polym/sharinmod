@@ -86,10 +86,11 @@ async def litellm_spendlog_callback(
         # Get raw request body
         callback_data = await request.json()
 
-        # Log raw request body for debugging
+        # Log raw request body for debugging (with truncation)
+        raw_json_str = json.dumps(callback_data, indent=2, ensure_ascii=False)
         logger.info("=" * 80)
         logger.info("[WEBHOOK] Received LiteLLM spendlog callback request")
-        logger.info(f"[WEBHOOK] Raw request body:\n{json.dumps(callback_data, indent=2, ensure_ascii=False)}")
+        logger.info(f"[WEBHOOK] Raw request body:\n{truncate_json_str(raw_json_str)}")
         logger.info("=" * 80)
 
         # Handle both single object and array of callbacks
