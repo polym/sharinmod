@@ -300,14 +300,16 @@ export default function MyTeamPage() {
           <div className="flex justify-between items-center">
             <CardTitle>{t('title')}</CardTitle>
             <div className="flex items-center gap-2">
-              <Button
-                variant="destructive"
-                onClick={() => { setDestroyConfirmName(''); setShowDestroyDialog(true); }}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-              >
-                <Flame className="w-4 h-4" />
-                {t('destroyServer')}
-              </Button>
+              {isOrgOwner && !currentOrganization?.is_personal && (
+                <Button
+                  variant="destructive"
+                  onClick={() => { setDestroyConfirmName(''); setShowDestroyDialog(true); }}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+                >
+                  <Flame className="w-4 h-4" />
+                  {t('destroyServer')}
+                </Button>
+              )}
               <Button
                 onClick={async () => {
                   setShowSettingsDialog(true);

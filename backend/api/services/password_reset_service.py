@@ -163,6 +163,10 @@ async def create_user_with_reset_token(db: Session, email: str) -> Tuple[bool, O
     db.commit()
     db.refresh(user)
 
+    # Auto-create personal organization for the new admin-created user
+    from api.services.organization_service import create_personal_organization
+    create_personal_organization(db, user)
+
     # Create reset token
     reset_token = create_reset_token(db, user)
     return True, reset_token, None

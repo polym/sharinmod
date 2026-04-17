@@ -5,7 +5,6 @@ import { LoginDialog } from '@/components/LoginDialog'
 import { ChangePasswordDialog } from '@/components/ChangePasswordDialog'
 import { ChangePasswordDialogFromMenu } from '@/components/ChangePasswordDialogFromMenu'
 import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
-import { CreateOrganizationDialog } from '@/components/CreateOrganizationDialog'
 import { ProfileDialog } from '@/components/ProfileDialog'
 import { InviteDialog } from '@/components/InviteDialog'
 import { I18nProvider } from '@/lib/i18n-provider'
@@ -30,7 +29,6 @@ export default function RootLayout({
           <ChangePasswordDialog />
           <ChangePasswordDialogFromMenu />
           <ResetPasswordDialog />
-          <CreateOrganizationDialog />
           <ProfileDialog />
           <InviteDialog />
           <MainLayoutWrapper>

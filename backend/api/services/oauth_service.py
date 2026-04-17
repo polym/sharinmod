@@ -166,6 +166,10 @@ async def get_or_create_github_user(db: Session, github_user_info: dict) -> User
     db.commit()
     db.refresh(new_user)
 
+    # Auto-create personal organization for the new GitHub user
+    from api.services.organization_service import create_personal_organization
+    create_personal_organization(db, new_user)
+
     return new_user
 
 
@@ -244,6 +248,10 @@ async def get_or_create_gitlab_user(db: Session, gitlab_user_info: dict) -> User
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Auto-create personal organization for the new GitLab user
+    from api.services.organization_service import create_personal_organization
+    create_personal_organization(db, new_user)
 
     return new_user
 

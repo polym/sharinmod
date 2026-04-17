@@ -26,6 +26,7 @@ export interface Organization {
   slug: string;
   created_at: string;
   updated_at: string;
+  is_personal: boolean;
 }
 
 export interface MyOrganizationsData {
@@ -46,7 +47,7 @@ interface AuthState {
   redirectAfterLogin: string | null;
   _isLoggingOut: boolean; // Internal flag to prevent 401 race conditions
   // Organization state
-  currentOrganization: Organization | null; // null = 公区
+  currentOrganization: Organization | null; // null only during initial hydration before personal org is selected
   myOrganizations: MyOrganizationsData | null; // cached org membership data
   showCreateOrganizationDialog: boolean;
   login: (user: User, token: string) => void;

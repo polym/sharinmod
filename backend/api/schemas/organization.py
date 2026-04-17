@@ -18,6 +18,7 @@ class OrganizationResponse(BaseModel):
     slug: str
     created_at: datetime
     updated_at: datetime
+    is_personal: bool = False
 
 
 class OrganizationMemberResponse(BaseModel):

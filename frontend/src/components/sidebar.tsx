@@ -13,8 +13,6 @@ import {
   Menu,
   X,
   Bot,
-  Building2,
-  ArrowRight,
   Blocks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,9 +52,8 @@ function SidebarContent() {
   const pathname = usePathname();
   const t = useTranslations('sidebar');
   const tQuickCall = useTranslations('quickCall');
-  const { currentOrganization, myOrganizations, isAuthenticated, setShowCreateOrganizationDialog } = useAuthStore();
+  const { currentOrganization, myOrganizations, isAuthenticated } = useAuthStore();
   const isOrgOwner = !!currentOrganization && (myOrganizations?.owned.some(o => o.id === currentOrganization.id) ?? false);
-  const hasNoOrg = isAuthenticated && !currentOrganization;
 
   const mainNavItems = [
     { icon: <Store className="w-4 h-4" />, label: t('marketplace'), href: "/marketplace" },
@@ -112,30 +109,6 @@ function SidebarContent() {
 
       {/* Bottom Actions */}
       <div className="space-y-2 pt-2">
-        {/* Private Registry CTA - guide users to create their own space */}
-        {hasNoOrg && (
-          <div className="rounded-lg bg-[#1f1f1f] border border-[#282828] p-3">
-            <div className="flex items-start gap-2 mb-2.5">
-              <div
-                className="w-7 h-7 rounded-md bg-[#1ed760] flex items-center justify-center flex-shrink-0"
-                
-              >
-                <Building2 className="w-3.5 h-3.5 text-white" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-white leading-tight">{t('privateServerTitle')}</p>
-                <p className="text-[11px] text-[#b3b3b3] mt-0.5 leading-relaxed">{t('privateServerDesc')}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowCreateOrganizationDialog(true)}
-              className="w-full flex items-center justify-center gap-1 text-xs py-1.5 px-3 bg-[#1ed760] hover:bg-[#1ed760]/90 active:bg-[#1ed760]/70 text-[#121212] rounded-md font-medium transition-colors cursor-pointer"
-            >
-              {t('createNow')}
-              <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

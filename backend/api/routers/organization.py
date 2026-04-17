@@ -50,7 +50,8 @@ def org_to_response(organization: Organization) -> OrganizationResponse:
         name=organization.name,
         slug=organization.slug,
         created_at=organization.created_at,
-        updated_at=organization.updated_at
+        updated_at=organization.updated_at,
+        is_personal=organization.is_personal,
     )
 
 
@@ -100,76 +101,17 @@ def _toggle_user_org_keys(db: Session, user_id: int, org_id: int, block: bool) -
             logger.error(f"Failed to {action_name} LiteLLM key for user {user_id} in org {org_id}: {e}")
 
 
-@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_410_GONE)
 def create_organization(
     organization_data: OrganizationCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Create a new organization for the current user
-
-    Args:
-        organization_data: Organization name
-        current_user: Current authenticated user
-        db: Database session
-
-    Returns:
-        Created organization
-
-    Raises:
-        HTTPException 400: User already owns an organization
-        HTTPException 400: Organization name (slug) already exists
-    """
-    # Check if user already owns an organization
-    existing_owner = db.exec(
-        select(OrganizationMember).where(
-            OrganizationMember.user_id == current_user.id,
-            OrganizationMember.role == "owner"
-        )
-    ).first()
-
-    if existing_owner:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="您已创建私服，每个用户只能创建一个私服"
-        )
-
-    # Generate slug from name
-    slug = generate_slug(organization_data.name)
-
-    # Check if slug already exists
-    existing_org = db.exec(
-        select(Organization).where(Organization.slug == slug)
-    ).first()
-
-    if existing_org:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="组织名称已被使用"
-        )
-
-    # Create organization
-    organization = Organization(
-        name=organization_data.name,
-        slug=slug
+    """Create organization endpoint - disabled, system auto-creates personal org"""
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="该功能已停用，系统将自动为您创建个人工作区"
     )
-    db.add(organization)
-    db.commit()
-    db.refresh(organization)
-
-    # Create owner membership
-    membership = OrganizationMember(
-        organization_id=organization.id,
-        user_id=current_user.id,
-        role="owner"
-    )
-    db.add(membership)
-    db.commit()
-
-    logger.info(f"Organization created: {organization.id} ({organization.slug}) by user {current_user.id}")
-
-    return org_to_response(organization)
 
 
 @router.get("/my", response_model=MyOrganizationsResponse)
@@ -266,19 +208,6 @@ def accept_invite(
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="组织不存在")
 
-    # Check if user already owns an org
-    existing_owner = db.exec(
-        select(OrganizationMember).where(
-            OrganizationMember.user_id == current_user.id,
-            OrganizationMember.role == "owner",
-        )
-    ).first()
-    if existing_owner:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="您已拥有私服，无法加入其他私服"
-        )
-
     # Check if user already is a member of any org
     existing_member = db.exec(
         select(OrganizationMember).where(
@@ -290,6 +219,19 @@ def accept_invite(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="您已加入私服，每个用户只能加入一个私服"
+        )
+
+    # Check if user is already in this specific org (e.g. the owner trying to join)
+    already_in_org = db.exec(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == invite.organization_id,
+            OrganizationMember.user_id == current_user.id,
+        )
+    ).first()
+    if already_in_org:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="您已是该组织成员"
         )
 
     # Create membership and mark invite as used
@@ -467,7 +409,10 @@ def create_invite(
     db: Session = Depends(get_db)
 ):
     """Generate an invite link for an organization (org owner only)"""
-    _require_org_owner(org_id, current_user, db)
+    organization = _require_org_owner(org_id, current_user, db)
+
+    if organization.is_personal:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="个人组织不支持邀请成员")
 
     token = str(uuid.uuid4())
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
@@ -540,6 +485,13 @@ async def destroy_organization(
     """
     # F9 fix: reuse org returned by _require_org_owner instead of fetching twice
     organization = _require_org_owner(org_id, current_user, db)
+
+    # Prevent deletion of personal organizations
+    if organization.is_personal:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="个人组织不允许删除"
+        )
 
     # --- Step 1: LiteLLM cleanup for SharedAPIKeys ---
     shared_keys = db.exec(

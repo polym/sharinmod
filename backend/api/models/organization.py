@@ -36,3 +36,4 @@ class Organization(SQLModel, table=True):
         sa_type=BigInteger(),
         description="Default daily token limit for API keys in this organization"
     )
+    is_personal: bool = Field(default=False, description="Whether this is a personal organization auto-created for the user")

@@ -14,6 +14,7 @@ from api.models.user import User
 from api.utils.security import hash_password
 from api.utils.token_generator import generate_unified_token
 from api.services.oauth_service import create_user_in_litellm
+from api.services.organization_service import create_personal_organization
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,12 @@ async def register_user(
     invite.used_at = datetime.now(timezone.utc)
     db.add(invite)
     db.commit()
+
+    # Auto-create personal organization for the new user (non-blocking on error)
+    try:
+        create_personal_organization(db, user)
+    except Exception as exc:
+        logger.warning("[Registration] Failed to create personal org for user %s: %s", user.id, exc)
 
     # 5. Create verification token
     token = create_email_verification_token(db, user)
