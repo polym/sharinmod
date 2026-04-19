@@ -3,7 +3,7 @@ Service layer for unified API key management
 """
 from sqlmodel import Session, select
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 import httpx
 
@@ -85,7 +85,7 @@ async def generate_litellm_key(
     # Format: {user_email}/{key_name} to avoid naming conflicts across users
     email_prefix = user.email.lower()
     async with httpx.AsyncClient(timeout=10.0) as client:
-        base_alias = f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.utcnow().isoformat()}'}"
+        base_alias = f"{email_prefix}/{api_key_name or f'unified_api_key_{datetime.now(timezone.utc).isoformat()}'}"
         key_alias = f"{base_alias}/org-{organization_id}" if organization_id else f"{base_alias}/public"
         payload = {
             "user_id": user.litellm_user_id,
@@ -483,7 +483,7 @@ def revoke_unified_api_key(
     
     # Revoke API key
     api_key.status = UnifiedAPIKeyStatus.REVOKED
-    api_key.revoked_at = datetime.utcnow()
+    api_key.revoked_at = datetime.now(timezone.utc)
     
     session.add(api_key)
     session.commit()
@@ -544,7 +544,7 @@ async def block_unified_api_key_async(
 
     # Revoke API key
     api_key.status = UnifiedAPIKeyStatus.REVOKED
-    api_key.revoked_at = datetime.utcnow()
+    api_key.revoked_at = datetime.now(timezone.utc)
 
     session.add(api_key)
     session.commit()
@@ -846,7 +846,7 @@ async def update_unified_api_key_async(
                     )
             # Only modify state after LiteLLM call succeeds
             api_key.status = status
-            api_key.revoked_at = datetime.utcnow()
+            api_key.revoked_at = datetime.now(timezone.utc)
 
         # If changing from REVOKED to ACTIVE, unlock the key first before modifying state
         elif status == UnifiedAPIKeyStatus.ACTIVE and old_status == UnifiedAPIKeyStatus.REVOKED:

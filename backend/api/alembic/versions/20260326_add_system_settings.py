@@ -9,7 +9,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.sql import table, column
-from datetime import datetime
+from datetime import datetime, timezone
 
 revision: str = '20260326_add_system_settings'
 down_revision: Union[str, None] = '20260323_add_chat_tool_to_claws'
@@ -43,8 +43,8 @@ def upgrade() -> None:
             'key': 'default_daily_token_limit',
             'value': '100000',
             'description': 'Default daily token limit for new API keys',
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
         }
     ])
 

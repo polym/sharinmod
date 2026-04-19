@@ -4,7 +4,7 @@ Tests for LiteLLM integration in unified API keys
 Test Coverage:
 - LiteLLM key generation on API key creation
 - LiteLLM key blocking on API key block
-- LiteLLM key deletion on API key deletion  
+- LiteLLM key deletion on API key deletion
 - LiteLLM key regeneration
 - Error handling for missing litellm_user_id
 """
@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, create_engine, SQLModel, select
 from sqlmodel.pool import StaticPool
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 from api.app import create_app
@@ -166,7 +166,7 @@ async def test_delete_unified_api_key(
         status=UnifiedAPIKeyStatus.REVOKED,
         api_key_name="Test API Key",
         litellm_key="sk-litellm-test-key-67890",
-        revoked_at=datetime.utcnow()
+        revoked_at=datetime.now(timezone.utc)
     )
     session.add(api_key)
     session.commit()

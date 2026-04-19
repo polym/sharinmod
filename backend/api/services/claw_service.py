@@ -3,7 +3,7 @@ Service layer for Claw management
 """
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict
 
 from fastapi import HTTPException
@@ -217,7 +217,7 @@ async def create_claw_async(session: Session, current_user: User, data: ClawCrea
     # Update with deployment name and running status
     claw.k8s_deployment_name = deployment_name
     claw.status = ClawStatus.RUNNING
-    claw.updated_at = datetime.utcnow()
+    claw.updated_at = datetime.now(timezone.utc)
     session.add(claw)
     session.commit()
     session.refresh(claw)
@@ -228,7 +228,7 @@ def update_claw_name(session: Session, user_id: int, claw_id: int, data: ClawUpd
     """Update the name of a claw."""
     claw = get_user_claw_by_id(session, user_id, claw_id)
     claw.name = data.name
-    claw.updated_at = datetime.utcnow()
+    claw.updated_at = datetime.now(timezone.utc)
     session.add(claw)
     session.commit()
     session.refresh(claw)

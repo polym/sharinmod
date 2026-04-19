@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 from unittest.mock import patch, AsyncMock
-from datetime import datetime
+from datetime import datetime, timezone
 
 from api.app import create_app
 from api.config import settings
@@ -75,7 +75,7 @@ def shared_api_keys_fixture(session: Session, users):
         encrypted_api_key=encrypt_token("userb-bigmodel-api-key"),
         status=APIKeyStatus.ACTIVE,
         total_uses=5,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
 
     # User C shares a z.ai API key
@@ -85,7 +85,7 @@ def shared_api_keys_fixture(session: Session, users):
         encrypted_api_key=encrypt_token("userc-zai-api-key"),
         status=APIKeyStatus.ACTIVE,
         total_uses=10,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     
     session.add(api_key_b)

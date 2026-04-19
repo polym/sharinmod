@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSo
 from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlmodel import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import httpx
 import asyncio
@@ -172,7 +172,7 @@ async def restart_claw(
 
     # 立即更新数据库状态为 PENDING（重启中）
     claw.status = ClawStatus.PENDING
-    claw.updated_at = datetime.utcnow()
+    claw.updated_at = datetime.now(timezone.utc)
     session.add(claw)
     session.commit()
     session.refresh(claw)
@@ -363,7 +363,7 @@ def set_chat_tool(
 
         # 命令执行完成后更新数据库
         claw.chat_tool = request.chat_tool
-        claw.updated_at = datetime.utcnow()
+        claw.updated_at = datetime.now(timezone.utc)
         session.add(claw)
         session.commit()
         yield f"data: [对话工具已设置为: {request.chat_tool}]\n\n"

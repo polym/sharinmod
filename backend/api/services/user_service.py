@@ -3,7 +3,7 @@ User service layer for business logic
 """
 import logging
 from sqlmodel import Session, select, func
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Tuple, Optional, Dict, Any
 from api.models.user import User
 from api.models.subscription import Subscription
@@ -48,7 +48,7 @@ def update_user_profile(db: Session, user: User, profile_data: UserProfileUpdate
         setattr(user, field, value)
     
     # Update timestamp
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     
     db.add(user)
     db.commit()
@@ -166,7 +166,7 @@ def grant_admin_privilege(db: Session, user_id: int) -> User | None:
     user = db.get(User, user_id)
     if user:
         user.is_admin = True
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -187,7 +187,7 @@ def revoke_admin_privilege(db: Session, user_id: int) -> User | None:
     user = db.get(User, user_id)
     if user:
         user.is_admin = False
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -208,7 +208,7 @@ def change_password(db: Session, user: User, new_password: str) -> User:
     """
     user.hashed_password = hash_password(new_password)
     user.force_password_change = False
-    user.updated_at = datetime.utcnow()
+    user.updated_at = datetime.now(timezone.utc)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -256,7 +256,7 @@ def disable_user(db: Session, user_id: int) -> User | None:
     user = db.get(User, user_id)
     if user:
         user.is_disabled = True
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -278,7 +278,7 @@ def enable_user(db: Session, user_id: int) -> User | None:
     user = db.get(User, user_id)
     if user:
         user.is_disabled = False
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -299,8 +299,8 @@ def soft_delete_user(db: Session, user_id: int) -> User | None:
     """
     user = db.get(User, user_id)
     if user:
-        user.deleted_at = datetime.utcnow()
-        user.updated_at = datetime.utcnow()
+        user.deleted_at = datetime.now(timezone.utc)
+        user.updated_at = datetime.now(timezone.utc)
         db.add(user)
         db.commit()
         db.refresh(user)

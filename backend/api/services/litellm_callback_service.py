@@ -315,7 +315,7 @@ def update_token_statistics(
             # This ensures Redis data is consistent with database state
             redis_client = get_redis_client()
             if redis_client:
-                hour_key = datetime.utcnow().strftime("%Y%m%d%H")
+                hour_key = datetime.now(timezone.utc).strftime("%Y%m%d%H")
                 redis_key = f"sharinmod:subscription:{subscription.id}:hourly_tokens"
                 try:
                     # Only set TTL if this is a new key (optimization)
