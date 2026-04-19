@@ -2,7 +2,7 @@
 Password reset service layer for business logic
 """
 from sqlmodel import Session, select
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple
 from api.models.user import User
 from api.models.password_reset_token import PasswordResetToken
@@ -16,8 +16,8 @@ TOKEN_EXPIRY_HOURS = 24
 
 
 def _utcnow() -> datetime:
-    """Get current UTC time as naive datetime (for database compatibility)"""
-    return datetime.utcnow()
+    """Get current UTC time as timezone-aware datetime (for database compatibility)"""
+    return datetime.now(timezone.utc)
 
 
 def create_reset_token(db: Session, user: User) -> PasswordResetToken:
