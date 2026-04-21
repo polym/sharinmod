@@ -128,7 +128,14 @@
       "tenThousand": "万"
     },
     "statusEnabled": "已启用",
-    "statusDisabled": "已停用"
+    "statusDisabled": "已停用",
+    "rateLimit": {
+      "status": "超限",
+      "recoverAfter": "后恢复",
+      "hours": "小时",
+      "minutes": "分钟",
+      "recovered": "已恢复"
+    }
   },
   "marketplace": {
     "searchPlaceholder": "搜索模型名称或描述...",

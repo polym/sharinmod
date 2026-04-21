@@ -5,13 +5,15 @@ Handles:
 -   Enqueuing callbacks to Redis
 - Processing callbacks from queue
 - Updating token statistics
+- Rate limit error handling
 """
 import json
 import logging
 import redis
+import re
 import threading
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlmodel import Session, select
 from sqlalchemy import text
@@ -534,6 +536,15 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
             if callback.error_information:
                 error_code = callback.error_information.error_code
 
+            # Handle rate limit error (429)
+            if error_code == "429" and subscription and error_str:
+                shared_key_statement = select(SharedAPIKey).where(
+                    SharedAPIKey.id == subscription.shared_api_key_id
+                )
+                shared_key = session.exec(shared_key_statement).first()
+                if shared_key:
+                    handle_rate_limit_error(session, shared_key, error_str)
+
             # Truncate error_str to prevent exceeding database column limit
             # Max error_details column is 20000 chars, leave room for JSON structure and multiple errors
             MAX_ERROR_STR_LENGTH = 5000
@@ -649,4 +660,86 @@ def process_callback(session: Session, callback_data: Dict[str, Any]) -> bool:
 
     except Exception as e:
         logger.error(f"Error processing callback: {e}")
+        return False
+
+
+def parse_rate_limit_reset_time(error_str: str) -> Optional[datetime]:
+    """
+    Extract reset time from rate limit error message
+
+    Expected formats:
+    - "It will reset at 2026-04-30 23:59:59 +0800 CST"
+    - "This model has reached its rate limit. It will reset at 2026-04-30 23:59:59 +0800 CST"
+
+    Args:
+        error_str: Error message string
+
+    Returns:
+        Datetime with timezone or None
+    """
+    # Match pattern: "reset at YYYY-MM-DD HH:MM:SS +ZZZZ CST"
+    # Supports timezone formats like +0800, -0500 (4 digits without colon)
+    pattern = r"reset at\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+([+-]\d{4})\s+CST"
+    match = re.search(pattern, error_str, re.IGNORECASE)
+    if match:
+        time_str = match.group(1)
+        offset_str = match.group(2)
+        try:
+            # Parse datetime without timezone
+            dt = datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+            # Parse timezone offset (format: +0800 or -0500)
+            sign = 1 if offset_str[0] == '+' else -1
+            offset_hours = sign * int(offset_str[1:3])
+            offset_mins = sign * int(offset_str[3:5])
+            tz = timezone(timedelta(hours=offset_hours, minutes=offset_mins))
+            return dt.replace(tzinfo=tz)
+        except Exception as e:
+            logger.error(f"Failed to parse reset time: {e}, time_str={time_str}, offset_str={offset_str}")
+    return None
+
+
+def handle_rate_limit_error(session: Session, shared_api_key: SharedAPIKey, error_str: str) -> bool:
+    """
+    Handle 429 rate limit error for a shared API key
+
+    Args:
+        session: Database session
+        shared_api_key: SharedAPIKey instance to update
+        error_str: Error message string
+
+    Returns:
+        True if handled successfully, False otherwise
+    """
+    from api.models.shared_api_key import APIKeyStatus
+
+    # Only handle active keys
+    if shared_api_key.status != APIKeyStatus.ACTIVE:
+        logger.info(f"SharedAPIKey {shared_api_key.id} already inactive, skipping rate limit handling")
+        return False
+
+    try:
+        # Try to parse reset time from error message
+        reset_time = parse_rate_limit_reset_time(error_str)
+        if not reset_time:
+            # Fallback to 1 hour from now
+            reset_time = datetime.now(timezone.utc) + timedelta(hours=1)
+            logger.warning(f"Failed to parse reset time, using 1h fallback for key {shared_api_key.id}")
+
+        # Backup current models and disable the key
+        backup_models = shared_api_key.user_selected_models
+
+        shared_api_key.status = APIKeyStatus.INACTIVE
+        shared_api_key.rate_limit_reset_at = reset_time
+        shared_api_key.rate_limit_models_backup = backup_models
+        session.add(shared_api_key)
+        session.commit()
+
+        logger.info(
+            f"Rate limited SharedAPIKey {shared_api_key.id}, "
+            f"reset at {reset_time}, models backed up"
+        )
+        return True
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to handle rate limit error for key {shared_api_key.id}: {e}")
         return False

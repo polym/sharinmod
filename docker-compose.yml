@@ -65,6 +65,30 @@ services:
       - ./etc/config.yaml:/srv/config.yaml:ro
       - /etc/localtime:/etc/localtime:ro
 
+  # Consumer for rate limit recovery
+  rate-limit-recovery-consumer:
+    image: sharinmod-backend:${VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - redis
+      - backend
+    networks:
+      - my-network
+    env_file:
+      - ./.env
+    environment:
+      - CONFIG_PATH=/srv/config.yaml
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    command: ["python", "-m", "api.consumers.rate_limit_recovery_consumer"]
+    volumes:
+      - ./backend:/app
+      - ./etc/config.yaml:/srv/config.yaml:ro
+      - /etc/localtime:/etc/localtime:ro
+
   db:
     image: postgres:15-alpine
     restart: always

@@ -10,6 +10,9 @@ export interface SharedAPIKey {
   provider_website?: string;
   provider_display_name?: string;
   provider_logo_path?: string;
+  // Rate limit fields
+  rate_limit_reset_at?: string;
+  rate_limit_models_backup?: string;
 }
 
 export interface ChartDataPoint {

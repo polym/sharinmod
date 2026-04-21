@@ -225,6 +225,7 @@ export function MySharedPage() {
   const t = useTranslations('shared');
   const tCommon = useTranslations('common');
   const tStats = useTranslations('shared.stats');
+  const tRateLimit = useTranslations('shared.rateLimit');
   const { currentOrganization } = useAuthStore();
 
   const [sharedAPIKeys, setSharedAPIKeys] = useState<SharedAPIKey[]>([]);
@@ -277,7 +278,30 @@ export function MySharedPage() {
     }
   };
 
+  // Auto-refresh keys when any has rate limit (every 30 seconds)
+  const refreshRateLimitKeys = async () => {
+    // Check if any key has rate_limit_reset_at
+    const hasRateLimitKey = sharedAPIKeys.some(key => key.rate_limit_reset_at);
+    if (!hasRateLimitKey) return;
+
+    try {
+      const response = await apiKeyAPI.getMySharedAPIKeys(currentOrganization?.id);
+      const keys = response.data.items;
+      setSharedAPIKeys(keys);
+
+      // Load metrics for any newly recovered keys
+      for (const key of keys) {
+        if (!metricsMap[key.id]) {
+          await loadMetrics(key.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh rate limit keys:', error);
+    }
+  };
+
   useIntervalOnVisible(refreshAllMetrics, sharedAPIKeys.length > 0 ? 20000 : null);
+  useIntervalOnVisible(refreshRateLimitKeys, sharedAPIKeys.some(k => k.rate_limit_reset_at) ? 30000 : null);
 
   const handleDisableAPIKey = async (apiKeyId: number) => {
     try {
@@ -372,20 +396,54 @@ export function MySharedPage() {
 
                       {/* Provider Name - Title is clickable */}
                       <div>
-                        {apiKey.provider_website ? (
-                          <a
-                            href={apiKey.provider_website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-bold text-xl text-white hover:text-[#b3b3b3] transition-colors cursor-pointer"
-                          >
-                            {apiKey.provider_display_name || apiKey.provider}
-                          </a>
-                        ) : (
-                          <div className="font-bold text-xl text-white">
-                            {apiKey.provider_display_name || apiKey.provider}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {apiKey.provider_website ? (
+                            <a
+                              href={apiKey.provider_website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-xl text-white hover:text-[#b3b3b3] transition-colors cursor-pointer"
+                            >
+                              {apiKey.provider_display_name || apiKey.provider}
+                            </a>
+                          ) : (
+                            <div className="font-bold text-xl text-white">
+                              {apiKey.provider_display_name || apiKey.provider}
+                            </div>
+                          )}
+                          {/* Rate limit badge */}
+                          {apiKey.rate_limit_reset_at && (() => {
+                            const resetDate = new Date(apiKey.rate_limit_reset_at);
+                            const now = new Date();
+                            const diff = resetDate.getTime() - now.getTime();
+                            // Only show badge if reset time is in the future (with small buffer for clock skew)
+                            if (diff <= 1000) return null; // Hide if less than 1 second remaining
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                            // Ensure at least 1 minute if any positive time remains
+                            const displayMinutes = hours === 0 && minutes === 0 ? 1 : minutes;
+                            return (
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                              {/* Status block */}
+                              <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">
+                                {tRateLimit('status')}
+                              </span>
+                              {/* Divider */}
+                              <span className="mx-1.5 text-orange-500/30">|</span>
+                              {/* Time block */}
+                              <span className="text-orange-400">
+                                {hours > 0 ? `${hours}${tRateLimit('hours')}${displayMinutes}${tRateLimit('minutes')}` :
+                                 displayMinutes > 0 ? `${displayMinutes}${tRateLimit('minutes')}` :
+                                 `< 1${tRateLimit('minutes')}`}
+                              </span>
+                              <span className="ml-0.5 text-orange-500/60 text-[10px]">
+                                {tRateLimit('recoverAfter')}
+                              </span>
+                            </span>
+                            );
+                          })()}
+                        </div>
                         {/* Model Tags */}
                         {apiKey.supported_models && apiKey.supported_models.length > 0 && (
                           <div className="flex gap-2 flex-wrap mt-2">

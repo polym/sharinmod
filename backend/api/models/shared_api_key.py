@@ -60,6 +60,18 @@ class SharedAPIKey(SQLModel, table=True):
     total_requests: int = Field(default=0)  # Total number of requests made using this shared API key
     total_tokens: int = Field(default=0)  # Total tokens consumed through this shared API key
 
+    # Rate limit handling
+    rate_limit_reset_at: Optional[datetime] = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=True, index=True),
+        default=None,
+        description="Rate limit reset time when API key exceeded quota"
+    )
+    rate_limit_models_backup: Optional[str] = Field(
+        default=None,
+        max_length=1000,
+        description="Backup of user-selected models (JSON array) for recovery"
+    )
+
     # Unique constraint: one API key per provider per user per organization
     __table_args__ = (
         Index("idx_user_provider_unique", "user_id", "provider", "organization_id", unique=True),
