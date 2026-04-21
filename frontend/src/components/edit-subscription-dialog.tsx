@@ -100,7 +100,7 @@ export function EditSubscriptionDialog({ apiKey, onUpdated, open, onOpenChange }
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="token">
+              <Label htmlFor="token" required>
                 {t('apiKey')}
               </Label>
               <Input
