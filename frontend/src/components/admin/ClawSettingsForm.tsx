@@ -37,7 +37,7 @@ export function ClawSettingsForm({
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="max-count">{t('maxCount')}</Label>
+          <Label htmlFor="max-count" required>{t('maxCount')}</Label>
           <Input
             id="max-count"
             type="number"
@@ -49,7 +49,7 @@ export function ClawSettingsForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="claw-daily-token-limit">{t('dailyTokenLimit')}</Label>
+          <Label htmlFor="claw-daily-token-limit" required>{t('dailyTokenLimit')}</Label>
           <Input
             id="claw-daily-token-limit"
             type="number"
@@ -76,7 +76,7 @@ export function ClawSettingsForm({
 
       {archiveEnabled && (
         <div className="space-y-2">
-          <Label htmlFor="max-manual">{t('archive.maxManual')}</Label>
+          <Label htmlFor="max-manual" required>{t('archive.maxManual')}</Label>
           <Input
             id="max-manual"
             type="number"
@@ -105,7 +105,7 @@ export function ClawSettingsForm({
       {archiveEnabled && autoEnabled && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="schedule-hour">{t('archive.scheduleDaily')}</Label>
+            <Label htmlFor="schedule-hour" required>{t('archive.scheduleDaily')}</Label>
             <Select
               value={scheduleHour.toString()}
               onValueChange={(value) => onChange('scheduleHour', parseInt(value))}
@@ -124,7 +124,7 @@ export function ClawSettingsForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="retention-daily">{t('archive.retentionDaily')}</Label>
+            <Label htmlFor="retention-daily" required>{t('archive.retentionDaily')}</Label>
             <Input
               id="retention-daily"
               type="number"
@@ -141,7 +141,7 @@ export function ClawSettingsForm({
       {archiveEnabled && autoEnabled && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="schedule-interval">{t('archive.scheduleInterval')}</Label>
+            <Label htmlFor="schedule-interval" required>{t('archive.scheduleInterval')}</Label>
             <Input
               id="schedule-interval"
               type="number"
@@ -153,7 +153,7 @@ export function ClawSettingsForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="retention-interval">{t('archive.retentionInterval')}</Label>
+            <Label htmlFor="retention-interval" required>{t('archive.retentionInterval')}</Label>
             <Input
               id="retention-interval"
               type="number"

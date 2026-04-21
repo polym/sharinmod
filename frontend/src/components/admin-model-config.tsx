@@ -803,7 +803,7 @@ function ProviderModelTab() {
           <div className="grid gap-4 py-4">
             {/* Provider Selection */}
             <div className="grid gap-2">
-              <Label>{t('addDialog.provider') || '供应商'}</Label>
+              <Label required>{t('addDialog.provider') || '供应商'}</Label>
               <Select
                 value={modelForm.providerId.toString()}
                 onValueChange={(value) => setModelForm({ ...modelForm, providerId: parseInt(value) })}
@@ -823,7 +823,7 @@ function ProviderModelTab() {
 
             {/* Model Key Selection - disabled in edit mode */}
             <div className="grid gap-2">
-              <Label>{t('addDialog.modelKey') || '模型标识'}</Label>
+              <Label required>{t('addDialog.modelKey') || '模型标识'}</Label>
               <Select
                 value={modelForm.modelKey}
                 onValueChange={handleModelSelect}
@@ -857,7 +857,7 @@ function ProviderModelTab() {
 
             {/* Display Name */}
             <div className="grid gap-2">
-              <Label>{t('addDialog.displayName') || '显示名称'}</Label>
+              <Label required>{t('addDialog.displayName') || '显示名称'}</Label>
               <Input
                 value={modelForm.displayName}
                 onChange={(e) => setModelForm({ ...modelForm, displayName: e.target.value })}
@@ -877,7 +877,7 @@ function ProviderModelTab() {
             {/* Context Length & Max Output */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label>{t('addDialog.contextLength') || '上下文长度'}</Label>
+                <Label required>{t('addDialog.contextLength') || '上下文长度'}</Label>
                 <Input
                   value={modelForm.contextLength}
                   onChange={(e) => setModelForm({ ...modelForm, contextLength: e.target.value })}
@@ -885,7 +885,7 @@ function ProviderModelTab() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>{t('addDialog.maxOutput') || '最大输出'}</Label>
+                <Label required>{t('addDialog.maxOutput') || '最大输出'}</Label>
                 <Input
                   value={modelForm.maxOutputLength}
                   onChange={(e) => setModelForm({ ...modelForm, maxOutputLength: e.target.value })}
@@ -1256,7 +1256,7 @@ function GlobalModelTab() {
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>{t('dialog.modelKey')}</Label>
+              <Label required>{t('dialog.modelKey')}</Label>
               <Input
                 value={form.model_key}
                 onChange={(e) => setForm((f) => ({ ...f, model_key: e.target.value }))}
@@ -1315,7 +1315,7 @@ function GlobalModelTab() {
               </div>
             </div>
             <div className="grid gap-2">
-              <Label>{t('dialog.displayName')}</Label>
+              <Label required>{t('dialog.displayName')}</Label>
               <Input
                 value={form.display_name}
                 onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
@@ -1331,7 +1331,7 @@ function GlobalModelTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label>{t('dialog.contextLength')}</Label>
+                <Label required>{t('dialog.contextLength')}</Label>
                 <Input
                   value={form.context_length}
                   onChange={(e) => setForm((f) => ({ ...f, context_length: e.target.value }))}
@@ -1339,7 +1339,7 @@ function GlobalModelTab() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>{t('dialog.maxOutput')}</Label>
+                <Label required>{t('dialog.maxOutput')}</Label>
                 <Input
                   value={form.max_output_length}
                   onChange={(e) => setForm((f) => ({ ...f, max_output_length: e.target.value }))}

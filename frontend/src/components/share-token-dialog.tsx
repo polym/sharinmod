@@ -154,7 +154,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="provider">
+              <Label htmlFor="provider" required>
                 {t('subscriptionPlatform')}
               </Label>
               <Select value={provider} onValueChange={handleProviderChange} disabled={loadingProviders}>
@@ -194,7 +194,7 @@ export function ShareAPIKeyDialog({ onAPIKeyShared, children }: ShareAPIKeyDialo
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token">
+              <Label htmlFor="token" required>
                 {t('apiKey')}
               </Label>
               <Input

@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/lib/store';
 import { organizationAPI } from '@/lib/services';
 import { Building2 } from 'lucide-react';
@@ -78,9 +79,7 @@ export function CreateOrganizationDialog() {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="org-name" className="text-sm font-medium text-[#b3b3b3]">
-              私服名称
-            </label>
+            <Label htmlFor="org-name" required>私服名称</Label>
             <div className="relative">
               <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#535353]" />
               <Input

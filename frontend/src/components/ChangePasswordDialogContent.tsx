@@ -104,7 +104,7 @@ export function ChangePasswordDialogContent({ onSuccess }: ChangePasswordDialogC
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="new-password">{t('newPassword')}</Label>
+        <Label htmlFor="new-password" required>{t('newPassword')}</Label>
         <Input
           id="new-password"
           type="password"
@@ -122,7 +122,7 @@ export function ChangePasswordDialogContent({ onSuccess }: ChangePasswordDialogC
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-password">{t('confirmPassword')}</Label>
+        <Label htmlFor="confirm-password" required>{t('confirmPassword')}</Label>
         <Input
           id="confirm-password"
           type="password"

@@ -15,7 +15,7 @@ export function GlobalSettingsForm({ dailyTokenLimit, onChange }: GlobalSettings
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="daily-token-limit">{t('dailyTokenLimit')}</Label>
+        <Label htmlFor="daily-token-limit" required>{t('dailyTokenLimit')}</Label>
         <Input
           id="daily-token-limit"
           type="number"

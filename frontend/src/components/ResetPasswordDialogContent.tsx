@@ -181,7 +181,7 @@ export function ResetPasswordDialogContent({ token, onSuccess, onCancel }: Reset
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="new-password">{tPassword('newPassword')}</Label>
+        <Label htmlFor="new-password" required>{tPassword('newPassword')}</Label>
         <Input
           id="new-password"
           name="new-password"
@@ -200,7 +200,7 @@ export function ResetPasswordDialogContent({ token, onSuccess, onCancel }: Reset
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirm-password">{tPassword('confirmPassword')}</Label>
+        <Label htmlFor="confirm-password" required>{tPassword('confirmPassword')}</Label>
         <Input
           id="confirm-password"
           name="confirm-password"

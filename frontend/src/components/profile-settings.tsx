@@ -166,7 +166,7 @@ export function ProfileSettings({ onSaveSuccess }: ProfileSettingsProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">{t('name')}</Label>
+          <Label htmlFor="name" required>{t('name')}</Label>
           <Input
             id="name"
             value={name}
