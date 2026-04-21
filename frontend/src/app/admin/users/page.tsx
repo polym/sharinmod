@@ -530,7 +530,7 @@ export default function AdminUsersPage() {
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">{t('email')}</Label>
+                      <Label htmlFor="email" required>{t('email')}</Label>
                       <Input
                         id="email"
                         type="email"

@@ -123,7 +123,7 @@ export function ChangePasswordCard({ forceChange = false }: ChangePasswordCardPr
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="new-password">{tPassword('newPassword')}</Label>
+            <Label htmlFor="new-password" required>{tPassword('newPassword')}</Label>
             <Input
               id="new-password"
               type="password"
@@ -141,7 +141,7 @@ export function ChangePasswordCard({ forceChange = false }: ChangePasswordCardPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">{tPassword('confirmPassword')}</Label>
+            <Label htmlFor="confirm-password" required>{tPassword('confirmPassword')}</Label>
             <Input
               id="confirm-password"
               type="password"

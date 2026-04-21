@@ -262,7 +262,7 @@ export function AdminProviders() {
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label htmlFor="provider-key">{t('providerKey')}</Label>
+                    <Label htmlFor="provider-key" required>{t('providerKey')}</Label>
                     <Input
                       id="provider-key"
                       value={providerKey}
@@ -271,7 +271,7 @@ export function AdminProviders() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="name">{t('name')}</Label>
+                    <Label htmlFor="name" required>{t('name')}</Label>
                     <Input
                       id="name"
                       value={name}
@@ -280,7 +280,7 @@ export function AdminProviders() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="website">{t('website')}</Label>
+                    <Label htmlFor="website" required>{t('website')}</Label>
                     <Input
                       id="website"
                       value={website}
@@ -302,7 +302,7 @@ export function AdminProviders() {
                     </select>
                   </div>
                   <div>
-                    <Label htmlFor="base-url">Base URL *</Label>
+                    <Label htmlFor="base-url" required>Base URL</Label>
                     <Input
                       id="base-url"
                       value={baseUrl}

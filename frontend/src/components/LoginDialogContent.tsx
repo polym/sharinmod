@@ -142,7 +142,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="dialog-email">{t('email')}</Label>
+        <Label htmlFor="dialog-email" required>{t('email')}</Label>
         <Input
           id="dialog-email"
           type="email"
@@ -153,7 +153,7 @@ export function LoginDialogContent({ onSuccess }: LoginDialogContentProps) {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="dialog-password">{t('password')}</Label>
+        <Label htmlFor="dialog-password" required>{t('password')}</Label>
         <Input
           id="dialog-password"
           type="password"

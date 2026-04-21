@@ -145,7 +145,7 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="reg-email">{t('email')}</Label>
+        <Label htmlFor="reg-email" required>{t('email')}</Label>
         <Input
           id="reg-email"
           name="email"
@@ -158,7 +158,7 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="reg-password">{t('password')}</Label>
+        <Label htmlFor="reg-password" required>{t('password')}</Label>
         <Input
           id="reg-password"
           name="new-password"
@@ -176,7 +176,7 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="reg-confirm-password">{t('confirmPassword')}</Label>
+        <Label htmlFor="reg-confirm-password" required>{t('confirmPassword')}</Label>
         <Input
           id="reg-confirm-password"
           name="confirm-password"
@@ -210,7 +210,7 @@ export function RegisterDialogContent({ onSwitchToLogin }: RegisterDialogContent
         </ul>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="reg-invite-code">{t('invitationCode')}</Label>
+        <Label htmlFor="reg-invite-code" required>{t('invitationCode')}</Label>
         <Input
           id="reg-invite-code"
           name="invitation-code"

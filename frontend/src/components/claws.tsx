@@ -1301,7 +1301,7 @@ export function ClawsPage() {
           {createPhase === 'config' && (
             <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="create-name">龙虾名称 <span className="text-red-500">*</span></Label>
+              <Label htmlFor="create-name" required>龙虾名称</Label>
               <Input
                 id="create-name"
                 placeholder="给你的龙虾起个名字"
@@ -1311,7 +1311,7 @@ export function ClawsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-type">类型 <span className="text-red-500">*</span></Label>
+              <Label htmlFor="create-type" required>类型</Label>
               <Select value={newType} onValueChange={(v) => {
                 setNewType(v);
                 // 重置对话工具为第一个可用选项
@@ -1329,8 +1329,8 @@ export function ClawsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="create-brain-model">
-                龙虾大脑🧠 <span className="text-red-500">*</span>
+              <Label htmlFor="create-brain-model" required>
+                龙虾大脑🧠
               </Label>
               <Select value={newBrainModel} onValueChange={setNewBrainModel}>
                 <SelectTrigger id="create-brain-model" className="rounded-xl">
@@ -1359,7 +1359,7 @@ export function ClawsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>对话工具 <span className="text-red-500">*</span></Label>
+              <Label required>对话工具</Label>
               <div className="grid grid-cols-3 gap-2">
                 {CHAT_TOOLS.filter(t => t.supportedTypes.includes(newType)).map((tool) => (
                   <button
